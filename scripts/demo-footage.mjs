@@ -1,8 +1,8 @@
 // Raw footage for the KapeCut demo film: drives the real app through the whole loop on the Lumen demo Project
 // (scripts/readme-demo.mjs) and records it. An empty folder with a brief, the Scenes landing one by one as Claude would
 // write them, play, a Note pinned on the lamp's light, Copy Prompt, the fix landing and the Note ticked off, Export.
-// Writes <out>/footage.webm, <out>/marks.json (each step's time in the video, in seconds, and the boxes of what it
-// touches, in page px) and <out>/lumen.mp4 (the exported ad). Usage: npm run footage:demo -- <out>
+// Writes <out>/footage.webm, <out>/marks.json (each step's time in seconds from when the window appeared, which the
+// recording starts a moment before, and the boxes of what it touches, in page px) and <out>/lumen.mp4 (the exported ad). Usage: npm run footage:demo -- <out>
 import { _electron as electron } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -15,6 +15,7 @@ const out = resolve(process.argv[2] ?? '.scratch/demo-footage')
 mkdirSync(out, { recursive: true })
 const dropEnv = readyEnv()
 const root = mkdtempSync(join(tmpdir(), 'kapecut-demo-'))
+process.on('exit', () => rmSync(root, { recursive: true, force: true })) // a failed run too
 const staged = join(root, 'staged')
 execFileSync(process.execPath, ['scripts/readme-demo.mjs', staged], { stdio: 'ignore' })
 const dir = join(root, 'lumen-launch')
@@ -73,7 +74,7 @@ try {
   for (let i = 0; i < project.scenes.length; i++) {
     land(project.scenes[i])
     writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...project, scenes: project.scenes.slice(0, i + 1) }, null, 2))
-    await page.locator(`#scene-list li:nth-child(${i + 1})`).waitFor({ timeout: 30_000 }).catch(() => null)
+    await page.locator(`#scene-list li:nth-child(${i + 1})`).waitFor({ timeout: 30_000 })
     await mark(page, `scene:${project.scenes[i]}`, '#scene-list', '#strips')
     await hold(page, 1400)
   }
@@ -140,5 +141,4 @@ const [webm] = readdirSync(video)
 renameSync(join(video, webm), join(out, 'footage.webm'))
 copyFileSync(exported, join(out, 'lumen.mp4'))
 writeFileSync(join(out, 'marks.json'), JSON.stringify({ size: { w: W, h: H }, scale: SCALE, marks }, null, 2))
-rmSync(root, { recursive: true, force: true })
 console.log(out)

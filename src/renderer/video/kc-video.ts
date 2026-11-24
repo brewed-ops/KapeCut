@@ -6,8 +6,8 @@ export type Video = {
   duration: number
   width: number
   height: number
-  /** The Video file's picture showing at t seconds, for drawImage. KapeCut closes it on the next frameAt or when the page goes. */
-  frameAt(t: number): Promise<VideoFrame>
+  /** A canvas holding the Video file's picture at t seconds, upright. KapeCut redraws it on the next frameAt. */
+  frameAt(t: number): Promise<HTMLCanvasElement>
   close(): void
 }
 
@@ -18,12 +18,14 @@ const JUMP = 3 // seconds: further ahead than this, start again from a keyframe 
 export function openVideo(url: string): Video {
   let input: Input | undefined
   let sink: VideoSampleSink
+  const pic = document.createElement('canvas') // the one picture this Video file hands out, so no frame is left to close
   let run: AsyncGenerator<VideoSample, void> | undefined
-  let from = 0 // the run's start, then cur's time once it walked: any t from here on is reached by walking forward
+  let from = 0 // the run's first picture, then cur's time once it walked: any t from here on is reached by walking forward
   let cur: VideoSample | undefined // the last picture starting at or before the last t
   let next: VideoSample | undefined // the picture after it, already decoded
-  let out: VideoFrame | undefined
   let queue: Promise<unknown> = Promise.resolve()
+  type Job = { t: number; frame?: Promise<HTMLCanvasElement> }
+  let waiting: Job | undefined
   let closed = false
 
   const stop = () => {
@@ -34,39 +36,46 @@ export function openVideo(url: string): Video {
   }
   const pull = async () => (await run!.next()).value || undefined
 
+  async function draw(t: number) {
+    await video.ready
+    if (closed) throw new Error('kcVideo: the video was closed')
+    const at = Math.max(0, t) + NUDGE
+    try {
+      if (!cur || at < from || (next && at > next.timestamp + JUMP)) {
+        stop()
+        run = sink.samples(at)
+        cur = await pull()
+        next = await pull()
+        from = Math.min(at, cur?.timestamp ?? at)
+      }
+      while (next && next.timestamp <= at) {
+        cur!.close()
+        from = next.timestamp
+        ;[cur, next] = [next, await pull()]
+      }
+    } catch (e) {
+      stop() // a failed decode leaves no closed picture behind for the next call
+      throw e
+    }
+    if (!cur) throw new Error(`kcVideo: ${url} has no picture at ${t}s`)
+    cur.drawWithFit(pic.getContext('2d')!, { fit: 'fill' }) // applies the file's rotation, as width and height do
+    return pic
+  }
+
   const video: Video = {
     duration: 0,
     width: 0,
     height: 0,
     ready: load(),
     frameAt: (t) => {
-      // One at a time: a fast scrub must not walk the shared decoder from two calls at once.
-      const frame = queue.then(async () => {
-        await video.ready
-        if (closed) throw new Error('kcVideo: the video was closed')
-        const at = Math.max(0, t) + NUDGE
-        try {
-          if (!cur || at < from || (next && at > next.timestamp + JUMP)) {
-            stop()
-            run = sink.samples((from = at))
-            cur = await pull()
-            next = await pull()
-          }
-          while (next && next.timestamp <= at) {
-            cur!.close()
-            from = next.timestamp
-            ;[cur, next] = [next, await pull()]
-          }
-        } catch (e) {
-          stop() // a failed decode leaves no closed picture behind for the next call
-          throw e
-        }
-        if (!cur) throw new Error(`kcVideo: ${url} has no picture at ${t}s`)
-        out?.close()
-        return (out = cur.toVideoFrame())
-      })
-      queue = frame.catch(() => {})
-      return frame
+      // Playback asks every display refresh without waiting: calls not yet started merge into the newest t, so slow
+      // decoding never piles up. Export awaits each Frame, so its calls never merge.
+      if (waiting) return (waiting.t = t), waiting.frame!
+      const job: Job = (waiting = { t })
+      // One at a time: two calls must not walk the shared decoder at once.
+      job.frame = queue.then(() => ((waiting = undefined), draw(job.t)))
+      queue = job.frame.catch(() => {})
+      return job.frame
     },
     close: () => {
       closed = true
@@ -74,7 +83,7 @@ export function openVideo(url: string): Video {
       void queue
         .then(() => video.ready)
         .catch(() => {})
-        .then(() => (stop(), out?.close(), input?.dispose()))
+        .then(() => (stop(), input?.dispose(), (pic.width = pic.height = 0)))
     },
   }
   return video
@@ -92,6 +101,8 @@ export function openVideo(url: string): Video {
     if (!track) throw new Error(`kcVideo: ${pathname} has no video track`)
     if (!(await track.canDecode())) throw new Error(`kcVideo: cannot decode ${pathname} (${track.codec})`)
     sink = new VideoSampleSink(track)
-    Object.assign(video, { duration: await track.computeDuration(), width: track.displayWidth, height: track.displayHeight })
+    const [width, height] = [await track.getDisplayWidth(), await track.getDisplayHeight()]
+    Object.assign(pic, { width, height })
+    Object.assign(video, { duration: await track.computeDuration(), width, height })
   }
 }
