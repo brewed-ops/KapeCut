@@ -156,7 +156,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(
   </main>
 </div>
 <script>
-const PATH = 'D:\\Videos\\kopi-senja-promo'
+const PATH = 'D:\\Videos\\lumen-launch'
 const ico = {
   img: '<path d="M4 5h16v14H4z"/><path d="M4 16l5-5 4 4 3-3 4 4"/>',
   pdf: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>',
@@ -209,13 +209,13 @@ DECS.forEach(d => picks[d.id] = d.o.find(o => o[2])[0])
 
 function sceneFrame(on, i) {
   const c = SCENES[i][1]
-  return `<div class="a-frame" style="background:${c}">Kopi<br>Senja</div>`
+  return `<div class="a-frame" style="background:${c}">Lumen</div>`
 }
 function app(s) {
   const pres = s.pres === 'active' ? '<span class="a-pres" data-s="active"><i class="a-dot"></i><span class="eb" style="color:var(--text)">Claude active</span></span>'
     : s.pres === 'idle' ? '<span class="a-pres"><i class="a-dot"></i><span class="eb">Claude idle 15m</span></span>'
     : '<span class="a-pres"><i class="a-dot"></i><span class="eb">Claude not connected</span></span>'
-  const meta = s.scenes ? 'Kopi Senja promo &middot; 1080x1920 &middot; 30 fps' : 'kopi-senja-promo &middot; set up'
+  const meta = s.scenes ? 'Lumen launch &middot; 1080x1920 &middot; 30 fps' : 'lumen-launch &middot; set up'
   const files = s.files ? FILES.slice(0, s.files).map((f, i) => `<li class="${i >= s.files - (s.fresh || 0) ? 'a-new' : ''}"><span class="a-thumb"><svg viewBox="0 0 24 24">${ico[f[1]]}</svg></span><span>${f[0]}</span><span class="a-kind">${f[2]}</span></li>`).join('')
     : ''
   const scenes = s.scenes ? `<ul class="a-list a-scenes">${SCENES.map((sc, i) => `<li class="${i ? '' : 'a-on'}"><span class="a-sthumb" style="background:${sc[1]}"></span><div><b>0${i + 1} ${sc[0]}</b><small>${sc[2]}</small></div></li>`).join('')}</ul>`

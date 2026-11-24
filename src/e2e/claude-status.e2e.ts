@@ -109,7 +109,7 @@ test("the app's own writes never reach the page as activity; the handshake turns
 test('a Project opened with a handshake starts idle, stays active through its own reload, and starts idle when opened again', async () => {
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
-    const dir = join(root, 'Kopi')
+    const dir = join(root, 'Lumen')
     mkdirSync(dir)
     handshake(dir)
     const { app, page } = await launch({ project: dir, userData: join(root, 'user'), waitForExport: false })

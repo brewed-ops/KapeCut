@@ -142,7 +142,7 @@ test('empty state, clear project.json errors, recent Projects, last Project reop
 
 test('an empty folder opens in Set-up state: Files live, Scenes and Timeline wait, project.json opens the editor', async () => {
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
-  const dir = join(root, 'Kopi')
+  const dir = join(root, 'Lumen')
   mkdirSync(dir)
   const { app, page } = await launch({ project: dir, userData: join(root, 'user'), waitForExport: false })
   await expect(page.locator('.set-up')).toBeVisible()
@@ -156,7 +156,7 @@ test('an empty folder opens in Set-up state: Files live, Scenes and Timeline wai
   await expect(page.locator('#export')).toBeDisabled()
   await expect(page.locator('#note')).toBeDisabled()
   await expect(page.locator('#pen')).toBeDisabled()
-  await expect(page).toHaveTitle('Kopi - KapeCut')
+  await expect(page).toHaveTitle('Lumen - KapeCut')
 
   // Copied in from Explorer: listed without a refresh.
   writeFileSync(join(dir, 'logo.png'), 'png')

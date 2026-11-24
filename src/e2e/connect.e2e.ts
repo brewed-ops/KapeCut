@@ -25,7 +25,7 @@ test('opening a Project writes the Session file; Connect Claude copies the Conne
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
     const userData = join(root, 'user')
-    const empty = join(root, 'Kopi')
+    const empty = join(root, 'Lumen')
     mkdirSync(empty)
     const built = join(root, 'Built')
     mkdirSync(built)
@@ -79,7 +79,7 @@ test('a Session file that cannot be written still opens the Project', async () =
   try {
     const userData = join(root, 'user')
     mkdirSync(join(userData, 'session.json'), { recursive: true }) // a folder by that name: the rename fails
-    const dir = join(root, 'Kopi')
+    const dir = join(root, 'Lumen')
     mkdirSync(dir)
     let stderr = ''
     const { app, page } = await launch({

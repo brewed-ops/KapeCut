@@ -4,6 +4,7 @@ import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const dir = process.argv[2]
+const BRIEF ='# Lumen launch\n\n8 s vertical ad for a desk lamp launch. Warm light, bold type.\n'
 mkdirSync(dir, { recursive: true })
 
 const page = (total, draw) => `<!doctype html>
@@ -46,16 +47,18 @@ if (query.has('t')) window.ready.then(() => window.renderAt(Number(query.get('t'
 </script></body></html>
 `
 
-// 1. Hook: three words slam in, an amber disc sweeps behind them.
+// 1. Hook: three words slide in, an amber pool of light opens behind them.
 const hook = page(2.5, `
-  const r = 620 * tw(t, 0, 0.9)
+  const r = 640 * tw(t, 0, 0.9)
   g.fillStyle = AMBER
-  g.beginPath(); g.arc(W * 0.72, H * 0.34, r, 0, Math.PI * 2); g.fill()
-  g.fillStyle = DEEP
-  g.beginPath(); g.arc(W * 0.72, H * 0.34, r * 0.42, 0, Math.PI * 2); g.fill()
+  g.globalAlpha = 0.9
+  g.beginPath(); g.arc(W * 0.7, H * 0.3, r, 0, Math.PI * 2); g.fill()
+  g.globalAlpha = 1
+  g.fillStyle = CREAM
+  g.beginPath(); g.arc(W * 0.7, H * 0.3, r * 0.22, 0, Math.PI * 2); g.fill()
   font(900, 230)
   g.textAlign = 'left'; g.textBaseline = 'alphabetic'
-  ;['FRESH', 'ROAST', 'DAILY.'].forEach((w, i) => {
+  ;['WORK', 'LATE,', 'SEE.'].forEach((w, i) => {
     const p = tw(t, 0.25 + i * 0.22, 0.5)
     g.globalAlpha = p
     g.fillStyle = i === 2 ? AMBER : CREAM
@@ -66,34 +69,33 @@ const hook = page(2.5, `
   g.fillRect(90, 1640, 900 * tw(t, 1.1, 0.8), 10)
   font(700, 44)
   g.globalAlpha = tw(t, 1.3, 0.5)
-  g.fillText('KOPI SENJA  ·  SMALL BATCH', 90, 1730)
+  g.fillText('LUMEN  ·  DESK LAMP', 90, 1730)
 `)
 
-// 2. Product: a cup built from shapes, steam drawn as sine strokes.
+// 2. Product: a desk lamp built from shapes, its cone of light fading up onto the desk.
 const product = page(3, `
   const up = tw(t, 0, 0.8)
-  const cx = W / 2, cy = 1020 + (1 - up) * 300
+  const cx = W / 2, cy = 1120 + (1 - up) * 300
   g.globalAlpha = up
   g.fillStyle = '#231d19'
-  g.beginPath(); g.ellipse(cx, cy + 330, 380, 60, 0, 0, Math.PI * 2); g.fill()
-  g.fillStyle = CREAM
-  g.beginPath(); g.moveTo(cx - 300, cy - 200); g.lineTo(cx + 300, cy - 200); g.lineTo(cx + 240, cy + 300); g.lineTo(cx - 240, cy + 300); g.closePath(); g.fill()
-  g.lineWidth = 46; g.strokeStyle = CREAM
-  g.beginPath(); g.arc(cx + 320, cy + 20, 110, -Math.PI / 2, Math.PI / 2); g.stroke()
+  g.beginPath(); g.ellipse(cx, cy + 420, 420, 60, 0, 0, Math.PI * 2); g.fill()
+  g.globalAlpha = up * 0.35 * tw(t, 0.6, 1.2)
   g.fillStyle = AMBER
-  g.fillRect(cx - 300, cy - 60, 600, 90)
-  g.lineWidth = 16; g.lineCap = 'round'; g.strokeStyle = CREAM
-  for (let k = -1; k <= 1; k++) {
-    g.globalAlpha = 0.8 * tw(t, 0.6 + (k + 1) * 0.15, 0.6)
-    g.beginPath()
-    for (let y = 0; y < 200; y += 6) g.lineTo(cx + k * 130 + Math.sin(y / 40 - t * 4 + k) * 26, cy - 250 - y)
-    g.stroke()
-  }
+  g.beginPath(); g.moveTo(cx + 40, cy - 250); g.lineTo(cx + 150, cy - 250); g.lineTo(cx + 380, cy + 420); g.lineTo(cx - 200, cy + 420); g.closePath(); g.fill()
+  g.globalAlpha = up
+  g.fillStyle = CREAM
+  g.beginPath(); g.ellipse(cx - 160, cy + 400, 170, 34, 0, 0, Math.PI * 2); g.fill()
+  g.lineWidth = 34; g.lineCap = 'round'; g.strokeStyle = CREAM
+  g.beginPath(); g.moveTo(cx - 160, cy + 390); g.lineTo(cx - 60, cy - 40); g.lineTo(cx + 60, cy - 330); g.stroke()
+  g.fillStyle = CREAM
+  g.beginPath(); g.moveTo(cx - 10, cy - 380); g.lineTo(cx + 170, cy - 300); g.lineTo(cx + 150, cy - 230); g.lineTo(cx + 20, cy - 270); g.closePath(); g.fill()
+  g.fillStyle = AMBER
+  g.beginPath(); g.arc(cx - 60, cy - 40, 30, 0, Math.PI * 2); g.fill()
   g.globalAlpha = tw(t, 0.9, 0.6)
   font(900, 150); g.textAlign = 'center'; g.fillStyle = CREAM
-  g.fillText('Kopi Senja', cx, 380)
+  g.fillText('Lumen', cx, 380)
   font(600, 52); g.fillStyle = AMBER
-  g.fillText('Palm sugar · oat milk · single origin', cx, 470)
+  g.fillText('Three warmths · one touch · USB-C', cx, 470)
 `)
 
 // 3. CTA: price tag pops, button fills.
@@ -101,12 +103,12 @@ const cta = page(2.5, `
   const p = tw(t, 0, 0.6)
   g.textAlign = 'center'
   font(800, 70); g.fillStyle = CREAM; g.globalAlpha = p
-  g.fillText('This weekend only', W / 2, 760)
+  g.fillText('Launch week only', W / 2, 760)
   g.save(); g.translate(W / 2, 1000); g.rotate(-0.06); g.scale(0.6 + 0.4 * tw(t, 0.3, 0.5), 0.6 + 0.4 * tw(t, 0.3, 0.5))
   g.globalAlpha = tw(t, 0.3, 0.3)
   g.fillStyle = AMBER; g.fillRect(-330, -150, 660, 300)
   font(900, 210); g.fillStyle = INK; g.textBaseline = 'middle'
-  g.fillText('₱99', 0, 10)
+  g.fillText('$49', 0, 10)
   g.restore()
   g.globalAlpha = tw(t, 0.8, 0.4)
   g.strokeStyle = CREAM; g.lineWidth = 6
@@ -114,20 +116,20 @@ const cta = page(2.5, `
   g.save(); g.beginPath(); g.roundRect(190, 1300, 700 * tw(t, 1.0, 0.9), 150, 75); g.clip()
   g.fillStyle = CREAM; g.fillRect(190, 1300, 700, 150); g.restore()
   font(800, 60); g.textBaseline = 'middle'; g.fillStyle = tw(t, 1.0, 0.9) > 0.5 ? INK : CREAM
-  g.fillText('ORDER NOW', W / 2, 1377)
+  g.fillText('PRE-ORDER', W / 2, 1377)
 `)
 
 writeFileSync(join(dir, 'hook.html'), hook)
 writeFileSync(join(dir, 'product.html'), product)
 writeFileSync(join(dir, 'cta.html'), cta)
 copyFileSync('examples/three-scenes/click.wav', join(dir, 'click.wav'))
-writeFileSync(join(dir, 'project.json'), JSON.stringify({ name: 'Kopi Senja Promo', size: { w: 1080, h: 1920 }, fps: 30, scenes: ['hook.html', 'product.html', 'cta.html'], audio: [{ file: 'click.wav', start: 0, volume: 1 }] }, null, 2))
-writeFileSync(join(dir, 'brief.md'), '# Kopi Senja promo\n\n8 s vertical ad for a weekend coffee deal. Warm, bold type.\n')
+writeFileSync(join(dir, 'project.json'), JSON.stringify({ name: 'Lumen Launch', size: { w: 1080, h: 1920 }, fps: 30, scenes: ['hook.html', 'product.html', 'cta.html'], audio: [{ file: 'click.wav', start: 0, volume: 1 }] }, null, 2))
+writeFileSync(join(dir, 'brief.md'), BRIEF)
 const T = '2026-11-24T10:00:00.000Z'
 const note = (n, text, scene, sceneTime, time, done, point) => ({ n, text, done, scene, sceneTime, time, frame: Math.round(time * 30), point, created: T, updated: T })
 writeFileSync(join(dir, 'notes.json'), JSON.stringify({ version: 1, next: 4, notes: [
-  note(1, 'Make DAILY amber, it is the punchline', 'hook.html', 1.5, 1.5, true, { x: 300, y: 1500 }),
-  note(2, 'Steam rises too fast, slow it down', 'product.html', 1.6, 4.1, false, { x: 540, y: 620 }),
+  note(1, 'Make SEE amber, it is the punchline', 'hook.html', 1.5, 1.5, true, { x: 300, y: 1500 }),
+  note(2, 'The light fades in too fast, slow it down', 'product.html', 1.6, 4.1, false, { x: 640, y: 1150 }),
   note(3, 'Hold the price tag half a second longer', 'cta.html', 1.2, 6.7, false, { x: 540, y: 1000 }),
 ] }, null, 2))
 mkdirSync(join(dir, '.kapecut'), { recursive: true })
