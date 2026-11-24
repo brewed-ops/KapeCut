@@ -54,7 +54,7 @@ Then, with no `project.json` in the folder, go on with the steps below. With one
 
 ```json
 {
-  "name": "Kopi Senja promo",
+  "name": "Lumen launch",
   "size": { "w": 1080, "h": 1920 },
   "fps": 30,
   "scenes": ["scene-1.html", "scene-2.html", "scene-3.html"]
@@ -90,7 +90,7 @@ chrome --headless --disable-gpu --hide-scrollbars --allow-file-access-from-files
 
 - `<temp dir>` is an absolute path to a new empty folder, made before the call (`mktemp -d`, or `%TEMP%\kapecut-still` on Windows). A relative `--user-data-dir` resolves against the browser's own folder, which it cannot write: Edge then stops on a "couldn't create the data directory" dialog instead of taking the still.
 - `--allow-file-access-from-files` lets a Scene fetch its own files over `file://`, as it can in KapeCut.
-- The file URL takes forward slashes, on Windows too: `file:///C:/Users/me/kopi/scene-1.html?t=1.5&scale=0.25`.
+- The file URL takes forward slashes, on Windows too: `file:///C:/Users/me/lumen/scene-1.html?t=1.5&scale=0.25`.
 - `--window-size` is the Design size times the scale (0.25 gives 270x480 for 9:16, 480x270 for 16:9, 270x270 for 1:1).
 - On Windows neither is on PATH: `chrome.exe` is in `C:\Program Files\Google\Chrome\Application\`, `msedge.exe` in `C:\Program Files (x86)\Microsoft\Edge\Application\`; elsewhere use `google-chrome`, `chromium` or the Chrome app binary. A browser automation tool you already have (Playwright and the like) works the same way: load the URL, wait for `window.ready`, screenshot.
 - Write the PNGs outside the Project folder, so KapeCut does not see them as saves.

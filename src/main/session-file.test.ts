@@ -15,8 +15,8 @@ it('writes session.json naming the open Project, with no temp file left', async 
   const userData = folder()
   const file = join(userData, 'session.json')
   await writeSession(file, 'C:\\a')
-  await writeSession(file, 'D:\\Videos\\Kopi')
-  expect(read(file)).toEqual({ version: 1, project: 'D:\\Videos\\Kopi' })
+  await writeSession(file, 'D:\\Videos\\Lumen')
+  expect(read(file)).toEqual({ version: 1, project: 'D:\\Videos\\Lumen' })
   expect(readdirSync(userData)).toEqual(['session.json'])
 })
 

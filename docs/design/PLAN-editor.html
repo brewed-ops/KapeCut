@@ -267,7 +267,7 @@ function header() {
   if (S.view === 'empty') return `<header class="k-head" data-region="header"><span class="k-logo">Kape<b>Cut</b></span><span class="k-sp"></span><span class="k-btn">${ic.open}Open Project</span><span class="k-primary k-dis">Export &rarr;</span></header>`
   return `<header class="k-head" data-region="header">
     <span class="k-logo">Kape<b>Cut</b></span>
-    <span class="k-proj"><span class="k-name">kopi-senja</span><span class="k-eb">1080x1920 · 30 fps · 3 Scenes</span></span>
+    <span class="k-proj"><span class="k-name">lumen-launch</span><span class="k-eb">1080x1920 · 30 fps · 3 Scenes</span></span>
     <span class="k-sp"></span>
     <span class="k-btn">${ic.open}Open Project</span>
     <span class="k-eb">${S.view === 'export' ? '' : 'H.264 hardware · ffmpeg yes'}</span>
@@ -377,7 +377,7 @@ function exportUi() {
 function body() {
   if (S.view === 'empty') return `<div class="k-empty"><section class="k-win" data-region="empty state"><div class="k-tb"><i></i><i></i><i></i><span class="k-eb">No Project open</span></div>
     <div class="k-drop"><h2>Open a <b>Project</b></h2><p>Pick a folder with a project.json, or drop one on this window.</p><span class="k-primary">Open folder &rarr;</span></div>
-    <div class="k-recent"><span class="k-eb">Recent</span><div><span>kopi-senja</span><span class="k-sl">today</span></div><div><span>hello</span><span class="k-sl">yesterday</span></div></div></section></div>`
+    <div class="k-recent"><span class="k-eb">Recent</span><div><span>lumen-launch</span><span class="k-sl">today</span></div><div><span>hello</span><span class="k-sl">yesterday</span></div></div></section></div>`
   const v = viewer(), t = timeline()
   if (S.dir === 'A') return `<div class="k-body k-dA">${sceneWin()}${v}${notesWin()}${t}</div>`
   if (S.dir === 'B') return `<div class="k-body k-dB">${railWin()}${v}${t}</div>`
