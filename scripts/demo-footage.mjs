@@ -5,7 +5,7 @@
 // 2. The Lumen 3D ad (scripts/readme-demo.mjs), shorter: opened from the Projects menu, its Scenes land, play, Export.
 // Writes to <out>: footage.mp4 (H.264, a keyframe every 12 frames for seeking), marks.json (each step's time in seconds
 // of footage.mp4 and the boxes of what it touches, in page px), ugc.mp4 and lumen.mp4 (the two Exports).
-// Usage: npm run footage:demo -- <out> <clip.mp4>   (the clip: a vertical talking-head video, at least 16 s long)
+// Usage: npm run footage:demo -- <out> <clip.mp4>   (the clip: a 9:16 talking-head video, at least 15.2 s long)
 import { _electron as electron } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -23,8 +23,8 @@ const root = mkdtempSync(join(tmpdir(), 'kapecut-demo-'))
 process.on('exit', () => rmSync(root, { recursive: true, force: true })) // a failed run too
 const stagedUgc = join(root, 'staged-ugc')
 const stagedLumen = join(root, 'staged-lumen')
-execFileSync(process.execPath, ['scripts/ugc-demo.mjs', stagedUgc, clip], { stdio: 'ignore' })
-execFileSync(process.execPath, ['scripts/readme-demo.mjs', stagedLumen], { stdio: 'ignore' })
+execFileSync(process.execPath, ['scripts/ugc-demo.mjs', stagedUgc, clip], { stdio: ['ignore', 'ignore', 'inherit'] })
+execFileSync(process.execPath, ['scripts/readme-demo.mjs', stagedLumen], { stdio: ['ignore', 'ignore', 'inherit'] })
 const ugc = join(root, 'lumen-ugc')
 const lumen = join(root, 'lumen-launch')
 for (const [dir, staged, files] of [[ugc, stagedUgc, ['brief.md', 'speaker.mp4']], [lumen, stagedLumen, ['brief.md', 'click.wav']]]) {
@@ -99,9 +99,11 @@ try {
     const mask = () => {
       const path = document.getElementById('files-path')
       if (path?.textContent && !path.textContent.startsWith('~')) path.textContent = path.title = '~/Videos/' + path.textContent.split(/[\\/]/).pop()
-      const status = document.getElementById('export-status')
-      if (status?.textContent && !status.textContent.includes('~/Videos/'))
-        status.textContent = status.textContent.replace(/(?:[A-Za-z]:)?[\\/]\S*[\\/]([^\\/\s]+)/g, '~/Videos/$1')
+      // From the path's start (a drive, or a slash after a space, a quote or the line start) to its last separator,
+      // spaces in it included.
+      const status = document.getElementById('export-status'), s = status?.textContent ?? ''
+      const i = s.search(/[A-Za-z]:[\\/]|(?<=^|[\s'"])[\\/]/), j = Math.max(s.lastIndexOf('/'), s.lastIndexOf('\\'))
+      if (!s.includes('~/Videos/') && i >= 0 && j > i) status.textContent = s.slice(0, i) + '~/Videos/' + s.slice(j + 1)
     }
     new MutationObserver(mask).observe(document, { subtree: true, childList: true, characterData: true })
   })
@@ -156,14 +158,14 @@ try {
 
   // Claude's fix: the caption moves down off the face, then the Note is set done in notes.json.
   const cta = join(ugc, 'cta.html')
-  await page.evaluate(() => (window.before = document.querySelector('iframe')?.contentDocument))
-  const before = readFileSync(cta, 'utf8'), fixed = before.replace('const CAP_Y = 1000', 'const CAP_Y = 1560')
+  await page.evaluate(() => (window.before = document.querySelector('iframe.current')?.contentDocument))
+  const before = readFileSync(cta, 'utf8'), fixed = before.replace('const CAP_Y = 1000', 'const CAP_Y = 1400')
   if (fixed === before) throw new Error('cta.html has no "const CAP_Y = 1000" to fix: keep scripts/ugc-demo.mjs and this script in step')
   writeFileSync(cta, fixed)
   await mark(page, 'ugc:fixed', '#view', '#claude-status')
   // The Scene reloads and starts its video decoder again, black until then: wait for the new page to draw.
   await page.waitForFunction(() => {
-    const doc = document.querySelector('iframe')?.contentDocument
+    const doc = document.querySelector('iframe.current')?.contentDocument
     const c = doc !== window.before && doc?.querySelector('canvas')
     return !!c && c.getContext('2d').getImageData(c.width / 2, c.height / 4, 1, 1).data[0] > 0
   }, null, { timeout: 15_000 })
@@ -218,8 +220,9 @@ if (flashes.length !== 2) throw new Error(`expected 2 sync squares in the record
 const at = (name) => marks.find((x) => x.name === name).t
 const offset = Math.round((flashes[0] - at('sync')) * 1000) / 1000
 const drift = Math.round((flashes[1] - at('sync:end') - offset) * 1000) / 1000
-if (Math.abs(drift) > 0.1) console.warn(`marks drift ${drift} s against the video by the end of the run`)
-for (const x of marks) x.t = Math.round((x.t + offset) * 1000) / 1000
+// Each mark moves by the offset, plus its share of the drift between the two flashes.
+const span = at('sync:end') - at('sync')
+for (const x of marks) x.t = Math.round((x.t + offset + (drift * (x.t - at('sync'))) / span) * 1000) / 1000
 ffmpeg(['-y', '-i', raw, '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-g', '12', '-pix_fmt', 'yuv420p', '-an', join(out, 'footage.mp4')])
 copyFileSync(join(root, 'ugc.mp4'), join(out, 'ugc.mp4'))
 copyFileSync(join(root, 'lumen.mp4'), join(out, 'lumen.mp4'))

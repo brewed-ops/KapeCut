@@ -5,6 +5,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const dir = process.argv[2]
+if (!dir) throw new Error('Usage: node scripts/readme-demo.mjs <outDir>')
 const BRIEF = '# Lumen launch\n\n8 s vertical ad for a desk lamp launch. A real product reveal in 3D: dark room, warm light, bold type.\n'
 mkdirSync(dir, { recursive: true })
 
@@ -104,7 +105,7 @@ function start(c) {
   renderer.toneMapping = T.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.1
   renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = T.PCFSoftShadowMap
+  renderer.shadowMap.type = T.PCFShadowMap // spot.shadow.radius softens it; PCFSoft is deprecated in three 0.185
   const scene = new T.Scene()
   scene.background = new T.Color(INK)
   scene.fog = new T.Fog(INK, 22, 42)

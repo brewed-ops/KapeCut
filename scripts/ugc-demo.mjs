@@ -1,12 +1,16 @@
 // The UGC demo Project: a 9:16 talking-head edit for the Lumen desk lamp around a speaker clip, drawn through
 // /kc-video.js (ADR 0007). Word-by-word captions with an amber highlight, punch-in zooms with kinetic type, a lower
 // third. The clip is silent, so the captions are lines about the lamp. scripts/demo-footage.mjs runs it.
-// Usage: node scripts/ugc-demo.mjs <outDir> <clip.mp4>   (a vertical 1080x1920 clip, at least 16 s long)
+// Usage: node scripts/ugc-demo.mjs <outDir> <clip.mp4>   (a 9:16 clip, at least 15.2 s long)
+import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const [dir, clip] = process.argv.slice(2)
 if (!dir || !clip) throw new Error('Usage: node scripts/ugc-demo.mjs <outDir> <clip.mp4>')
+// The Scenes draw it full frame up to 15.2 s in: anything shorter freezes the CTA, anything not 9:16 crops the face away.
+const [w, h, length] = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height:format=duration', '-of', 'csv=p=0', clip], { encoding: 'utf8', timeout: 30_000 }).split(/[\s,]+/).filter(Boolean).map(Number)
+if (w * 16 !== h * 9 || !(length >= 15.2)) throw new Error(`${clip}: need a 9:16 clip of at least 15.2 s, got ${w}x${h}, ${length} s`)
 mkdirSync(dir, { recursive: true })
 copyFileSync(clip, join(dir, 'speaker.mp4'))
 
