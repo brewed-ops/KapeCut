@@ -68,7 +68,7 @@ A sound file a Project places at a start (Project time) with a volume. Played wi
 _Avoid_: track, clip
 
 **Video file**:
-A video in the Project folder that a Scene draws Frame by Frame through KapeCut's `kc-video.js` (ADR 0007). Its picture only: its sound is not played or exported.
+A video in the Project folder that a Scene draws, one exact picture per Frame, through KapeCut's `kc-video.js` (ADR 0007). Its picture only: its sound is not played or exported.
 _Avoid_: clip, footage, media
 
 **Files**:
