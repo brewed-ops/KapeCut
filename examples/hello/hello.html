@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      html, body { margin: 0; background: #12100e; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <script>
+      // Scene contract (ADR 0001): every pixel comes from Scene time t alone.
+      const c = document.getElementById('c')
+      if (!c) throw new Error('Scene needs <canvas id="c">')
+      // ?scale= is the Export resolution: size the canvas by it, then draw in Design size coordinates (1080x1920).
+      const k = Number(new URLSearchParams(location.search).get('scale') ?? 1)
+      c.width = 2 * Math.round((1080 * k) / 2)
+      c.height = 2 * Math.round((1920 * k) / 2)
+      const g = c.getContext('2d')
+      g.scale(k, k)
+      window.TOTAL = 3
+      window.ready = document.fonts.ready
+
+      window.renderAt = (t) => {
+        const p = Math.min(t / window.TOTAL, 1)
+        g.fillStyle = '#12100e'
+        g.fillRect(0, 0, 1080, 1920)
+        g.fillStyle = '#f0a726'
+        g.beginPath()
+        g.arc(540, 760 + 200 * Math.sin(p * Math.PI * 2), 180, 0, Math.PI * 2)
+        g.fill()
+        g.fillStyle = '#f6f2ea'
+        g.font = '900 120px sans-serif'
+        g.textAlign = 'center'
+        g.fillText('HELLO', 540, 1240)
+        g.font = '500 40px monospace'
+        g.fillStyle = '#8a7d6b'
+        g.fillText('t = ' + t.toFixed(2) + 's', 540, 1330)
+      }
+
+      const t = new URLSearchParams(location.search).get('t')
+      if (t !== null) window.ready.then(() => window.renderAt(Number(t)))
+    </script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 40" width="192" height="40">
+  <!-- KapeCut logo for dark grounds: the mark without its tile at the wordmark's cap height, then Archivo Black "Kape" + amber "Cut". -->
+  <!-- The wordmark is live text in Archivo Black (no web font request from a brand file): without the font installed it
+       falls back to a black-weight sans. Outlined glyphs would not be hand-written. -->
+  <g transform="matrix(0.54 0 0 0.54 -1.4 4.92)">
+    <path fill="#F6F2EA" d="M10 12h9v40h-9z"/>
+    <path fill="#F0A726" d="M42 12h11L35 32l18 20H42L25 32z"/>
+  </g>
+  <text x="36" y="33" font-family="'Archivo Black', sans-serif" font-weight="900" font-size="30" letter-spacing="-0.3" fill="#F6F2EA">Kape<tspan fill="#F0A726">Cut</tspan></text>
+</svg>

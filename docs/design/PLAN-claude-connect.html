@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KapeCut Connect Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" />
+<style>
+:root {
+  --bg: #12100e; --panel: #1b1815; --panel-2: #221e19; --frame: #3a332b;
+  --accent: #f0a726; --text: #f6f2ea; --muted: #cfc6b6; --dim: #8a7d6b;
+  --radius: 20px;
+  --display: 'Archivo Black', 'Geist', sans-serif;
+  --sans: 'Geist', system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--sans); }
+.page { display: grid; grid-template-columns: 380px minmax(0, 1fr); min-height: 100dvh; }
+@media (max-width: 1000px) { .page { grid-template-columns: minmax(0, 1fr); } }
+.left { padding: 24px 20px; border-right: 1.5px solid var(--frame); overflow: auto; max-height: 100dvh; position: sticky; top: 0; }
+@media (max-width: 1000px) { .left { position: static; max-height: none; border-right: 0; } }
+.left > h1 { font: 24px var(--display); margin: 0 0 4px; }
+.left > h1 b { color: var(--accent); font-weight: inherit; }
+.left > p { color: var(--muted); margin: 0 0 18px; }
+.eb { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .18em; color: var(--dim); }
+.left > h2 { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .18em; color: var(--dim); margin: 22px 0 8px; }
+.steps { display: grid; gap: 4px; }
+.steps > button { all: unset; cursor: pointer; padding: 8px 10px; border-radius: 10px; color: var(--muted); display: grid; grid-template-columns: 22px 1fr; gap: 6px; }
+.steps > button:hover { background: var(--panel); }
+.steps > button[aria-pressed=true] { background: var(--panel-2); color: var(--text); }
+.steps > button > span { font: 500 11px var(--mono); color: var(--dim); padding-top: 2px; }
+.steps > button[aria-pressed=true] > span { color: var(--accent); }
+.dec { border: 1.5px solid var(--frame); border-radius: 14px; padding: 12px; margin-bottom: 10px; background: var(--panel); }
+.dec > h3 { margin: 0 0 2px; font: 600 14px var(--sans); }
+.dec > p { margin: 0 0 8px; color: var(--dim); font-size: 12.5px; }
+.dec > label { display: grid; grid-template-columns: 18px 1fr; gap: 6px; padding: 6px 4px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 13px; }
+.dec > label:hover { background: var(--panel-2); }
+.dec > label > input { accent-color: var(--accent); margin-top: 3px; }
+.dec > label > span > i { font-style: normal; color: var(--accent); font: 500 10px var(--mono); letter-spacing: .12em; margin-left: 4px; }
+.dec > textarea { width: 100%; margin-top: 6px; background: var(--panel-2); color: var(--text); border: 1.5px solid var(--frame); border-radius: 8px; padding: 6px 8px; font: 12.5px var(--sans); resize: vertical; min-height: 34px; }
+.copy { all: unset; cursor: pointer; display: block; text-align: center; margin-top: 14px; padding: 12px; border-radius: 999px; background: var(--accent); color: var(--bg); font: 600 13px var(--mono); text-transform: uppercase; letter-spacing: .12em; }
+.right { padding: 24px; overflow: hidden; }
+.stagebox { width: 100%; aspect-ratio: 1440 / 900; position: relative; border-radius: 12px; overflow: hidden; border: 1.5px solid var(--frame); }
+.caption { margin: 14px 2px 0; color: var(--muted); max-width: 900px; }
+.caption b { color: var(--text); }
+.prompts { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; margin-top: 18px; }
+@media (max-width: 1300px) { .prompts { grid-template-columns: minmax(0,1fr); } }
+.prompts > div { background: var(--panel); border: 1.5px solid var(--frame); border-radius: 14px; padding: 12px 14px; }
+.prompts pre { margin: 8px 0 0; white-space: pre-wrap; font: 12px/1.55 var(--mono); color: var(--muted); }
+
+/* ---------- the app mock, 1440 x 900, prefixed a- ---------- */
+.a { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; transform-origin: 0 0;
+  background: var(--bg); display: grid; grid-template-columns: 300px minmax(0,1fr) 320px; grid-template-rows: 64px minmax(0,1fr) 270px 34px;
+  gap: 14px 18px; padding: 0 24px 0; font: 14px/1.45 var(--sans); }
+.a :where(button) { font: inherit; color: inherit; }
+.a-logo { font: 26px var(--display); align-self: center; }
+.a-logo b { color: var(--accent); font-weight: inherit; }
+.a-head { grid-column: 2 / 4; display: flex; align-items: center; gap: 14px; }
+.a-head .a-proj { color: var(--muted); }
+.a-head .a-proj::after { content: ' \25BE'; }
+.a-pres { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--frame); background: var(--panel); }
+.a-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.a-pres[data-s=active] .a-dot { background: var(--accent); }
+.a-pres[data-s=active] { color: var(--text); }
+.a-sp { flex: 1; }
+.a-sel { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--frame); background: var(--panel-2); font: 500 11px var(--mono); letter-spacing: .14em; }
+.a-exp { padding: 10px 20px; border-radius: 999px; background: var(--accent); color: var(--bg); font: 14px var(--display); letter-spacing: .04em; border: 0; }
+.a-exp[disabled] { opacity: .35; }
+.a-win { background: var(--panel); border: 1.5px solid var(--frame); border-radius: var(--radius); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.a-tb { display: flex; align-items: center; gap: 6px; padding: 12px 14px; border-bottom: 1.5px solid var(--frame); min-height: 48px; }
+.a-tb > i { width: 9px; height: 9px; border-radius: 50%; background: var(--frame); }
+.a-tb > i:first-child { background: var(--accent); }
+.a-tb > .eb { margin-left: 8px; }
+.a-side { grid-row: 2 / 4; display: grid; grid-template-rows: minmax(0,1.15fr) minmax(0,1fr) auto; gap: 14px; min-height: 0; }
+.a-path { padding: 8px 14px 0; font: 500 11px var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.a-list { list-style: none; margin: 0; padding: 8px; overflow: hidden; }
+.a-list > li { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 10px; }
+.a-list > li.a-new { background: var(--panel-2); }
+.a-thumb { width: 30px; height: 30px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--frame); display: grid; place-items: center; }
+.a-thumb svg { width: 15px; height: 15px; stroke: var(--muted); fill: none; stroke-width: 1.8; }
+.a-kind { font: 500 10px var(--mono); letter-spacing: .14em; color: var(--dim); text-transform: uppercase; }
+.a-empty { padding: 14px; color: var(--dim); font-size: 13px; }
+.a-scenes > li { grid-template-columns: 34px 1fr; }
+.a-sthumb { width: 34px; height: 54px; border-radius: 6px; }
+.a-scenes > li.a-on { background: var(--panel-2); }
+.a-scenes > li.a-on b { color: var(--accent); }
+.a-scenes > li > div > small { display: block; color: var(--dim); font: 500 11px var(--mono); }
+.a-set { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: var(--radius); background: var(--panel); border: 1.5px solid var(--frame); color: var(--muted); }
+.a-set svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 1.8; }
+.a-view { grid-row: 2; }
+.a-tools { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1.5px solid var(--frame); }
+.a-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--frame); background: var(--panel-2); font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.a-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+.a-btn.a-main { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+.a-btn[disabled] { opacity: .35; }
+.a-btn kbd { font: inherit; color: var(--dim); }
+.a-stage { flex: 1; display: grid; place-items: center; background: #0e0c0a; position: relative; }
+.a-frame { height: 92%; aspect-ratio: 9/16; border-radius: 4px; display: grid; place-items: center; font: 34px var(--display); color: var(--text); }
+.a-pin { position: absolute; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); display: grid; place-items: center; font: 600 12px var(--mono); background: rgba(18,16,14,.7); }
+.a-stroke { position: absolute; }
+.a-hero { text-align: center; max-width: 420px; color: var(--muted); }
+.a-hero h4 { margin: 0 0 8px; font: 26px var(--display); color: var(--text); }
+.a-hero h4 b { color: var(--accent); font-weight: inherit; }
+.a-tr { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1.5px solid var(--frame); }
+.a-rb { width: 32px; height: 32px; border-radius: 10px; border: 1.5px solid var(--frame); display: grid; place-items: center; background: var(--panel-2); }
+.a-rb.a-play { background: var(--accent); border-color: var(--accent); }
+.a-rb svg { width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 2; }
+.a-rb.a-play svg { fill: var(--bg); stroke: none; }
+.a-notes { grid-row: 2; }
+.a-nlist { list-style: none; margin: 0; padding: 10px; flex: 1; overflow: hidden; display: grid; gap: 8px; align-content: start; }
+.a-nlist > li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px; border-radius: 12px; background: var(--panel-2); }
+.a-nlist > li > span { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); display: grid; place-items: center; font: 600 11px var(--mono); }
+.a-nlist > li.a-done > span { border-color: var(--frame); color: var(--dim); }
+.a-nlist > li.a-done p { color: var(--dim); text-decoration: line-through; }
+.a-nlist p { margin: 0; color: var(--text); }
+.a-nlist small { color: var(--dim); font: 500 11px var(--mono); }
+.a-nfoot { padding: 12px; border-top: 1.5px solid var(--frame); }
+.a-nfoot .a-btn { width: 100%; justify-content: center; padding: 12px; }
+.a-tl { grid-column: 2 / 4; grid-row: 3; }
+.a-ruler { display: flex; justify-content: space-between; padding: 8px 14px 0; font: 500 10px var(--mono); color: var(--dim); }
+.a-strips { display: flex; gap: 4px; padding: 14px 14px 6px; }
+.a-strips > div { height: 70px; border-radius: 10px; padding: 6px 8px; font: 500 11px var(--mono); }
+.a-strips > div > span { background: rgba(18,16,14,.75); padding: 2px 6px; border-radius: 5px; }
+.a-lane { margin: 0 14px; height: 30px; border-radius: 8px; border: 1px solid var(--frame); background: var(--panel-2); font: 500 11px var(--mono); color: var(--muted); padding: 6px 10px; }
+.a-tlempty { margin: 14px; height: 106px; border-radius: 10px; border: 1.5px dashed var(--frame); display: grid; place-items: center; color: var(--dim); }
+.a-foot { grid-column: 1 / 4; grid-row: 4; display: flex; gap: 24px; align-items: center; }
+.a-foot b { color: var(--text); font-weight: 500; }
+.a-toast { position: absolute; left: 50%; top: 140px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; padding: 12px 18px; border-radius: 999px; background: var(--panel-2); border: 1.5px solid var(--accent); font: 600 14px var(--sans); z-index: 5; }
+.a-toast svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 2.4; }
+.a-menu { position: absolute; left: 324px; top: 56px; width: 300px; padding: 6px; border-radius: 12px; background: var(--panel-2); border: 1.5px solid var(--frame); z-index: 5; display: grid; }
+.a-menu > div { padding: 9px 10px; border-radius: 8px; }
+.a-menu > div:first-child { background: var(--panel); color: var(--accent); }
+.a-menu > small { padding: 6px 10px 2px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <aside class="left">
+    <h1>Kape<b>Cut</b> + Claude</h1>
+    <p>Your sketch, in the app's own tokens. Click a step to see that state. Pick the open decisions below, then Copy my picks.</p>
+    <h2>Your flow</h2>
+    <div class="steps" id="steps"></div>
+    <h2>Decisions</h2>
+    <div id="decs"></div>
+    <button class="copy" id="copy">Copy my picks</button>
+    <p class="eb" id="copied" style="margin-top:8px"></p>
+  </aside>
+  <main class="right">
+    <div class="stagebox" id="box"><div class="a" id="app"></div></div>
+    <p class="caption" id="cap"></p>
+    <div class="prompts">
+      <div><span class="eb">Connect Claude prompt (copied by the button)</span><pre id="p1"></pre></div>
+      <div><span class="eb">Copy Prompt (Notes panel)</span><pre id="p2"></pre></div>
+    </div>
+  </main>
+</div>
+<script>
+const PATH = 'D:\\Videos\\kopi-senja-promo'
+const ico = {
+  img: '<path d="M4 5h16v14H4z"/><path d="M4 16l5-5 4 4 3-3 4 4"/>',
+  pdf: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>',
+  aud: '<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>',
+  txt: '<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+}
+const FILES = [['brief.txt','txt','other'],['logo.png','img','image'],['menu.pdf','pdf','other'],['cafe-front.jpg','img','image'],['jingle.mp3','aud','audio']]
+const SCENES = [['scene-1.html','#e2b24a','3.00s'],['scene-2.html','#7a4a2a','4.00s'],['scene-3.html','#c8553d','3.00s']]
+
+const STEPS = [
+  { t: 'Open an empty folder', cap: '<b>Projects</b> menu, Open folder. The folder has no project.json yet, so it opens in a set-up state instead of the "No project.json" error: Files is live, Scenes and Timeline wait for Claude, and the only main action is <b>Connect Claude</b>.', s: { files: 0, scenes: false, pres: 'off', menu: true } },
+  { t: 'Drop resources in the folder', cap: 'Files you copy into the folder in Explorer appear in Files on their own (the folder watch already does this). Newest rows get a lit background for a few seconds.', s: { files: 5, fresh: 2, scenes: false, pres: 'off' } },
+  { t: 'Connect Claude via Prompt', cap: 'The button copies the prompt on the right and shows a toast with a check. The prompt names this folder and the session file KapeCut keeps, so Claude can check it is working on the Project that is open.', s: { files: 5, scenes: false, pres: 'off', toast: 'Prompt copied' } },
+  { t: 'Claude connected, asks format', cap: 'Claude reads the session file, confirms the folder matches, writes its handshake, and the header pill turns to <b>Claude active</b>. Claude asks you in Claude Code: 9:16 or 16:9 or 1:1, safe zone on or off, 30 or 60 fps.', s: { files: 5, scenes: false, pres: 'active' } },
+  { t: 'Scenes appear', cap: 'Claude writes project.json and the Scenes. KapeCut reloads as each file lands: Scene list, viewer, Timeline. Export lights up.', s: { files: 5, scenes: true, pres: 'active' } },
+  { t: 'Notes + Pencil, Copy Prompt', cap: 'You pin Notes (N) or draw with the Pencil (P). <b>Copy Prompt</b> at the foot of Notes copies the fix prompt for the open Notes. Claude fixes them and sets done; the rows strike through while you watch.', s: { files: 5, scenes: true, pres: 'active', notes: true, toast: 'Prompt copied' } },
+  { t: 'Idle after 15 minutes', cap: 'No file change in the Project by Claude, and nothing done in the app, for 15 minutes: the pill dims to <b>Claude idle</b>. The next save or edit turns it back to active.', s: { files: 5, scenes: true, pres: 'idle', notes: true, done: true } },
+]
+
+const DECS = [
+  { id: 'presence', h: 'How KapeCut knows Claude is active', p: 'Claude Code has no live link to the app, so presence has to come from something on disk.', o: [
+    ['A', 'Folder watch: any file Claude saves in the Project, or anything you do in the app, counts as activity. 15 min with none = idle. No extra work for Claude.', 1],
+    ['B', 'Claude Code hook: a hook in the Project\'s .claude/settings.json touches a heartbeat file on every tool call. Precise, but edits your Claude settings.'],
+    ['C', 'Claude runs a heartbeat script at each step (skill instruction). Easy to forget mid-task.'] ] },
+  { id: 'check', h: 'How Claude checks it has the open Project', p: 'Your step 5: Claude must catch a folder that is not the one KapeCut has open.', o: [
+    ['A', 'KapeCut writes session.json in its app data folder (open Project path, updated on every open). The prompt names that file; Claude reads it before every job and asks you when the paths differ.', 1],
+    ['B', 'Path in the prompt only. Catches a mismatch at connect, misses a Project you switch to later.'] ] },
+  { id: 'connected', h: 'What turns "Connected" on', o: [
+    ['A', 'Claude writes .kapecut/claude.json in the Project (its session, connected time) right after the check. KapeCut shows Connected as soon as it lands.', 1],
+    ['B', 'The first file Claude saves. No handshake, but Connected only shows once Claude starts building.'] ] },
+  { id: 'empty', h: 'An empty folder', o: [
+    ['A', 'Opens as a Project in set-up state (as in the mock). project.json comes from Claude.', 1],
+    ['B', 'KapeCut writes a starter project.json from questions in the app (format, fps, safe zone). Claude asks nothing.'] ] },
+  { id: 'settings', h: 'Settings (bottom left in your sketch)', p: 'Nothing in the app needs settings today. What goes in it?', o: [
+    ['A', 'Leave it out until there is something to set (Voice key with the Voice ticket).', 1],
+    ['B', 'Build it now: encoder and ffmpeg status (from the footer), recent Projects, idle minutes.'],
+    ['C', 'Build it now with the ElevenLabs key (kept in app data, never the repo).'] ] },
+  { id: 'tools', h: 'Notes and Pencil buttons', o: [
+    ['A', 'Labelled buttons with their key, as in your sketch (mock).', 1],
+    ['B', 'Keep today\'s icon-only buttons.'] ] },
+  { id: 'scope', h: 'Copy Prompt covers', o: [
+    ['A', 'Open Notes only; the button is disabled with none open.', 1],
+    ['B', 'Open Notes, plus the Note you have selected first.'] ] },
+  { id: 'frame', h: 'Window frame', p: 'Your sketch has its own window buttons and no File/Edit menu.', o: [
+    ['A', 'Keep the Windows title bar and menu (today).', 1],
+    ['B', 'Frameless: KapeCut draws its own min/max/close in the header, menu hidden.'] ] },
+]
+const picks = {}, notes = {}
+DECS.forEach(d => picks[d.id] = d.o.find(o => o[2])[0])
+
+function sceneFrame(on, i) {
+  const c = SCENES[i][1]
+  return `<div class="a-frame" style="background:${c}">Kopi<br>Senja</div>`
+}
+function app(s) {
+  const pres = s.pres === 'active' ? '<span class="a-pres" data-s="active"><i class="a-dot"></i><span class="eb" style="color:var(--text)">Claude active</span></span>'
+    : s.pres === 'idle' ? '<span class="a-pres"><i class="a-dot"></i><span class="eb">Claude idle 15m</span></span>'
+    : '<span class="a-pres"><i class="a-dot"></i><span class="eb">Claude not connected</span></span>'
+  const meta = s.scenes ? 'Kopi Senja promo &middot; 1080x1920 &middot; 30 fps' : 'kopi-senja-promo &middot; set up'
+  const files = s.files ? FILES.slice(0, s.files).map((f, i) => `<li class="${i >= s.files - (s.fresh || 0) ? 'a-new' : ''}"><span class="a-thumb"><svg viewBox="0 0 24 24">${ico[f[1]]}</svg></span><span>${f[0]}</span><span class="a-kind">${f[2]}</span></li>`).join('')
+    : ''
+  const scenes = s.scenes ? `<ul class="a-list a-scenes">${SCENES.map((sc, i) => `<li class="${i ? '' : 'a-on'}"><span class="a-sthumb" style="background:${sc[1]}"></span><div><b>0${i + 1} ${sc[0]}</b><small>${sc[2]}</small></div></li>`).join('')}</ul>`
+    : '<p class="a-empty">Claude writes the Scenes here once you connect it.</p>'
+  const connectBtn = s.pres === 'off'
+    ? '<button class="a-btn a-main"><svg viewBox="0 0 24 24"><path d="M9 15l6-6M10 6l1-1a4 4 0 0 1 6 6l-1 1M14 18l-1 1a4 4 0 0 1-6-6l1-1"/></svg>Connect Claude via Prompt</button>'
+    : '<button class="a-btn"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>Claude connected &middot; copy again</button>'
+  const stage = s.scenes
+    ? sceneFrame(true, 0) + (s.notes ? '<span class="a-pin" style="left:46%;top:30%">1</span><span class="a-pin" style="left:54%;top:62%">2</span>' : '')
+    : `<div class="a-hero"><h4>Drop your files in.<br><b>Claude builds the rest.</b></h4>Put pictures, PDFs and audio in the folder. Then Connect Claude and paste the prompt into Claude Code.</div>`
+  const nl = s.notes ? `<ol class="a-nlist">
+      <li class="${s.done ? 'a-done' : ''}"><span>1</span><div><p>Logo bigger, it gets lost</p><small>scene-1 &middot; 0.80s</small></div></li>
+      <li class="${s.done ? 'a-done' : ''}"><span>2</span><div><p>Warmer brown on the cup</p><small>scene-1 &middot; 0.80s &middot; pencil</small></div></li>
+      <li><span>3</span><div><p>Slower ending</p><small>4.2s to 7.0s &middot; span</small></div></li></ol>`
+    : '<p class="a-empty" style="flex:1">No Notes yet. Pause on a Frame, press N, then click or drag on the picture. P draws on it.</p>'
+  const tl = s.scenes ? `<div class="a-ruler"><span>0s</span><span>2s</span><span>4s</span><span>6s</span><span>8s</span><span>10s</span></div>
+      <div class="a-strips">${SCENES.map(sc => `<div style="flex:${parseFloat(sc[2])};background:${sc[1]}"><span>${sc[0]}</span></div>`).join('')}</div>
+      <div class="a-lane">jingle.mp3</div>`
+    : '<div class="a-tlempty">The Timeline fills when Claude writes the first Scene.</div>'
+  return `
+  <div class="a-logo">Kape<b>Cut</b></div>
+  <div class="a-head"><span class="eb a-proj" style="color:var(--muted)">Projects</span><span class="eb">${meta}</span><span class="a-sp"></span>${pres}
+    <span class="a-sel">1080P &middot; 1080X1920</span><button class="a-exp" ${s.scenes ? '' : 'disabled'}>EXPORT &rarr;</button></div>
+  <div class="a-side">
+    <section class="a-win"><div class="a-tb"><i></i><i></i><i></i><span class="eb">Files</span></div><div class="a-path">${PATH}</div>
+      ${s.files ? `<ul class="a-list">${files}</ul>` : '<p class="a-empty">Empty folder. Copy pictures, PDFs, audio or fonts into it (or drop them on this window). They show here as they land.</p>'}</section>
+    <section class="a-win"><div class="a-tb"><i></i><i></i><i></i><span class="eb">Scenes</span></div>${scenes}</section>
+  </div>
+  <section class="a-win a-view">
+    <div class="a-tools">${connectBtn}<span class="a-sp"></span>
+      <button class="a-btn" ${s.scenes ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/></svg>Note <kbd>N</kbd></button>
+      <button class="a-btn" ${s.scenes ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/></svg>Pencil <kbd>P</kbd></button></div>
+    <div class="a-stage">${stage}</div>
+    <div class="a-tr"><span class="a-rb"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></span><span class="a-rb a-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span class="a-rb"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span><span class="a-sp"></span><span class="eb">${s.scenes ? '0.80s &middot; F 24' : '--'}</span></div>
+  </section>
+  <section class="a-win a-notes"><div class="a-tb"><i></i><i></i><i></i><span class="eb">Notes</span></div>${nl}
+    <div class="a-nfoot"><button class="a-btn ${s.notes && !s.done ? 'a-main' : ''}" ${s.notes ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="M8 8h11v13H8z"/><path d="M5 16V3h11"/></svg>Copy Prompt${s.notes ? (s.done ? ' &middot; 1 open' : ' &middot; 3 open') : ''}</button></div></section>
+  <section class="a-win a-tl"><div class="a-tb"><i></i><i></i><i></i><span class="eb">Timeline</span></div>${tl}</section>
+  <div class="a-foot eb"><span>H.264 hardware <b>no</b></span><span>H.264 software <b>yes</b></span><span>ffmpeg <b>yes</b></span><span>ffprobe <b>yes</b></span></div>
+  ${s.toast ? `<div class="a-toast"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>${s.toast}</div>` : ''}
+  ${s.menu ? `<div class="a-menu"><div>Open folder</div><small class="eb">Recent</small><div>Three Scenes</div><div>kape-explains-ep4</div></div>` : ''}`
+}
+
+let cur = 0
+function render() {
+  const s = STEPS[cur]
+  document.getElementById('app').innerHTML = app(s.s)
+  document.getElementById('cap').innerHTML = `<b>${cur + 1}. ${s.t}.</b> ${s.cap}`
+  document.querySelectorAll('#steps > button').forEach((b, i) => b.setAttribute('aria-pressed', i === cur))
+  const session = picks.check === 'A' ? '%APPDATA%\\KapeCut\\session.json' : null
+  document.getElementById('p1').textContent =
+`I'm using KapeCut. Use the kapecut skill.
+Project folder (open in KapeCut now): ${PATH}
+${session ? `Before any work, read ${session} and confirm its "project" is this folder. If it is not, stop and tell me KapeCut has a different Project open.\n` : ''}${picks.connected === 'A' ? 'Then write .kapecut/claude.json in the Project so KapeCut shows you as connected.\n' : ''}The folder holds my resources (${FILES.map(f => f[0]).join(', ')}).
+${picks.empty === 'A' ? 'Ask me the format (9:16, 16:9, 1:1), safe zone on or off, and 30 or 60 fps, then ask what the video is about and build the Scenes.' : 'project.json is set. Ask me what the video is about, then build the Scenes.'}`
+  document.getElementById('p2').textContent =
+`I'm using KapeCut. Use the kapecut skill and follow fix-notes.md.
+Project folder: ${PATH}
+${session ? `Check ${session} still names this folder first; ask me if it does not.\n` : ''}Fix the open Notes in notes.json (${picks.scope === 'A' ? '1, 2, 3' : 'Note 2 first, then 1, 3'}), check each with a still, then mark them done with mark-done.mjs.`
+}
+function fit() {
+  const box = document.getElementById('box')
+  document.getElementById('app').style.transform = `scale(${box.clientWidth / 1440})`
+}
+document.getElementById('steps').innerHTML = STEPS.map((s, i) => `<button data-i="${i}"><span>${String(i + 1).padStart(2, '0')}</span>${s.t}</button>`).join('')
+document.getElementById('steps').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { cur = +b.dataset.i; render() } })
+document.getElementById('decs').innerHTML = DECS.map(d => `<div class="dec"><h3>${d.h}</h3>${d.p ? `<p>${d.p}</p>` : ''}${d.o.map(o => `<label><input type="radio" name="${d.id}" value="${o[0]}" ${o[2] ? 'checked' : ''}><span><b>${o[0]}.</b> ${o[1]}${o[2] ? '<i>RECOMMENDED</i>' : ''}</span></label>`).join('')}<textarea data-n="${d.id}" placeholder="Note (optional)"></textarea></div>`).join('')
+document.getElementById('decs').addEventListener('change', e => { if (e.target.name) { picks[e.target.name] = e.target.value; render() } })
+document.getElementById('decs').addEventListener('input', e => { if (e.target.dataset.n) notes[e.target.dataset.n] = e.target.value })
+document.getElementById('copy').addEventListener('click', () => {
+  const txt = 'KapeCut connect plan picks:\n' + DECS.map(d => `- ${d.h}: ${picks[d.id]}${notes[d.id] ? ` (note: ${notes[d.id]})` : ''}`).join('\n')
+  document.getElementById('copied').textContent = 'Copied. Paste it in chat.'
+  navigator.clipboard?.writeText(txt).catch(() => {})
+})
+addEventListener('resize', fit)
+render(); fit()
+</script>
+</body>
+</html>

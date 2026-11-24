@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Header Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" />
+<style>
+/* Canvas chrome: neutral ink so the mock's theme is what you judge. */
+:root { --c-bg: #0f0e0d; --c-panel: #191714; --c-line: #2c2822; --c-text: #f2eee6; --c-muted: #a89f90; --c-pick: #f0a726; }
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--c-bg); color: var(--c-text); font: 14px/1.5 'Geist', system-ui, sans-serif; display: grid; grid-template-columns: 380px minmax(0, 1fr); height: 100dvh; }
+.side { overflow: auto; padding: 22px 20px 40px; border-right: 1px solid var(--c-line); }
+.side > h1 { margin: 0 0 4px; font: 20px/1.1 'Archivo Black', sans-serif; letter-spacing: -0.01em; }
+.side > p { margin: 0 0 18px; color: var(--c-muted); font-size: 13px; }
+.group { margin-bottom: 22px; }
+.group > h2 { margin: 0 0 8px; font: 500 11px/1.2 'Geist Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-muted); }
+.opt { display: block; position: relative; padding: 10px 12px 10px 36px; margin-bottom: 6px; border: 1px solid var(--c-line); border-radius: 10px; background: var(--c-panel); cursor: pointer; }
+.opt > input { position: absolute; left: 12px; top: 13px; accent-color: var(--c-pick); }
+.opt > b { font-weight: 600; }
+.opt > span { display: block; color: var(--c-muted); font-size: 12.5px; }
+.opt > em { font-style: normal; font: 500 10px/1 'Geist Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-pick); margin-left: 6px; }
+.opt:has(:checked) { border-color: var(--c-pick); }
+.seg { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--c-line); border-radius: 10px; background: var(--c-panel); }
+.seg > label { flex: 1; text-align: center; padding: 6px 0; border-radius: 7px; font: 500 11px/1.2 'Geist Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-muted); cursor: pointer; }
+.seg > label > input { display: none; }
+.seg > label:has(:checked) { background: var(--c-line); color: var(--c-pick); }
+textarea { width: 100%; height: 70px; padding: 8px 10px; border: 1px solid var(--c-line); border-radius: 10px; background: var(--c-panel); color: var(--c-text); font: 13px/1.4 'Geist', sans-serif; resize: vertical; }
+.copy { width: 100%; height: 38px; border: 0; border-radius: 999px; background: var(--c-pick); color: #1a1408; font: 600 13px/1 'Geist', sans-serif; cursor: pointer; }
+.main { overflow: auto; padding: 22px 24px 40px; }
+.main > h3 { margin: 18px 0 8px; font: 500 11px/1.2 'Geist Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-muted); }
+.main > h3:first-child { margin-top: 0; }
+.frame { border-radius: 14px; overflow: hidden; border: 1px solid var(--c-line); }
+.fit { width: 100%; overflow: hidden; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.cap { margin: 4px 0 0; color: var(--c-muted); font-size: 12px; }
+
+/* ---------- The mock: KapeCut's own tokens per theme (src/renderer/styles/tokens.css) ---------- */
+.m { --bg: #12100e; --panel: #1b1815; --panel-2: #221e19; --frame: #3a332b; --accent: #f0a726; --text: #f6f2ea; --muted: #cfc6b6; --dim: #8a7d6b;
+  --ok: #3fbf6f; --warn: #f0a726; --bad: #e5484d; --edge: transparent; --glass: none; --wash: none;
+  --display: 'Archivo Black', 'Geist', sans-serif; --sans: 'Geist', system-ui, sans-serif; --mono: 'Geist Mono', ui-monospace, monospace;
+  width: 1440px; color: var(--text); background: var(--bg); font: 15px/1.5 var(--sans); transform-origin: 0 0; }
+.m[data-t='light'] { --bg: #f4efe6; --panel: #fbf8f2; --panel-2: #ece4d6; --frame: #d6cab6; --accent: #965400; --text: #1b1815; --muted: #4a4136; --dim: #6e6151;
+  --ok: #1f8a4c; --warn: #b26a00; --bad: #c4302b; }
+.m[data-t='glass'] { --bg: #eef1f6; --panel: rgb(255 255 255 / 0.58); --panel-2: rgb(246 248 252 / 0.86); --frame: rgb(40 52 76 / 0.12); --accent: #0066cc;
+  --text: #1d1d1f; --muted: #424245; --dim: #6e6e73; --edge: rgb(255 255 255 / 0.85); --glass: blur(28px) saturate(180%);
+  --ok: #248a3d; --warn: #c27400; --bad: #d70015;
+  --wash: radial-gradient(120% 80% at 0% 0%, #ffffff 0%, transparent 60%), radial-gradient(90% 70% at 100% 100%, #dfe6f2 0%, transparent 70%), linear-gradient(160deg, #fbfcfe 0%, #eef1f6 50%, #e4e9f2 100%); }
+.m[data-t='glass'] { background: var(--wash), var(--bg); }
+:where(.m) svg.i { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+:where(.m) button { font: inherit; color: inherit; }
+
+.m-hd { padding: 18px 28px; display: flex; gap: 14px; align-items: center; }
+.m-logo { margin: 0; display: flex; align-items: center; font: 22px/1.1 var(--display); letter-spacing: -0.01em; }
+.m-logo b { color: var(--accent); font-weight: inherit; }
+.m-logo svg { height: 0.72em; width: auto; margin-right: 0.4em; fill: var(--accent); }
+.m-logo .bar { fill: var(--text); }
+.m-eb { font: 500 11px/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.m-dim { color: var(--dim); }
+.m-sp { margin-left: auto; }
+.m-pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: 1.5px solid var(--frame); border-radius: 999px; background: var(--panel); white-space: nowrap; }
+.m[data-t='glass'] .m-pill, .m[data-t='glass'] .m-win { backdrop-filter: var(--glass); box-shadow: inset 0 1px 0 var(--edge), 0 2px 8px rgb(30 42 66 / 0.06); }
+.m-res { height: 28px; padding: 0 12px; border: 1.5px solid var(--frame); border-radius: 999px; background: var(--panel-2); color: var(--text); }
+.m-exp { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--accent); color: var(--bg); font: 13px/1 var(--display); letter-spacing: 0.04em; text-transform: uppercase; }
+.m[data-t='glass'] .m-exp { color: #fff; }
+.m-caps { display: flex; gap: 2px; color: var(--muted); margin-right: -14px; }
+.m-caps span { width: 34px; height: 26px; display: grid; place-items: center; }
+
+/* Projects options */
+.m-btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: 1.5px solid var(--frame); border-radius: 999px; background: var(--panel-2); color: var(--text); font: 500 13px/1 var(--sans); white-space: nowrap; }
+.m-btn .m-dim { font: 500 11px/1 var(--mono); letter-spacing: 0.06em; }
+.m-switch { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 10px; border: 1.5px solid var(--frame); border-radius: 10px; background: var(--panel); white-space: nowrap; }
+.m-switch .m-tile { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.m-switch .m-name { font: 600 14px/1 var(--sans); }
+.m-switch .m-meta { font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; color: var(--dim); }
+.m-divider { width: 1.5px; height: 20px; background: var(--frame); }
+.m-crumb { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.m-crumb .m-slash { color: var(--frame); font: 300 22px/1 var(--sans); }
+.m-crumb .m-name { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 8px; margin-left: -8px; border-radius: 8px; font: 600 15px/1 var(--sans); }
+.m-crumb .m-name:hover, .m-crumb .m-name.hot { background: var(--panel-2); }
+
+/* Status dot: one colour per state */
+.m-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c, var(--dim)); }
+[data-s='active'] { --c: var(--ok); }
+[data-s='idle'] { --c: var(--warn); }
+[data-s='none'] { --c: var(--bad); }
+[data-s='active'] .m-dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+.m-today .m-dot { background: var(--dim); }
+.m-today[data-s='active'] .m-dot { background: var(--accent); box-shadow: none; }
+.m-st { font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.m-st2 { font: 500 12.5px/1 var(--sans); color: var(--text); }
+.m-st2 .m-dim { color: var(--dim); }
+
+/* A strip of the window under the header, for context */
+.m-body { display: grid; grid-template-columns: 240px 1fr 290px; gap: 20px; padding: 0 28px 28px; height: 120px; }
+.m-win { border: 1.5px solid var(--frame); border-radius: 20px 20px 0 0; border-bottom: 0; background: var(--panel); }
+
+/* The fake menu under a Projects control, toggled by "Show menu" */
+.m-anchor { position: relative; }
+.m-menu { position: absolute; z-index: 3; top: calc(100% + 8px); left: 0; min-width: 260px; padding: 6px; display: grid; gap: 2px; border: 1.5px solid var(--frame); border-radius: 12px; background: var(--panel-2); box-shadow: 0 18px 50px rgb(0 0 0 / 0.25); }
+.m[data-t='glass'] .m-menu { backdrop-filter: var(--glass); }
+.m-menu span { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border-radius: 8px; font: 500 13px/1 var(--sans); }
+.m-menu span.on { background: var(--panel); color: var(--accent); }
+.m-menu hr { border: 0; height: 1.5px; background: var(--frame); margin: 4px 2px; }
+</style>
+</head>
+<body>
+<aside class="side">
+  <h1>Header: Projects + Claude status</h1>
+  <p>Pick one of each. The preview on the right is the real header at 1440 px in KapeCut's own tokens.</p>
+
+  <div class="group">
+    <h2>1. Projects</h2>
+    <label class="opt"><input type="radio" name="proj" value="A" /><b>A. Today</b><span>"Projects" as small caps text beside the logo. Reads like a label.</span></label>
+    <label class="opt"><input type="radio" name="proj" value="B" checked /><b>B. Project switcher</b><em>Recommended</em><span>The open Project's name IS the button (folder tile, name, size + fps, chevron). One control: see what's open, click to switch.</span></label>
+    <label class="opt"><input type="radio" name="proj" value="C" /><b>C. Projects button</b><span>A real pill button with a folder icon, a divider, then the Project name and size as text.</span></label>
+    <label class="opt"><input type="radio" name="proj" value="D" /><b>D. Breadcrumb</b><span>KapeCut / Three Scenes, where the name opens the menu. Quietest; relies on hover to look clickable.</span></label>
+  </div>
+
+  <div class="group">
+    <h2>2. Claude status</h2>
+    <label class="opt"><input type="radio" name="st" value="A" /><b>A. Today</b><span>"Claude not connected" in caps, grey dot, amber when active.</span></label>
+    <label class="opt"><input type="radio" name="st" value="B" checked /><b>B. Claude + dot</b><em>Recommended</em><span>The pill says only "Claude"; the dot colour is the state. Full state in the tooltip and for screen readers.</span></label>
+    <label class="opt"><input type="radio" name="st" value="C" /><b>C. Short word + dot</b><span>"Active" / "Idle" / "Offline" with the coloured dot. The state is readable, no Claude name.</span></label>
+    <label class="opt"><input type="radio" name="st" value="D" /><b>D. Claude · state</b><span>"Claude" plus a dimmed short state in sentence case: "Claude · Idle". Clearest, a bit wider than B.</span></label>
+  </div>
+
+  <div class="group">
+    <h2>Preview theme</h2>
+    <div class="seg" id="theme">
+      <label><input type="radio" name="t" value="dark" checked />Dark</label>
+      <label><input type="radio" name="t" value="light" />Light</label>
+      <label><input type="radio" name="t" value="glass" />Glass</label>
+    </div>
+  </div>
+  <div class="group">
+    <h2>Preview state</h2>
+    <div class="seg" id="state">
+      <label><input type="radio" name="s" value="active" />Active</label>
+      <label><input type="radio" name="s" value="idle" />Idle</label>
+      <label><input type="radio" name="s" value="none" checked />Not conn.</label>
+    </div>
+  </div>
+  <div class="group">
+    <h2>Preview menu</h2>
+    <div class="seg" id="menu">
+      <label><input type="radio" name="mn" value="0" checked />Closed</label>
+      <label><input type="radio" name="mn" value="1" />Open</label>
+    </div>
+  </div>
+  <div class="group">
+    <h2>Notes</h2>
+    <textarea id="notes" placeholder="Anything about the picks"></textarea>
+  </div>
+  <button class="copy" id="copy">Copy my picks</button>
+</aside>
+
+<main class="main">
+  <h3>Your picks</h3>
+  <div class="frame"><div class="fit" data-fit><div class="m" id="big"></div></div></div>
+  <h3>Claude status, all three states (your pick)</h3>
+  <div class="grid" id="states"></div>
+  <h3>Every Claude status option: active, idle, not connected</h3>
+  <div class="frame"><div class="fit" data-fit><div class="m" id="pills"></div></div></div>
+  <h3>Every Projects option (with your status pick)</h3>
+  <div class="grid" id="all"></div>
+</main>
+
+<script>
+const IC = {
+  chev: '<path d="M19.5 8.25L12.42 15.33A0.6 0.6 0 0 1 11.58 15.33L4.5 8.25" />',
+  folder: '<path d="M2.75 18L2.75 7A2.25 2.25 0 0 1 5 4.75L8.6 4.75C9.3 4.75 9.9 5 10.4 5.5L11.4 6.5C11.7 6.8 12.1 7 12.6 7L16.25 7A2.25 2.25 0 0 1 18.5 9.25L18.5 10.75" /><path d="M6.01 11.67A1.75 1.75 0 0 1 7.55 10.75L18.64 10.75A1.75 1.75 0 0 1 20.26 13.17L18.32 17.86A2.25 2.25 0 0 1 16.24 19.25L4.04 19.25A1.25 1.25 0 0 1 2.93 17.41Z" />',
+  exp: '<path d="M9.75 3.25L6.25 3.25A3 3 0 0 0 3.25 6.25L3.25 17.75A3 3 0 0 0 6.25 20.75L9.75 20.75" /><path d="M8.75 12L20.75 12M16.25 7.5L20.33 11.58A0.6 0.6 0 0 1 20.33 12.42L16.25 16.5" />',
+  min: '<path d="M3.25 12L20.75 12" />',
+  max: '<path d="M6.75 3.75L17.25 3.75A3 3 0 0 1 20.25 6.75L20.25 17.25A3 3 0 0 1 17.25 20.25L6.75 20.25A3 3 0 0 1 3.75 17.25L3.75 6.75A3 3 0 0 1 6.75 3.75Z" />',
+  x: '<path d="M4.25 4.25L19.75 19.75M19.75 4.25L4.25 19.75" />',
+}
+const ic = (k) => `<svg class="i" viewBox="0 0 24 24">${IC[k]}</svg>`
+const LOGO = '<h1 class="m-logo"><svg viewBox="10 12 43 40"><path class="bar" d="M10 12h9v40h-9z" /><path d="M42 12h11L35 32l18 20H42L25 32z" /></svg>Kape<b>Cut</b></h1>'
+const MENU = `<div class="m-menu"><span>${ic('folder')}Open folder</span><hr /><span class="on">Three Scenes</span><span>Launch Reel</span><span>KAPE Explains 12</span></div>`
+const PROJ = {
+  A: (mn) => `<span class="m-anchor"><span class="m-eb">Projects${ic('chev')}</span>${mn ? MENU : ''}</span><span class="m-eb">Three Scenes · 1080x1920 · 30 fps</span>`,
+  B: (mn) => `<span class="m-anchor"><span class="m-switch"><span class="m-tile">${ic('folder')}</span><span class="m-name">Three Scenes</span><span class="m-meta">1080x1920 · 30 FPS</span>${ic('chev')}</span>${mn ? MENU : ''}</span>`,
+  C: (mn) => `<span class="m-anchor"><span class="m-btn">${ic('folder')}Projects${ic('chev')}</span>${mn ? MENU : ''}</span><span class="m-divider"></span><span class="m-eb" style="color:var(--text)">Three Scenes</span><span class="m-eb m-dim">1080x1920 · 30 fps</span>`,
+  D: (mn) => `<span class="m-crumb"><span class="m-slash">/</span><span class="m-anchor"><span class="m-name${mn ? ' hot' : ''}">Three Scenes${ic('chev')}</span>${mn ? MENU : ''}</span><span class="m-eb m-dim">1080x1920 · 30 fps</span></span>`,
+}
+const WORD = { active: 'Active', idle: 'Idle', none: 'Offline' }
+const TODAY = { active: 'Claude active', idle: 'Claude idle', none: 'Claude not connected' }
+const STATUS = {
+  A: (s) => `<span class="m-pill m-today" data-s="${s}"><i class="m-dot"></i><span class="m-st">${TODAY[s]}</span></span>`,
+  B: (s) => `<span class="m-pill" data-s="${s}" title="${TODAY[s]}"><i class="m-dot"></i><span class="m-st2">Claude</span></span>`,
+  C: (s) => `<span class="m-pill" data-s="${s}"><i class="m-dot"></i><span class="m-st">${WORD[s]}</span></span>`,
+  D: (s) => `<span class="m-pill" data-s="${s}"><i class="m-dot"></i><span class="m-st2">Claude <span class="m-dim">· ${WORD[s] === 'Offline' ? 'Not connected' : WORD[s]}</span></span></span>`,
+}
+const header = (p, st, s, mn) => `<div class="m-hd">${LOGO}${PROJ[p](mn)}<span class="m-sp"></span>${STATUS[st](s)}<select class="m-res m-eb" style="color:var(--text)"><option>1080p · 1080x1920</option></select><span class="m-exp">Export${ic('exp')}</span><span class="m-caps"><span>${ic('min')}</span><span>${ic('max')}</span><span>${ic('x')}</span></span></div>`
+const body = '<div class="m-body"><div class="m-win"></div><div class="m-win"></div><div class="m-win"></div></div>'
+
+const val = (n) => document.querySelector(`input[name="${n}"]:checked`).value
+function mock(html, theme, withBody) {
+  return `<div class="frame"><div class="fit" data-fit><div class="m" data-t="${theme}">${html}${withBody ? body : ''}</div></div></div>`
+}
+function fit() {
+  for (const f of document.querySelectorAll('[data-fit]')) {
+    const m = f.firstElementChild
+    const k = f.clientWidth / 1440
+    m.style.transform = `scale(${k})`
+    f.style.height = m.offsetHeight * k + 'px'
+  }
+}
+function render() {
+  const p = val('proj'), st = val('st'), t = val('t'), s = val('s'), mn = val('mn') === '1'
+  const big = document.getElementById('big')
+  big.dataset.t = t
+  big.innerHTML = header(p, st, s, mn) + body
+  big.style.minHeight = mn ? '300px' : ''
+  document.getElementById('states').innerHTML = ['active', 'idle', 'none'].map((x) => mock(header(p, st, x, false), t, false) + `<p class="cap">${TODAY[x]}</p>`).join('')
+  const pills = document.getElementById('pills')
+  pills.dataset.t = t
+  pills.innerHTML = 'ABCD'.split('').map((x) => `<div class="m-hd" style="gap:18px;padding:14px 28px"><span class="m-eb" style="width:220px">${document.querySelector(`input[name="st"][value="${x}"]`).parentElement.querySelector('b').textContent}</span>${['active', 'idle', 'none'].map((y) => STATUS[x](y)).join('')}</div>`).join('')
+  document.getElementById('all').innerHTML = 'ABCD'.split('').map((x) => mock(header(x, st, s, false), t, false) + `<p class="cap">${document.querySelector(`input[name="proj"][value="${x}"]`).parentElement.querySelector('b').textContent}</p>`).join('')
+  fit()
+}
+document.addEventListener('change', (e) => e.target.matches('input[type=radio]') && render())
+addEventListener('resize', fit)
+document.fonts.ready.then(fit)
+document.getElementById('copy').addEventListener('click', async () => {
+  const label = (n) => document.querySelector(`input[name="${n}"]:checked`).parentElement.querySelector('b').textContent
+  const text = `Header picks\n- Projects: ${label('proj')}\n- Claude status: ${label('st')} (green active, amber idle, red not connected)\n- Notes: ${document.getElementById('notes').value || '-'}`
+  document.getElementById('copy').dataset.text = text
+  try { await navigator.clipboard.writeText(text); document.getElementById('copy').textContent = 'Copied' } catch { document.getElementById('copy').textContent = 'Copy failed: see console'; console.log(text) }
+})
+render()
+</script>
+</body>
+</html>

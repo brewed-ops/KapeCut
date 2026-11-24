@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KapeCut Editor Layout</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" />
+<style>
+/* Tokens copied from src/renderer/styles/tokens.css. Nothing else is coloured. */
+:root {
+  --bg: #12100e; --panel: #1b1815; --panel-2: #221e19; --frame: #3a332b;
+  --accent: #f0a726; --text: #f6f2ea; --muted: #cfc6b6; --dim: #8a7d6b;
+  --radius: 20px;
+  --display: 'Archivo Black', 'Geist', sans-serif;
+  --sans: 'Geist', system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, monospace;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--grain), var(--bg); color: var(--text); font: 14px/1.5 var(--sans); display: grid; grid-template-columns: 360px minmax(0, 1fr); overflow: hidden; }
+
+/* ---------- canvas chrome (p- prefix) ---------- */
+.p-side { border-right: 1.5px solid var(--frame); overflow: auto; padding: 22px 20px 40px; }
+.p-side > h1 { font: 22px var(--display); margin: 0 0 4px; letter-spacing: -0.01em; }
+.p-side > h1 b { color: var(--accent); font-weight: inherit; }
+.p-side > p { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+.p-eb { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .18em; color: var(--dim); margin: 22px 0 8px; display: block; }
+.p-opt { display: block; border: 1.5px solid var(--frame); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: var(--panel); }
+.p-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.p-opt > b { display: block; font-weight: 600; }
+.p-opt > span { display: block; color: var(--muted); font-size: 12.5px; }
+.p-opt:has(input:checked) { border-color: var(--accent); }
+.p-opt:has(input:checked) > b::after { content: '  Picked'; font: 500 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.p-opt:has(input:focus-visible) { outline: 2px solid var(--text); outline-offset: 2px; }
+.p-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.p-chip { border: 1.5px solid var(--frame); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: 12.5px; color: var(--muted); background: var(--panel); }
+.p-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.p-chip:has(input:checked) { border-color: var(--accent); color: var(--text); }
+.p-chip:has(input:focus-visible) { outline: 2px solid var(--text); outline-offset: 2px; }
+.p-note-for { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.p-note-for b { color: var(--accent); font-weight: 500; }
+.p-side textarea { width: 100%; min-height: 70px; background: var(--panel); color: var(--text); border: 1.5px solid var(--frame); border-radius: 12px; padding: 8px 10px; font: 13px var(--sans); resize: vertical; }
+.p-copy { margin-top: 14px; width: 100%; padding: 11px 16px; border: 0; border-radius: 999px; background: var(--accent); color: var(--bg); font: 13px var(--display); text-transform: uppercase; letter-spacing: .04em; cursor: pointer; }
+.p-copied { color: var(--muted); font-size: 12px; min-height: 18px; margin-top: 6px; }
+.p-main { position: relative; overflow: hidden; }
+.p-fit { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.p-hint { position: absolute; right: 16px; bottom: 10px; font: 500 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+
+/* ---------- the mock (k- prefix), 1440 x 900 ---------- */
+.k-app { width: 1440px; height: 900px; display: grid; grid-template-rows: 64px minmax(0, 1fr); padding: 0 20px 20px; gap: 0; position: relative; background: var(--grain), var(--bg); }
+.k-head { display: flex; align-items: center; gap: 14px; padding: 0 8px; }
+.k-logo { font: 22px var(--display); letter-spacing: -.01em; }
+.k-logo b { color: var(--accent); font-weight: inherit; }
+.k-eb { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .18em; color: var(--dim); }
+.k-proj { display: flex; gap: 10px; align-items: baseline; }
+.k-proj .k-name { font-weight: 600; }
+.k-sp { flex: 1; }
+.k-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1.5px solid var(--frame); border-radius: 999px; background: none; color: var(--muted); font: 13px var(--sans); }
+.k-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.k-primary { padding: 10px 18px; border: 0; border-radius: 999px; background: var(--accent); color: var(--bg); font: 13px var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.k-primary.k-dis { opacity: .4; }
+
+.k-win { background: var(--panel); border: 1.5px solid var(--frame); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; min-height: 0; min-width: 0; position: relative; }
+.k-tb { display: flex; align-items: center; gap: 7px; padding: 10px 14px; border-bottom: 1.5px solid var(--frame); flex: none; }
+.k-tb i { width: 10px; height: 10px; border-radius: 50%; background: var(--frame); }
+.k-tb i:first-child { background: var(--accent); }
+.k-tb .k-eb { margin-left: 8px; color: var(--muted); }
+.k-tb .k-r { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.k-tabs { display: flex; gap: 4px; margin-left: 8px; }
+.k-tab { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .18em; color: var(--dim); padding: 4px 10px; border-radius: 999px; }
+.k-tab.k-on { color: var(--accent); background: var(--panel-2); }
+
+/* Scene list */
+.k-scenes { padding: 8px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.k-scene { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px; border-radius: 12px; }
+.k-scene.k-on { background: var(--panel-2); }
+.k-scene.k-on .k-sn { color: var(--accent); }
+.k-thumb { width: 54px; height: 96px; border-radius: 6px; overflow: hidden; border: 1px solid var(--frame); position: relative; }
+.k-sn { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-sl { font: 500 11px var(--mono); color: var(--dim); letter-spacing: .06em; }
+.k-badge { display: inline-block; margin-top: 4px; font: 500 10px var(--mono); letter-spacing: .1em; color: var(--muted); border: 1px solid var(--frame); border-radius: 999px; padding: 1px 7px; }
+
+/* Scene art (sample Project content) */
+.k-art { position: absolute; inset: 0; }
+.k-a1 { background: var(--panel-2); }
+.k-a1::before { content: ''; position: absolute; left: 0; right: 0; top: 38%; height: 11%; background: var(--accent); }
+.k-a1::after { content: ''; position: absolute; left: 14%; right: 30%; top: 60%; height: 4%; background: var(--muted); border-radius: 2px; }
+.k-a2 { background: var(--bg); }
+.k-a2 span { position: absolute; width: 22%; aspect-ratio: 1; border-radius: 50%; top: 44%; background: var(--frame); }
+.k-a2 span:nth-child(1) { left: 8%; } .k-a2 span:nth-child(2) { left: 39%; background: var(--muted); } .k-a2 span:nth-child(3) { left: 70%; }
+.k-a3 { background: var(--accent); }
+.k-a3::before { content: ''; position: absolute; width: 90%; aspect-ratio: 1; border-radius: 50%; left: 5%; top: 52%; background: var(--panel-2); }
+.k-a3::after { content: ''; position: absolute; left: 22%; right: 22%; top: 30%; height: 5%; background: var(--bg); border-radius: 2px; }
+
+/* Viewer */
+.k-view { flex: 1; min-height: 0; display: grid; place-items: center; padding: 14px; position: relative; }
+.k-frame { height: 100%; aspect-ratio: 9 / 16; position: relative; border-radius: 4px; overflow: visible; }
+.k-frame > .k-art { border-radius: 4px; overflow: hidden; }
+.k-pin { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: var(--accent); color: var(--bg); font: 11px var(--display); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--bg); }
+.k-box { position: absolute; border: 2px dashed var(--accent); border-radius: 4px; }
+.k-box .k-pin { left: 0; top: 0; }
+.k-pin.k-done { background: var(--panel-2); color: var(--dim); border: 1.5px solid var(--frame); }
+.k-err { position: absolute; inset: 0; display: grid; place-content: center; gap: 6px; padding: 24px; text-align: center; background: color-mix(in srgb, var(--bg) 86%, transparent); border-radius: 4px; }
+.k-err p { margin: 0; color: var(--muted); font-size: 13px; }
+.k-trans { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1.5px solid var(--frame); flex: none; }
+.k-tbtn { width: 30px; height: 30px; display: grid; place-items: center; border: 1.5px solid var(--frame); border-radius: 8px; color: var(--muted); flex: none; }
+.k-tbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.k-tbtn.k-main { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.k-tbtn.k-main svg { fill: currentColor; stroke: none; }
+.k-tbtn.k-note { width: auto; padding: 0 10px; gap: 6px; display: flex; font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.k-trans .k-eb { color: var(--muted); }
+.k-tt { display: flex; gap: 14px; margin-left: auto; }
+
+/* Timeline */
+.k-tl { display: flex; flex-direction: column; }
+.k-tlbody { flex: 1; min-height: 0; display: grid; grid-template-columns: 92px minmax(0, 1fr); padding: 6px 14px 12px 0; position: relative; }
+.k-lab { display: flex; flex-direction: column; }
+.k-lab div { font: 500 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); padding-left: 14px; display: flex; align-items: center; }
+.k-lanes { position: relative; display: flex; flex-direction: column; }
+.k-ruler { position: relative; height: 22px; flex: none; border-bottom: 1px solid var(--frame); }
+.k-ruler span { position: absolute; bottom: 4px; font: 500 10px var(--mono); color: var(--dim); transform: translateX(-50%); }
+.k-ruler span::after { content: ''; position: absolute; left: 50%; bottom: -5px; height: 4px; width: 1px; background: var(--frame); }
+.k-marks { position: relative; height: 22px; flex: none; }
+.k-mk { position: absolute; top: 3px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--accent); color: var(--bg); font: 9px var(--display); display: grid; place-items: center; }
+.k-mk.k-done { background: var(--panel-2); color: var(--dim); border: 1px solid var(--frame); }
+.k-span { position: absolute; top: 8px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.k-strips { position: relative; flex: none; }
+.k-strip { position: absolute; top: 0; bottom: 0; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--frame); display: flex; background: var(--panel-2); }
+.k-strip.k-on { border-color: var(--accent); }
+.k-strip .k-tt2 { position: absolute; left: 8px; top: 5px; font: 500 10px var(--mono); letter-spacing: .08em; color: var(--text); background: color-mix(in srgb, var(--bg) 70%, transparent); padding: 1px 6px; border-radius: 4px; z-index: 1; }
+.k-strip .k-cell { flex: 1; position: relative; border-right: 1px solid var(--bg); }
+.k-aud { position: relative; flex: none; margin-top: 6px; }
+.k-wave { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--frame); overflow: hidden; display: flex; align-items: center; gap: 2px; padding: 0 6px; }
+.k-wave i { flex: 1; min-width: 1px; max-width: 2px; background: var(--dim); border-radius: 1px; }
+.k-wave .k-tt2 { position: absolute; left: 6px; top: 2px; font: 500 10px var(--mono); color: var(--muted); background: var(--panel-2); padding: 0 5px; border-radius: 4px; z-index: 1; }
+.k-ph { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accent); z-index: 3; }
+.k-ph::before { content: ''; position: absolute; top: 0; left: -5px; border: 6px solid transparent; border-top-color: var(--accent); }
+
+/* Notes list */
+.k-notes { padding: 8px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.k-nt { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 9px 10px; border-radius: 12px; }
+.k-nt.k-on { background: var(--panel-2); }
+.k-nt .k-pin { position: static; margin: 0; box-shadow: none; }
+.k-nt p { margin: 0; font-size: 13px; }
+.k-nt.k-isdone p { color: var(--dim); text-decoration: line-through; }
+.k-nt .k-sl { display: block; margin-top: 2px; }
+.k-filter { display: flex; gap: 6px; padding: 10px 14px 0; }
+
+/* Popovers */
+.k-pop { position: absolute; z-index: 10; background: var(--panel); border: 1.5px solid var(--frame); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .5); padding: 14px; }
+.k-pop textarea { width: 100%; height: 64px; background: var(--panel-2); color: var(--text); border: 1.5px solid var(--accent); border-radius: 10px; padding: 8px 10px; font: 13px var(--sans); resize: none; }
+.k-prow { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.k-small { padding: 7px 14px; font-size: 12px; }
+.k-res { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 9px 10px; border-radius: 10px; align-items: baseline; }
+.k-res.k-on { background: var(--panel-2); }
+.k-res.k-on b { color: var(--accent); }
+.k-res b { font-weight: 600; }
+.k-res.k-no { opacity: .45; }
+.k-res .k-why { grid-column: 1 / -1; font-size: 11.5px; color: var(--dim); }
+.k-scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 60%, transparent); z-index: 9; }
+
+/* Layout grids per direction */
+.k-body { min-height: 0; display: grid; gap: 14px; }
+.k-dA { grid-template-columns: 250px minmax(0, 1fr) 300px; grid-template-rows: minmax(0, 1fr) var(--tlh); grid-template-areas: 'scenes viewer notes' 'tl tl tl'; }
+.k-dB { grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) var(--tlh); grid-template-areas: 'rail viewer' 'tl tl'; }
+.k-dC { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) var(--tlh); grid-template-areas: 'viewer' 'tl'; }
+.k-float { position: absolute; z-index: 5; box-shadow: 0 18px 50px rgba(0, 0, 0, .45); }
+
+/* Empty state */
+.k-empty { display: grid; place-items: center; }
+.k-empty .k-win { width: 560px; }
+.k-drop { margin: 18px; border: 1.5px dashed var(--frame); border-radius: 14px; padding: 34px 20px; text-align: center; display: grid; gap: 12px; justify-items: center; }
+.k-drop h2 { margin: 0; font: 26px var(--display); letter-spacing: -.01em; }
+.k-drop h2 b { color: var(--accent); font-weight: inherit; }
+.k-drop p { margin: 0; color: var(--muted); }
+.k-recent { padding: 0 18px 18px; }
+.k-recent div { display: flex; justify-content: space-between; padding: 9px 10px; border-radius: 10px; }
+.k-recent div:first-of-type { background: var(--panel-2); }
+
+/* Comment mode */
+.k-app.k-cm [data-region] { cursor: crosshair; }
+.k-app.k-cm [data-region]:hover { outline: 2px solid var(--muted); outline-offset: -2px; }
+.k-app [data-region].k-sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+</style>
+</head>
+<body>
+<aside class="p-side">
+  <h1>Kape<b>Cut</b> editor</h1>
+  <p>Layout for ticket #10. Pick a direction and the forks, look at each state, click any region to leave a note, then Copy my picks.</p>
+
+  <span class="p-eb">Direction</span>
+  <label class="p-opt"><input type="radio" name="dir" value="A" checked><b>A. Everything open</b><span>Scenes left, Notes right, Timeline across the bottom. Nothing to open or close.</span></label>
+  <label class="p-opt"><input type="radio" name="dir" value="B"><b>B. One rail, two tabs</b><span>Scenes and Notes share a left rail with tabs, so the viewer gets the width.</span></label>
+  <label class="p-opt"><input type="radio" name="dir" value="C"><b>C. Windows on a desk</b><span>The Timeline strips are the Scene list. Notes is a window that overlaps the viewer's edge.</span></label>
+
+  <span class="p-eb">State to look at</span>
+  <div class="p-row" id="views">
+    <label class="p-chip"><input type="radio" name="view" value="normal" checked>Reviewing</label>
+    <label class="p-chip"><input type="radio" name="view" value="note">Adding a Note</label>
+    <label class="p-chip"><input type="radio" name="view" value="export">Export open</label>
+    <label class="p-chip"><input type="radio" name="view" value="error">Scene error</label>
+    <label class="p-chip"><input type="radio" name="view" value="blank">No Notes, no audio</label>
+    <label class="p-chip"><input type="radio" name="view" value="empty">No Project open</label>
+  </div>
+
+  <span class="p-eb">Timeline height</span>
+  <div class="p-row">
+    <label class="p-chip"><input type="radio" name="tl" value="compact" checked>Compact (1 audio lane)</label>
+    <label class="p-chip"><input type="radio" name="tl" value="tall">Tall (2 lanes, bigger strips)</label>
+  </div>
+
+  <span class="p-eb">Where a Note is typed</span>
+  <div class="p-row">
+    <label class="p-chip"><input type="radio" name="ne" value="mark" checked>Popover at the mark</label>
+    <label class="p-chip"><input type="radio" name="ne" value="list">Top of the Notes list</label>
+  </div>
+
+  <span class="p-eb">Export</span>
+  <div class="p-row">
+    <label class="p-chip"><input type="radio" name="ex" value="pop" checked>Popover under the button</label>
+    <label class="p-chip"><input type="radio" name="ex" value="sheet">Centred sheet</label>
+  </div>
+
+  <span class="p-eb">Notes on the layout</span>
+  <div class="p-row"><label class="p-chip"><input type="checkbox" id="cm">Comment mode (click a region)</label></div>
+  <div class="p-note-for" style="margin-top:10px">Note on: <b id="reg">whole layout</b></div>
+  <textarea id="note" placeholder="What's wrong or right here?"></textarea>
+
+  <button class="p-copy" id="copy">Copy my picks</button>
+  <div class="p-copied" id="copied" role="status"></div>
+</aside>
+<main class="p-main" id="pmain">
+  <div class="p-fit" id="fit"></div>
+  <div class="p-hint">1440 x 900 mock, scaled to fit. Scene pictures are sample content.</div>
+</main>
+
+<script>
+const S = { dir: 'A', view: 'normal', tl: 'compact', ne: 'mark', ex: 'pop', cm: false, reg: 'whole layout' }
+const NOTES = {}
+const ic = {
+  open: '<svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>',
+  back: '<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+  fwd: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg>',
+  vol: '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>',
+  zin: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4M11 8v6M8 11h6"/></svg>',
+  zout: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4M8 11h6"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>',
+}
+const SCENES = [
+  { file: 'hello.html', len: 4.5, art: 'k-a1' },
+  { file: 'menu.html', len: 4.5, art: 'k-a2' },
+  { file: 'order.html', len: 3, art: 'k-a3' },
+]
+const TOTAL = 12, NOW = 5.6
+const art = (a) => `<div class="k-art ${a}">${a === 'k-a2' ? '<span></span><span></span><span></span>' : ''}</div>`
+const noteList = () => S.view === 'blank' ? [] : [
+  { n: 1, text: 'Bigger', scene: 'menu.html', t: '1.10', at: 5.6, kind: 'pin', x: 50, y: 50 },
+  { n: 2, text: 'Warmer background', scene: 'menu.html', t: '1.10', at: 5.6, kind: 'box', x: 8, y: 40, w: 84, h: 18 },
+  { n: 3, text: 'Hold the logo longer', scene: 'order.html', t: '0.00-1.50', at: 9, end: 10.5, kind: 'span' },
+  { n: 4, text: 'Bolder headline', scene: 'hello.html', t: '2.00', at: 2, kind: 'pin', done: true },
+]
+
+function header() {
+  if (S.view === 'empty') return `<header class="k-head" data-region="header"><span class="k-logo">Kape<b>Cut</b></span><span class="k-sp"></span><span class="k-btn">${ic.open}Open Project</span><span class="k-primary k-dis">Export &rarr;</span></header>`
+  return `<header class="k-head" data-region="header">
+    <span class="k-logo">Kape<b>Cut</b></span>
+    <span class="k-proj"><span class="k-name">kopi-senja</span><span class="k-eb">1080x1920 · 30 fps · 3 Scenes</span></span>
+    <span class="k-sp"></span>
+    <span class="k-btn">${ic.open}Open Project</span>
+    <span class="k-eb">${S.view === 'export' ? '' : 'H.264 hardware · ffmpeg yes'}</span>
+    <span class="k-primary">Export &rarr;</span>
+  </header>`
+}
+
+function sceneList(tight) {
+  return `<div class="k-scenes">${SCENES.map((s, i) => `
+    <div class="k-scene ${i === 1 ? 'k-on' : ''}">
+      <div class="k-thumb">${art(s.art)}</div>
+      <div><div class="k-sn">${String(i + 1).padStart(2, '0')}  ${s.file}</div><div class="k-sl">${s.len.toFixed(2)}s · ${s.len * 30} F</div>
+      ${i === 1 && S.view === 'error' ? '<span class="k-badge">Scene error</span>' : ''}
+      ${i === 1 && S.view !== 'error' && S.view !== 'blank' ? '<span class="k-badge">2 open Notes</span>' : ''}</div>
+    </div>`).join('')}</div>`
+}
+function sceneWin() {
+  return `<section class="k-win" style="grid-area:scenes" data-region="scene list"><div class="k-tb"><i></i><i></i><i></i><span class="k-eb">Scenes</span></div>${sceneList()}</section>`
+}
+
+function notesBody() {
+  const ns = noteList()
+  const entry = S.view === 'note' && S.ne === 'list' ? `<div style="padding:8px 8px 0">${noteEntry(true)}</div>` : ''
+  if (!ns.length) return entry + `<div style="padding:28px 18px;color:var(--muted);font-size:13px">No Notes yet. Pause on a Frame, press <b style="color:var(--text)">N</b>, then click or drag on the picture.</div>`
+  return `<div class="k-filter"><span class="k-tab k-on">3 open</span><span class="k-tab">1 done</span><span class="k-tab">All</span></div>${entry}
+  <div class="k-notes">${ns.map((n) => `
+    <div class="k-nt ${n.n === 1 ? 'k-on' : ''} ${n.done ? 'k-isdone' : ''}">
+      <span class="k-pin ${n.done ? 'k-done' : ''}">${n.done ? '&#10003;' : n.n}</span>
+      <div><p>${n.text}</p><span class="k-sl">${n.scene} · ${n.t}s · ${n.kind === 'span' ? 'time span' : n.kind}</span></div>
+    </div>`).join('')}</div>`
+}
+function notesWin(style = 'grid-area:notes', cls = '') {
+  return `<section class="k-win ${cls}" style="${style}" data-region="notes list"><div class="k-tb"><i></i><i></i><i></i><span class="k-eb">Notes</span><span class="k-r"><span class="k-eb">notes.json</span></span></div>${notesBody()}</section>`
+}
+function railWin() {
+  const tab = S.view === 'note' ? 'notes' : 'scenes'
+  return `<section class="k-win" style="grid-area:rail" data-region="rail (scenes + notes)"><div class="k-tb"><i></i><i></i><i></i>
+    <span class="k-tabs"><span class="k-tab ${tab === 'scenes' ? 'k-on' : ''}">Scenes 3</span><span class="k-tab ${tab === 'notes' ? 'k-on' : ''}">Notes ${S.view === 'blank' ? 0 : 3}</span></span></div>
+    ${tab === 'scenes' ? sceneList() : notesBody()}</section>`
+}
+
+function noteEntry(inList) {
+  return `<div class="${inList ? '' : 'k-pop'}" style="${inList ? 'background:var(--panel-2);border-radius:12px;padding:10px' : 'width:270px;left:calc(50% + 20px);top:calc(50% + 14px)'}">
+    <div class="k-eb" style="margin-bottom:8px">Note 5 · menu.html · 1.10s · point</div>
+    <textarea>Bigger</textarea>
+    <div class="k-prow"><span class="k-btn k-small">Cancel</span><span class="k-sp"></span><span class="k-primary k-small">Save</span></div>
+  </div>`
+}
+
+function viewer() {
+  const ns = noteList().filter((n) => n.at === NOW && n.kind !== 'span')
+  const marks = S.view === 'error' ? '' : ns.map((n) => n.kind === 'box'
+    ? `<div class="k-box" style="left:${n.x}%;top:${n.y}%;width:${n.w}%;height:${n.h}%"><span class="k-pin">${n.n}</span></div>`
+    : `<span class="k-pin" style="left:${n.x}%;top:${n.y}%">${n.n}</span>`).join('')
+  const adding = S.view === 'note' ? `<span class="k-pin" style="left:62%;top:30%;background:var(--text)">5</span>` : ''
+  const err = S.view === 'error' ? `<div class="k-err"><span class="k-eb">Scene error</span><p>Scene canvas is 1080x1080, Project Design size is 1080x1920</p><p style="color:var(--dim)">Save the Scene to reload it. Other Scenes still play.</p></div>` : ''
+  const pop = S.view === 'note' && S.ne === 'mark' ? noteEntry(false).replace('left:calc(50% + 20px);top:calc(50% + 14px)', 'left:calc(50% + 70px);top:24%') : ''
+  return `<section class="k-win" style="grid-area:viewer" data-region="viewer">
+    <div class="k-tb"><i></i><i></i><i></i><span class="k-eb">02 · menu.html</span><span class="k-r"><span class="k-eb">${S.view === 'error' ? 'error' : 'reloaded 2s ago'}</span></span></div>
+    <div class="k-view"><div class="k-frame">${art('k-a2')}${err}${marks}${adding}</div>${pop}</div>
+    <div class="k-trans" data-region="transport">
+      <span class="k-tbtn">${ic.back}</span><span class="k-tbtn k-main">${ic.play}</span><span class="k-tbtn">${ic.fwd}</span>
+      <span class="k-tbtn k-note" style="${S.view === 'note' ? 'border-color:var(--accent);color:var(--accent)' : ''}">${ic.pin}Note  N</span>
+      <span class="k-tbtn">${ic.vol}</span>
+      <span class="k-tt"><span class="k-eb">05.60 / 12.00s</span><span class="k-eb">F 168</span><span class="k-eb">Scene 2 · 1.10s</span></span>
+    </div>
+  </section>`
+}
+
+function timeline() {
+  const tall = S.tl === 'tall'
+  const stripH = tall ? 76 : 52, laneH = tall ? 30 : 26
+  const lanes = S.view === 'blank' ? [] : tall ? [['music.mp3', 0, 12], ['whoosh.wav', 4.4, 1.2]] : [['music.mp3', 0, 12]]
+  const W = 100 / TOTAL
+  let x = 0
+  const strips = SCENES.map((s, i) => { const l = x; x += s.len
+    const cells = Math.max(2, Math.round(s.len * (tall ? 2.2 : 3)))
+    return `<div class="k-strip ${i === 1 ? 'k-on' : ''}" style="left:calc(${l * W}% + 2px);width:calc(${s.len * W}% - 4px)"><span class="k-tt2">${s.file}</span>${Array.from({ length: cells }, () => `<div class="k-cell">${art(s.art)}</div>`).join('')}</div>` }).join('')
+  const ticks = Array.from({ length: TOTAL + 1 }, (_, t) => `<span style="left:${t * W}%">${t}s</span>`).join('')
+  const ns = noteList()
+  const marks = ns.map((n) => n.kind === 'span'
+    ? `<div class="k-span" style="left:${n.at * W}%;width:${(n.end - n.at) * W}%"></div><span class="k-mk" style="left:${n.at * W}%">${n.n}</span>`
+    : `<span class="k-mk ${n.done ? 'k-done' : ''}" style="left:${n.at * W + (n.n === 2 ? 1.6 : 0)}%">${n.done ? '&#10003;' : n.n}</span>`).join('')
+  const waves = lanes.map(([f, st, len]) => {
+    let bars = ''; for (let i = 0; i < Math.round(len * 34); i++) { const h = 20 + Math.abs(Math.sin(i * 1.7) * Math.cos(i * .31)) * 70; bars += `<i style="height:${h}%"></i>` }
+    return `<div class="k-aud" style="height:${laneH}px"><div class="k-wave" style="left:${st * W}%;width:${len * W}%"><span class="k-tt2">${f}</span>${bars}</div></div>` }).join('')
+  const lab = `<div class="k-lab"><div style="height:22px">Time</div><div style="height:22px">Notes</div><div style="height:${stripH}px">Scenes</div>${lanes.map(() => `<div style="height:${laneH + 6}px">Audio</div>`).join('')}</div>`
+  return `<section class="k-win k-tl" style="grid-area:tl" data-region="timeline">
+    <div class="k-tb"><i></i><i></i><i></i><span class="k-eb">Timeline</span><span class="k-r"><span class="k-tbtn">${ic.zout}</span><span class="k-tbtn">${ic.zin}</span><span class="k-eb" style="margin-left:6px">Fit</span></span></div>
+    <div class="k-tlbody">${lab}<div class="k-lanes"><div class="k-ruler">${ticks}</div><div class="k-marks">${S.view === 'blank' ? '' : marks}</div>
+      <div class="k-strips" style="height:${stripH}px">${strips}</div>${waves}
+      ${S.view === 'blank' ? `<div class="k-eb" style="margin-top:8px;color:var(--dim)">No audio in project.json</div>` : ''}
+      <div class="k-ph" style="left:${NOW * W}%"></div></div></div>
+  </section>`
+}
+
+function exportUi() {
+  const rows = [['720p', '720x1280', 0], ['1080p', '1080x1920', 1], ['1440p', '1440x2560', 0], ['4K', '2160x3840', 0, 'This machine cannot encode H.264 at 2160x3840']]
+  const inner = `<div class="k-eb" style="margin-bottom:8px">Export · 12.00s · 360 Frames · audio mixed</div>
+    ${rows.map(([n, px, on, why]) => `<div class="k-res ${on ? 'k-on' : ''} ${why ? 'k-no' : ''}"><b>${n}</b><span class="k-sl">${px}</span>${why ? `<span class="k-why">${why}</span>` : ''}</div>`).join('')}
+    <div class="k-prow"><span class="k-sp"></span><span class="k-primary">Export 1080p &rarr;</span></div>`
+  return S.ex === 'pop'
+    ? `<div class="k-pop" style="width:330px;right:28px;top:58px" data-region="export">${inner}</div>`
+    : `<div class="k-scrim"></div><div class="k-pop" style="width:420px;left:510px;top:250px;z-index:11" data-region="export">${inner}</div>`
+}
+
+function body() {
+  if (S.view === 'empty') return `<div class="k-empty"><section class="k-win" data-region="empty state"><div class="k-tb"><i></i><i></i><i></i><span class="k-eb">No Project open</span></div>
+    <div class="k-drop"><h2>Open a <b>Project</b></h2><p>Pick a folder with a project.json, or drop one on this window.</p><span class="k-primary">Open folder &rarr;</span></div>
+    <div class="k-recent"><span class="k-eb">Recent</span><div><span>kopi-senja</span><span class="k-sl">today</span></div><div><span>hello</span><span class="k-sl">yesterday</span></div></div></section></div>`
+  const v = viewer(), t = timeline()
+  if (S.dir === 'A') return `<div class="k-body k-dA">${sceneWin()}${v}${notesWin()}${t}</div>`
+  if (S.dir === 'B') return `<div class="k-body k-dB">${railWin()}${v}${t}</div>`
+  return `<div class="k-body k-dC">${v}${t}${notesWin('right:36px;top:86px;width:300px;height:420px', 'k-float')}</div>`
+}
+
+const fit = document.getElementById('fit'), pmain = document.getElementById('pmain')
+function render() {
+  const tlh = S.tl === 'tall' ? (S.view === 'blank' ? 210 : 270) : (S.view === 'blank' ? 160 : 190)
+  fit.innerHTML = `<div class="k-app ${S.cm ? 'k-cm' : ''}" style="--tlh:${tlh}px">${header()}${body()}${S.view === 'export' ? exportUi() : ''}</div>`
+  fit.querySelectorAll('[data-region]').forEach((el) => { if (el.dataset.region === S.reg) el.classList.add('k-sel') })
+  scale()
+}
+function scale() {
+  const k = Math.min(pmain.clientWidth / 1440, (pmain.clientHeight - 24) / 900)
+  fit.style.transform = `translate(${(pmain.clientWidth - 1440 * k) / 2}px, 0) scale(${k})`
+}
+document.querySelectorAll('.p-side input[type=radio]').forEach((el) => el.addEventListener('change', () => { S[el.name] = el.value; render() }))
+document.getElementById('cm').addEventListener('change', (e) => { S.cm = e.target.checked; render() })
+const note = document.getElementById('note'), regEl = document.getElementById('reg')
+fit.addEventListener('click', (e) => {
+  if (!S.cm) return
+  const r = e.target.closest('[data-region]'); if (!r) return
+  S.reg = r.dataset.region; regEl.textContent = S.reg; note.value = NOTES[S.reg] || ''; note.focus(); render()
+})
+note.addEventListener('input', () => { NOTES[S.reg] = note.value })
+document.getElementById('copy').addEventListener('click', () => {
+  const names = { A: 'A. Everything open', B: 'B. One rail, two tabs', C: 'C. Windows on a desk' }
+  const lines = [`KapeCut editor layout (#10) picks`, `Direction: ${names[S.dir]}`, `Timeline: ${S.tl}`, `Note entry: ${S.ne === 'mark' ? 'popover at the mark' : 'top of the Notes list'}`, `Export: ${S.ex === 'pop' ? 'popover under the button' : 'centred sheet'}`]
+  const ns = Object.entries(NOTES).filter(([, v]) => v.trim())
+  if (ns.length) lines.push('Notes:', ...ns.map(([k, v]) => `- ${k}: ${v.trim()}`))
+  const text = lines.join('\n')
+  document.getElementById('copied').textContent = 'Copied. Paste it in chat.'
+  navigator.clipboard?.writeText(text).catch(() => {})
+  window.__picks = text
+})
+new ResizeObserver(scale).observe(pmain)
+render()
+document.fonts?.ready.then(render)
+</script>
+</body>
+</html>

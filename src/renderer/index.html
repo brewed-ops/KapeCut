@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>KapeCut</title>
+    <!-- shortcut: fonts load from Google, falls back to system fonts offline; bundle them before public release.
+         media=print + onload: a pending stylesheet blocks the app script, and this one takes ~2 s (CI timed out on it). -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" media="print" onload="this.media = 'all'" />
+    <link rel="stylesheet" href="./styles/app.css" />
+  </head>
+  <body>
+    <header>
+      <h1><svg viewBox="10 12 43 40" aria-hidden="true"><path class="bar" d="M10 12h9v40h-9z" /><path d="M42 12h11L35 32l18 20H42L25 32z" /></svg>Kape<b>Cut</b></h1>
+      <details id="projects">
+        <summary><svg data-icon="folder-open"></svg>Projects<svg data-icon="chevron-down"></svg></summary>
+        <div class="menu">
+          <button id="open-folder" disabled><svg data-icon="folder-open"></svg>Open folder</button>
+          <div id="recent" aria-label="Recent Projects"></div>
+        </div>
+      </details>
+      <span id="project">No Project open</span>
+      <span class="eyebrow" id="export-status" role="status"></span>
+      <span id="claude-status" role="status" hidden><i></i><span class="name" data-label="Claude" aria-hidden="true"></span><span class="faces" id="claude-status-faces" aria-hidden="true"></span><span id="claude-status-text"></span></span>
+      <select id="resolution" aria-label="Export resolution" disabled></select>
+      <button class="primary" id="export" disabled><span id="export-progress" aria-hidden="true" hidden></span><span id="export-label">Export</span><svg data-icon="export"></svg></button>
+      <div class="win-buttons">
+        <button id="win-min" aria-label="Minimise" title="Minimise"><svg data-icon="subtract"></svg></button>
+        <button id="win-max" aria-label="Maximise" title="Maximise"><svg data-icon="square.max square-multiple.restore"></svg></button>
+        <button id="win-close" aria-label="Close" title="Close"><svg data-icon="dismiss"></svg></button>
+      </div>
+    </header>
+    <!-- Files from disk over the window: says where they go (app.css shows it from .files.dropping). -->
+    <div id="drop-overlay" aria-hidden="true"><span class="eyebrow">Drop files to copy them in, or a folder to open it</span></div>
+    <!-- Setup window (#89): over the editor until every check passes. setup/setup-ui.ts -->
+    <div id="setup" hidden>
+      <section class="window" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+        <div class="titlebar"><span class="title">Setup</span></div>
+        <div class="body">
+          <h2 id="setup-title">KapeCut needs <b>a few tools.</b></h2>
+          <p>Install what is missing, then Re-check. KapeCut checks them on every launch.</p>
+          <ul id="setup-list" aria-label="Checks"></ul>
+          <div class="row"><p id="setup-status" role="status"></p><button id="setup-prompt" title="Copy a prompt that has Claude Code install what is missing" hidden><svg data-icon="copy"></svg>Copy Prompt</button><button class="primary" id="setup-recheck"><svg data-icon="arrow-clockwise"></svg>Re-check</button></div>
+        </div>
+      </section>
+    </div>
+    <main id="main">
+      <div class="side">
+        <!-- Files dropped anywhere on the window are copied into the Project and listed here; audio drags onto the Timeline. -->
+        <aside class="window files" id="files" hidden>
+          <div class="titlebar">
+            <span class="title">Files</span>
+            <button id="files-add" class="filter" aria-label="Add files to the Project" title="Add files (or drop them on the window)"><svg data-icon="add"></svg></button>
+          </div>
+          <p id="files-path"></p>
+          <p id="files-status" role="status"></p>
+          <p id="files-empty" hidden>Drop any file on the window to copy it into the Project. Drag audio onto the Timeline.</p>
+          <ul id="file-list" aria-label="Files"></ul>
+        </aside>
+        <aside class="window scenes">
+          <div class="titlebar"><span class="title">Scenes</span></div>
+          <p class="waiting" id="scenes-waiting" hidden>Claude writes the Scenes here once you connect it.</p>
+          <ol id="scene-list" aria-label="Scenes"></ol>
+        </aside>
+        <!-- App-wide options (#57), a modal panel (#114, docs/design/settings-reference.png). settings/settings-ui.ts -->
+        <div class="settings">
+          <dialog id="settings-panel" aria-label="Settings" closedby="any" tabindex="-1">
+            <nav aria-label="Settings sections">
+              <button data-section="general" aria-current="true">General</button>
+              <button data-section="appearance">Appearance</button>
+              <button data-section="setup">Setup</button>
+              <button data-section="updates">Updates</button>
+            </nav>
+            <div class="settings-main">
+              <div class="settings-head">
+                <span>Settings</span><span aria-hidden="true">/</span><b id="settings-title">General</b>
+                <button id="settings-close" aria-label="Close Settings"><svg data-icon="dismiss"></svg></button>
+              </div>
+              <div class="settings-body">
+                <section data-section="general">
+                  <h2>Claude</h2>
+                  <div class="card">
+                    <div class="row">
+                      <div><label for="idle-minutes">Idle minutes</label><p id="idle-hint">Claude turns idle after this long with no activity.</p></div>
+                      <input id="idle-minutes" type="number" min="1" max="120" step="1" required aria-describedby="idle-hint" />
+                    </div>
+                  </div>
+                  <h2>Projects</h2>
+                  <div class="card">
+                    <div class="row">
+                      <div><span id="settings-recent-label">Recent Projects</span><p>Click one to open it.</p></div>
+                      <div id="settings-recent" role="group" aria-labelledby="settings-recent-label"></div>
+                    </div>
+                  </div>
+                </section>
+                <section data-section="appearance" hidden>
+                  <h2>Look</h2>
+                  <div class="card">
+                    <div class="row">
+                      <div><span id="theme-label">Theme</span><p>Dark, light, frosted glass, or the same as the system.</p></div>
+                      <div class="segmented" role="radiogroup" aria-labelledby="theme-label">
+                        <label><input type="radio" name="theme" value="dark" />Dark</label>
+                        <label><input type="radio" name="theme" value="light" />Light</label>
+                        <label><input type="radio" name="theme" value="glass" />Glass</label>
+                        <label><input type="radio" name="theme" value="system" />System</label>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section data-section="setup" hidden>
+                  <h2>Encoder and tools</h2>
+                  <div class="card">
+                    <div class="row"><div><span>Checked at launch</span><p>The Setup window shows how to install what is missing.</p></div></div>
+                    <p id="encoder">Checking encoder</p>
+                  </div>
+                </section>
+                <section data-section="updates" hidden>
+                  <h2>KapeCut</h2>
+                  <div class="card">
+                    <div class="row">
+                      <div><span>Version <b id="app-version"></b></span><p id="update-text" role="status"></p></div>
+                      <button class="primary" id="update-action" hidden></button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+              <p id="settings-status" role="status"></p>
+            </div>
+          </dialog>
+          <button id="settings" aria-expanded="false" aria-controls="settings-panel" disabled><svg data-icon="settings"></svg>Settings</button>
+        </div>
+      </div>
+      <div id="view">
+      <section class="window">
+        <div class="titlebar">
+          
+          <button class="primary connect" id="connect" aria-label="Connect Claude via Prompt" title="Copies a prompt for Claude Code naming this Project" hidden>
+            <!-- Two faces: .primary until Claude's handshake exists (claude/status-ui.ts), then a check and "copy again". -->
+            <svg data-icon="plug-disconnected" class="off"></svg><span class="label off">Connect Claude <span class="via">via Prompt</span></span>
+            <svg data-icon="plug-connected" class="on"></svg><span class="label on">Claude connected<span class="via">, copy again</span></span>
+          </button>
+          <span class="eyebrow" id="scene-name">Scene</span>
+          <!-- In the title bar, not the transport: a 9:16 viewer leaves the transport no room for them -->
+          <span class="tools" id="note-tools" hidden>
+            <button id="note" aria-label="Note" aria-pressed="false" aria-keyshortcuts="N" title="Note (N): click or drag on the Frame, drag on the Timeline for a span ([ and ] by keyboard), Enter marks the middle">
+              <svg data-icon="location"></svg><span class="label">Note</span>
+            </button>
+            <button id="pen" aria-label="Pencil Note" aria-pressed="false" aria-keyshortcuts="P" title="Pencil Note (P): draw on the Frame">
+              <svg data-icon="pen"></svg><span class="label">Pencil</span>
+            </button>
+          </span>
+        </div>
+        <div class="stage" id="stage"><div class="marks" id="marks"></div><div class="paused" id="export-paused" role="status" hidden><span class="eyebrow">Exporting</span><p>Preview is paused until it finishes</p></div></div>
+        <div class="transport" id="transport" hidden>
+          <button id="back" aria-label="Previous Frame"><svg data-icon="previous-frame"></svg></button>
+          <button id="play" class="main" aria-label="Play"><svg data-icon="play.play pause.pause"></svg></button>
+          <button id="fwd" aria-label="Next Frame"><svg data-icon="next-frame"></svg></button>
+          <input id="scrub" type="range" min="0" value="0" aria-label="Project time" />
+          <span class="eyebrow" id="time">0.00s</span>
+          <span class="eyebrow" id="frame-no">F 0</span>
+        </div>
+      </section>
+      <form class="pop" id="note-pop" hidden>
+        <span class="eyebrow" id="note-pop-title"></span>
+        <textarea aria-label="Note text" required></textarea>
+        <div class="row"><button type="button" id="note-cancel">Cancel</button><button class="primary">Save</button></div>
+      </form>
+      </div>
+      <aside class="window notes">
+        <div class="titlebar"><span class="title">Notes</span><span class="eyebrow" id="notes-told" role="status"></span><span class="eyebrow file">notes.json</span><button id="hide-done" class="filter" aria-pressed="false" aria-label="Hide done Notes" title="Hide done Notes"><svg data-icon="eye-off"></svg></button></div>
+        <p id="notes-empty" hidden>No Notes yet. Pause on a Frame, press <b>N</b>, then click or drag on the picture, or drag on the Timeline for a span (<b>[</b> and <b>]</b> by keyboard). <b>P</b> draws on the picture.</p>
+        <p id="notes-status" role="status"></p>
+        <ol id="note-list" aria-label="Notes"></ol>
+        <div id="notes-foot" hidden><button class="primary" id="copy-prompt" title="Copies a prompt for Claude Code to fix the open Notes"><svg data-icon="copy-checkmark" class="ok"></svg><svg data-icon="copy" class="icon"></svg><span>Copy Prompt</span></button></div>
+      </aside>
+      <section class="window timeline" id="timeline" hidden>
+        <div class="titlebar">
+          <span class="title">Timeline</span>
+          <span class="zoom" id="zoom">
+            <!-- one name; aria-pressed says the state (the toggle-button pattern). Shown when the Project has Audio files. -->
+            <button id="mute" aria-label="Mute audio" aria-pressed="false" title="Mute audio (editor only)" hidden><svg data-icon="speaker-0 speaker-1.on speaker-mute.off"></svg></button>
+            <button id="zoom-out" aria-label="Zoom out (-)"><svg data-icon="zoom-out"></svg></button>
+            <button id="zoom-in" aria-label="Zoom in (+)"><svg data-icon="zoom-in"></svg></button>
+            <button id="zoom-fit"><svg data-icon="zoom-fit"></svg>Fit</button>
+          </span>
+        </div>
+        <p class="tl-waiting" id="tl-waiting" hidden>The Timeline fills when Claude writes the first Scene.</p>
+        <div class="tl-scroll" id="tl-scroll">
+          <div class="tl-track" id="tl-track">
+            <div class="ruler" id="ruler"></div>
+            <div class="note-lane" id="note-lane"></div>
+            <div class="strips" id="strips"></div>
+            <div class="lanes" id="lanes"></div>
+            <div class="playhead" id="playhead"></div>
+            <div class="drop-at" id="drop-at" hidden></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <!-- One toast for the app ("Prompt copied"); toast() in dom.ts shows it. -->
+    <!-- The live region stays in the page; the pill inside it appears, so screen readers announce it. -->
+    <div role="status"><div class="toast" id="toast" hidden><svg data-icon="checkmark-circle"></svg><span id="toast-text"></span></div></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,112 @@
+/* KapeCut look: ink + amber + grain (docs/design/look.md). Every colour in the app comes from here. */
+:root {
+  --bg: #12100e;
+  --panel: #1b1815;
+  --panel-2: #221e19;
+  --frame: #3a332b;
+  --accent: #f0a726;  --text: #f6f2ea;
+  --ok: #3fbf6f; /* Claude active */
+  --warn: #f0a726; /* Claude idle */
+  --bad: #e5484d; /* Claude not connected */
+  --muted: #cfc6b6;
+  --dim: #8a7d6b;
+  --scrim: rgb(8 7 6 / 0.6); /* behind a modal panel (Settings) */
+  --shadow: 0 18px 50px rgb(0 0 0 / 0.5); /* under a floating panel */
+  --grain-blend: overlay; /* how the grain tile lies on --bg */
+  --radius-card: 12px; /* a card of rows inside a panel (Settings) */
+  --radius: 16px;
+  --gutter: 24px; /* the window's outer margin: the header and the panels share it, so their right edges line up */
+  --lift: 0 0 0 1px var(--frame), 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.04); /* a panel: a hairline ring and a soft lift, no border */
+  --display: 'Archivo Black', 'Geist', sans-serif;
+  --sans: 'Geist', system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, monospace;
+  /* Control sizes (#71): every button, select, pill and input reads its height, padding, gap, icon and label size here, so a size change is one edit. */
+  --control-h: 28px; /* labelled controls */
+  --control-h-export: 32px;
+  --control-h-icon: 26px; /* icon-only, square */
+  --control-h-small: 22px; /* in-row buttons: Files rows, list filters, a Note's actions */
+  --control-pad-x: 12px;
+  --control-pad-x-small: 8px; /* menus, inputs, in-row buttons, Fit */
+  --control-gap: 6px;
+  --control-icon: 14px;
+  --control-icon-small: 12px; /* inside the small buttons */
+  --control-font: 12px;
+  /* Type (#82, apple-design section 15): one tracking and one leading per role, set in app.css only through these.
+     Tracking tightens as type grows and widens as it shrinks or goes caps; leading is tight on headlines, looser on body. */
+  --track-display: -0.01em; /* Archivo Black headlines (22-24px) */
+  /* Geist body and UI text keep the font's own tracking (0): no token, since an em value set on body would reach smaller
+     text as body's px. */
+  --track-mono: 0.06em; /* Geist Mono in mixed case: times, Scene and Note eyebrows, badges, strip names */
+  --track-caps: 0.12em; /* Geist Mono small caps on controls and labels */
+  --track-eyebrow: 0.18em; /* Geist Mono small caps eyebrows: the widest */
+  --lead-display: 1.1; /* headlines */
+  --lead-label: 1.2; /* single-line labels, controls, badges */
+  --lead-dense: 1.35; /* small text that wraps: Notes, empty states, the idle setting, the Note field */
+  --lead-body: 1.5; /* body */
+  /* Motion (#77, apple-design skill). Every duration and curve in the app reads one of these; app.css hard-codes none.
+     Rules for the #75 tickets: animate only transform (or scale / translate) and opacity, never width, height,
+     padding, top or left. Use CSS transitions, not @keyframes, so a second click reverses from the live value.
+     Springs were solved with apple-design/scripts/spring-linear.py: a critically damped spring has the same curve at
+     every response, so one --ease-spring and a duration ladder (its settle time per response) cover all UI motion.
+     Under prefers-reduced-motion (app.css, end) only opacity transitions (plus display, a discrete flip at the end of an exit) and the press does not move. */
+  --ease-spring: linear(0, 0.1417 7.1%, 0.3797 14.3%, 0.5879 21.4%, 0.7396 28.6%, 0.8409 35.7%, 0.9051 42.9%, 0.9444 50%,
+    0.9678 57.1%, 0.9816 64.3%, 0.9896 71.4%, 0.9941 78.6%, 0.9967 85.7%, 0.9982 92.9%, 1 100%); /* damping 1.0: every UI motion by default */
+  --ease-spring-bounce: linear(0, 0.135 7.1%, 0.3843 14.3%, 0.6175 21.4%, 0.7909 28.6%, 0.9025 35.7%, 0.9657 42.9%,
+    0.9966 50%, 1.0087 57.1%, 1.0111 64.3%, 1.0094 71.4%, 1.0066 78.6%, 1.0041 85.7%, 1.0022 92.9%, 1 100%); /* damping 0.82: ONLY after a drag release that carried momentum, with --dur-bounce */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* press-in, hover and fades */
+  --dur-press: 100ms; /* :active press-in */
+  --dur-fast: 160ms; /* opacity fades, small swaps */
+  --dur-s: 353ms; /* spring, response 0.24: press release, toasts, badges, status pill, copied swap */
+  --dur-m: 470ms; /* spring, response 0.32: popovers, Notes window, Settings, drop overlay, a Timeline rubber-band's return */
+  --dur-l: 587ms; /* spring, response 0.40: larger surfaces, Scene list current item */
+  --dur-bounce: 412ms; /* with --ease-spring-bounce */
+  --press-scale: 0.96; /* every button shrinks to this on :active */
+  --press-tone: 0.85; /* the press darkens (brightness) instead: wide rows, span bars, draggable rows, caption buttons, and every button under reduced motion */
+  --pop-from: 0.6; /* a popover's scale at its Mark, before it grows open and after it shrinks shut (#79) */
+  --pop-scale: 0.94; /* the Settings panel grows in from this scale and shrinks back to it as it fades out (#80, #114) */
+}
+
+/* Light (#114, docs/design/look.md): the same tokens on warm paper. Set by data-theme on <html> (src/preload/index.ts, before
+   the first paint). The amber darkens to 5:1 on --bg, so it still reads as text and carries --bg text on it. */
+:root[data-theme='light'] {
+  --bg: #f4efe6;
+  --panel: #fbf8f2;
+  --panel-2: #ece4d6;
+  --frame: #d6cab6;
+  --accent: #965400;
+  --ok: #1f8a4c;
+  --warn: #b26a00;
+  --bad: #c4302b;
+  --text: #1b1815;
+  --muted: #4a4136;
+  --dim: #6e6151;
+  --scrim: rgb(27 24 21 / 0.3);
+  --shadow: 0 18px 50px rgb(27 24 21 / 0.18);
+  --grain-blend: soft-light; /* the grain, lighter on paper */
+}
+
+/* Glass (apple-design section 12): frosted white panels over a cool white wash, Apple blue as the one accent. No grain:
+   app.css lays --wash on body and blurs what sits under each panel (--glass). The blue is 5:1 on --bg. */
+:root[data-theme='glass'] {
+  --bg: #eef1f6;
+  --wash: radial-gradient(120% 80% at 0% 0%, #ffffff 0%, transparent 60%), radial-gradient(90% 70% at 100% 100%, #dfe6f2 0%, transparent 70%),
+    linear-gradient(160deg, #fbfcfe 0%, #eef1f6 50%, #e4e9f2 100%);
+  --panel: rgb(255 255 255 / 0.58);
+  --panel-2: rgb(246 248 252 / 0.86);
+  --frame: rgb(40 52 76 / 0.12);
+  --edge: rgb(255 255 255 / 0.85); /* the bright top edge: light catching the material */
+  --glass: blur(28px) saturate(180%);
+  --accent: #0066cc;
+  --ok: #248a3d;
+  --warn: #c27400;
+  --bad: #d70015;
+  --text: #1d1d1f;
+  --muted: #424245;
+  --dim: #6e6e73;
+  --scrim: rgb(20 26 38 / 0.22);
+  --shadow: 0 24px 60px rgb(30 42 66 / 0.16), 0 2px 6px rgb(30 42 66 / 0.06);
+}
+/* Reduced transparency: the same glass, solid. */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-theme='glass'] { --panel: #fbfcfe; --panel-2: #f1f4f9; --glass: none; }
+}

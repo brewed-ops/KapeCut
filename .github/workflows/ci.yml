@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    # Windows, the platform KapeCut ships on, and macOS, which gets the .dmg. Electron e2e runs headed on both without a
+    # display server.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20 # a run takes 5 to 8; the 6 h default let a hung Mac e2e bill ~2 h (#141)
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # The audio mix tests and the export e2e need ffmpeg + ffprobe on PATH.
+      - if: runner.os == 'Windows'
+        run: choco install ffmpeg -y --no-progress
+      - if: runner.os == 'macOS'
+        run: brew install ffmpeg
+      - run: npm test
+      - run: npm run e2e
+      - if: failure() || cancelled() # a job past timeout-minutes ends cancelled, not failed
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.os }}
+          path: test-results
+          if-no-files-found: ignore

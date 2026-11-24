@@ -1,0 +1,76 @@
+{
+  "name": "kapecut",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Desktop video editor where Claude writes every scene as code",
+  "license": "MIT",
+  "main": "out/main/index.js",
+  "engines": {
+    "node": "^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --dir src",
+    "e2e": "electron-vite build && playwright test",
+    "shot": "electron-vite build && node scripts/shot.mjs",
+    "shot:states": "electron-vite build && node scripts/shot-states.mjs",
+    "dist": "electron-vite build && electron-builder --publish never",
+    "shot:readme": "electron-vite build && node scripts/readme-shot.mjs",
+    "smoke:packaged": "node scripts/smoke-packaged.mjs"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "mediabunny": "^1.66.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  },
+  "productName": "KapeCut",
+  "author": "brewed-ops",
+  "build": {
+    "appId": "com.brewedops.kapecut",
+    "directories": {
+      "output": "release"
+    },
+    "asar": false,
+    "files": [
+      "out/**",
+      "skills/kapecut/**",
+      "resources/logo/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/logo/kapecut.ico"
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "resources/logo/kapecut-512.png",
+      "identity": "-"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "brewed-ops",
+      "repo": "KapeCut"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "resources/logo/kapecut-512.png",
+      "category": "AudioVideo"
+    }
+  }
+}

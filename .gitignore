@@ -1,0 +1,12 @@
+node_modules/
+dist/
+out/
+.env
+.env.*
+# Matt Pocock's in-progress and misc skills, local copies only
+.claude/skills/
+.claude/worktrees/
+test-results/
+playwright-report/
+.scratch/
+release/

@@ -1,0 +1,14 @@
+<canvas id="c"></canvas><script>
+  const k = Number(new URLSearchParams(location.search).get('scale') ?? 1) // the Export resolution
+  const c = document.getElementById('c')
+  c.width = 2 * Math.round((1080 * k) / 2)
+  c.height = 2 * Math.round((1920 * k) / 2)
+  const g = c.getContext('2d')
+  g.scale(k, k) // then every draw call uses Design size coordinates
+  window.TOTAL = 2
+  window.renderAt = (t) => {
+    g.fillStyle = '#43a047'; g.fillRect(0, 0, 1080, 1920)
+    g.fillStyle = '#fff'; g.font = 'bold 160px sans-serif'
+    g.fillText('B  ' + t.toFixed(2), 80, 960)
+  }
+</script>

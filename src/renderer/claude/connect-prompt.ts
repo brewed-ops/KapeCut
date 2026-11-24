@@ -1,0 +1,33 @@
+// The two prompts KapeCut copies for Claude Code: the Connect prompt and the fix prompt (GLOSSARY).
+import { HANDSHAKE } from './status'
+
+const NEXT = {
+  'set-up': 'Ask me the format (9:16, 16:9, 1:1), safe zone on or off, and 30 or 60 fps, then ask what the video is about and build the Scenes.',
+  ready: 'project.json is set. Ask me what to work on in the video.',
+  error: 'project.json has an error, shown in KapeCut. Fix it first, then ask me what to work on in the video.',
+}
+
+// A folder name may hold a line break (macOS, Linux): it must not add a line of its own to what the user pastes.
+const oneLine = (path: string) => path.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, '?')
+
+/**
+ * The Connect prompt (GLOSSARY): what "Connect Claude via Prompt" copies. It names the Project folder and the Session file
+ * Claude checks first (ADR 0005), then what to do for the folder's state: set it up, work on the video, or fix project.json.
+ */
+export const connectPrompt = ({ project, session, state }: { project: string; session: string; state: keyof typeof NEXT }) =>
+  `I'm using KapeCut. Use the kapecut skill.
+${checkFirst(project, session)}
+Then write ${HANDSHAKE} in the Project so KapeCut shows you as connected.
+${NEXT[state]}`
+
+const checkFirst = (project: string, session: string) => `Project folder (open in KapeCut now): ${oneLine(project)}
+Before any work, read ${oneLine(session)} and confirm its "project" is this folder. If it is not, stop, tell me KapeCut has a different Project open and ask me which folder to work in.`
+
+/**
+ * The fix prompt (GLOSSARY): what Copy Prompt in the Notes window copies. Same Project folder and Session file check as
+ * the Connect prompt, then fix-notes.md for the open Notes, by number only: Note text stays in notes.json.
+ */
+export const fixPrompt = ({ project, session, open }: { project: string; session: string; open: number[] }) =>
+  `I'm using KapeCut. Use the kapecut skill and follow fix-notes.md.
+${checkFirst(project, session)}
+Fix these open Notes in notes.json: ${open.join(', ')}. Check each with a still, then mark them done with mark-done.mjs.`

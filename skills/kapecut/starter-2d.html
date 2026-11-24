@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Scene</title>
+    <style>
+      html, body { margin: 0; background: #000; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <!-- Design size: set width and height to project.json's size {w, h}. Everything below reads them from here. -->
+    <canvas id="c" width="1080" height="1920"></canvas>
+    <script>
+      // KapeCut Scene (ADR 0001). Every pixel comes from Scene time t alone: same t, same picture.
+      const c = document.getElementById('c')
+      if (!c) throw new Error('Scene needs <canvas id="c">')
+      const W = c.width
+      const H = c.height
+      const query = new URLSearchParams(location.search)
+      // ?scale= draws the same Frame smaller or larger: a still check at 0.25 is a small image, and an Export at another
+      // resolution than the Design size passes its own. Even sides, as KapeCut checks (ADR 0001).
+      const scale = Number(query.get('scale')) > 0 ? Number(query.get('scale')) : 1
+      c.width = 2 * Math.round((W * scale) / 2)
+      c.height = 2 * Math.round((H * scale) / 2)
+      const g = c.getContext('2d')
+      g.scale(scale, scale)
+
+      window.TOTAL = 3 // seconds
+      window.EVENTS = [{ name: 'title-in', t: 0.2 }] // optional beats for sound effects
+      window.ready = document.fonts.ready // add every font, image and asset this Scene waits on
+
+      const clamp = (x) => Math.min(1, Math.max(0, x))
+      const easeOut = (x) => 1 - (1 - x) ** 3
+      // 0 before start, 1 after start + dur, eased between: the building block of every move.
+      const tween = (t, start, dur) => easeOut(clamp((t - start) / dur))
+
+      window.renderAt = (t) => {
+        const s = Math.min(W, H) // size by the short side so the layout holds at 9:16, 16:9 and 1:1
+        const show = tween(t, 0.2, 0.6) * (1 - tween(t, window.TOTAL - 0.5, 0.4))
+
+        g.globalAlpha = 1
+        g.fillStyle = '#12100e'
+        g.fillRect(0, 0, W, H)
+
+        g.globalAlpha = show
+        g.fillStyle = '#f6f2ea'
+        g.font = `900 ${Math.round(s * 0.12)}px sans-serif`
+        g.textAlign = 'center'
+        g.textBaseline = 'middle'
+        g.fillText('TITLE', W / 2, H / 2 + (1 - tween(t, 0.2, 0.6)) * s * 0.05)
+
+        const bar = tween(t, 0.5, 0.6) * s * 0.4
+        g.fillStyle = '#f0a726'
+        g.fillRect(W / 2 - bar / 2, H / 2 + s * 0.1, bar, s * 0.015)
+      }
+
+      // ?t= shows one Frame on its own, for checking a Scene outside KapeCut.
+      if (query.has('t'))
+        window.ready.then(
+          () => window.renderAt(Number(query.get('t'))),
+          (e) => { document.body.style.color = '#fff'; document.body.textContent = 'window.ready failed: ' + e },
+        )
+    </script>
+  </body>
+</html>

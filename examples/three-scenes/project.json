@@ -1,0 +1,1 @@
+{ "name": "Three Scenes", "size": { "w": 1080, "h": 1920 }, "fps": 30, "scenes": ["a.html", "b.html", "c.html"], "audio": [{ "file": "click.wav", "start": 0, "volume": 0.6 }] }
