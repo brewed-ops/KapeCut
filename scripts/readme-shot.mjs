@@ -22,7 +22,7 @@ try {
   await page.locator('#note-list .pin.done').waitFor({ timeout: 15_000 })
   appendFileSync(join(dir, 'brief.md'), '\n') // a change: Claude active
   await page.locator('#claude-status[data-s="active"]').waitFor({ timeout: 15_000 })
-  await page.locator('#scrub').evaluate((el) => ((el.value = '4.1'), el.dispatchEvent(new Event('input')))) // the product shot, Note 2 on it
+  await page.locator('#scrub').evaluate((el) => ((el.value = '3.1'), el.dispatchEvent(new Event('input')))) // mid-sweep on the product shot, Note 2 on the beam
   await page.waitForTimeout(1000) // the Frame and thumbnails settle
   await page.locator('#files-path').evaluate((el) => (el.textContent = '~/Videos/lumen-launch')) // not this machine's path
   await page.screenshot({ path: out })

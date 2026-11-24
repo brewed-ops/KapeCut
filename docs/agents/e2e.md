@@ -72,8 +72,10 @@ without focus. Why it stays shown and on screen: the comment above it in `src/ma
   takes about 3 s, longer than `HOLD` (`src/renderer/dom.ts`), and the plain shot warms capture
   (`setup-window-prompt` in `scripts/shot-states.mjs`).
 - The README image is `npm run shot:readme` (`scripts/readme-shot.mjs` on the demo Project from
-  `scripts/readme-demo.mjs`). The raw footage for the demo film is `npm run footage:demo -- <out>`
-  (`scripts/demo-footage.mjs`: the same Project, recorded at 2x with each step's time and boxes). The packaged app: `npm run dist`, then `npm run smoke:packaged` (Windows).
+  `scripts/readme-demo.mjs`, the Lumen 3D ad). The raw footage for the demo film is
+  `npm run footage:demo -- <out> <clip.mp4>` (`scripts/demo-footage.mjs`: a UGC edit of a talking-head clip from
+  `scripts/ugc-demo.mjs`, then the Lumen ad, recorded at 2x with each step's time and boxes). Never commit the clip.
+  The packaged app: `npm run dist`, then `npm run smoke:packaged` (Windows).
 
 ## Assertions that hold
 
