@@ -66,6 +66,20 @@ async function landScenes(page, dir, staged, support = []) {
   }
   await page.locator('#export:enabled').waitFor({ timeout: 30_000 })
 }
+// Sync flash: a magenta square in the top-left corner for 0.5 s, found again in the recording afterwards. The first one
+// gives the offset between Date.now() and the video's clock (the recording starts before firstWindow resolves); the
+// one at the end measures any drift between the two over the run.
+async function flash(page, name) {
+  await page.evaluate(() => new Promise((done) => {
+    const sq = Object.assign(document.createElement('div'), { id: 'sync' })
+    Object.assign(sq.style, { position: 'fixed', left: '0', top: '0', width: '10px', height: '10px', background: '#f0f', zIndex: '99999' })
+    document.body.append(sq)
+    requestAnimationFrame(() => requestAnimationFrame(done))
+  }))
+  await mark(page, name)
+  await hold(page, 500)
+  await page.evaluate(() => document.getElementById('sync')?.remove())
+}
 async function exportTo(page, file, name) {
   await saveTo(file)
   await page.locator('#export').click()
@@ -78,31 +92,23 @@ let page
 try {
   page = await app.firstWindow()
   t0 = Date.now()
-  // Not this machine's temp paths: the Files panel's folder and the Exported status show ~/Videos/<name> instead. An
-  // observer rewrites them before they paint; the page reloads whenever project.json changes, so this runs on every load.
+  // Not this machine's temp paths: the Files panel's folder and any path in the header status (Exported, Export failed)
+  // show ~/Videos/<name> instead. An observer rewrites them before they paint; the page reloads whenever project.json
+  // changes, so this runs on every load.
   await page.addInitScript(() => {
     const mask = () => {
       const path = document.getElementById('files-path')
       if (path?.textContent && !path.textContent.startsWith('~')) path.textContent = path.title = '~/Videos/' + path.textContent.split(/[\\/]/).pop()
       const status = document.getElementById('export-status')
-      if (status?.textContent?.startsWith('Exported ') && !status.textContent.includes('~')) status.textContent = 'Exported ~/Videos/' + status.textContent.split(/[\\/]/).pop()
+      if (status?.textContent && !status.textContent.includes('~/Videos/'))
+        status.textContent = status.textContent.replace(/(?:[A-Za-z]:)?[\\/]\S*[\\/]([^\\/\s]+)/g, '~/Videos/$1')
     }
     new MutationObserver(mask).observe(document, { subtree: true, childList: true, characterData: true })
   })
   await page.reload()
   await page.setViewportSize({ width: W, height: H })
   await page.locator('.set-up').waitFor({ timeout: 30_000 })
-  // Sync flash: a magenta square in the top-left corner for 0.5 s. Its first frame in the recording gives the offset
-  // between Date.now() and the video's clock (the recording starts before firstWindow resolves).
-  await page.evaluate(() => new Promise((done) => {
-    const sq = Object.assign(document.createElement('div'), { id: 'sync' })
-    Object.assign(sq.style, { position: 'fixed', left: '0', top: '0', width: '10px', height: '10px', background: '#f0f', zIndex: '99999' })
-    document.body.append(sq)
-    requestAnimationFrame(() => requestAnimationFrame(done))
-  }))
-  await mark(page, 'sync')
-  await hold(page, 500)
-  await page.evaluate(() => document.getElementById('sync').remove())
+  await flash(page, 'sync')
   await hold(page, 1000)
 
   // 1. UGC walkthrough.
@@ -151,7 +157,9 @@ try {
   // Claude's fix: the caption moves down off the face, then the Note is set done in notes.json.
   const cta = join(ugc, 'cta.html')
   await page.evaluate(() => (window.before = document.querySelector('iframe')?.contentDocument))
-  writeFileSync(cta, readFileSync(cta, 'utf8').replace('const CAP_Y = 1000', 'const CAP_Y = 1560'))
+  const before = readFileSync(cta, 'utf8'), fixed = before.replace('const CAP_Y = 1000', 'const CAP_Y = 1560')
+  if (fixed === before) throw new Error('cta.html has no "const CAP_Y = 1000" to fix: keep scripts/ugc-demo.mjs and this script in step')
+  writeFileSync(cta, fixed)
   await mark(page, 'ugc:fixed', '#view', '#claude-status')
   // The Scene reloads and starts its video decoder again, black until then: wait for the new page to draw.
   await page.waitForFunction(() => {
@@ -189,6 +197,7 @@ try {
   await hold(page, 8300)
   await exportTo(page, join(root, 'lumen.mp4'), 'lumen')
   await hold(page, 2000)
+  await flash(page, 'sync:end')
   await mark(page, 'end')
 } catch (e) {
   await page?.screenshot({ path: join(out, 'fail.png') })
@@ -199,16 +208,20 @@ try {
 }
 const [webm] = readdirSync(video)
 const raw = join(video, webm)
-// The sync square's first frame: the first whose top-left corner is magenta (red and blue high, green low).
+// Each sync square's first frame: where the top-left corner turns magenta (red and blue high, green low).
 const ffmpeg = (args) => execFileSync('ffmpeg', ['-v', 'error', ...args], { maxBuffer: 1 << 28, timeout: 600_000 })
-const corner = ffmpeg(['-i', raw, '-t', '20', '-vf', 'crop=8:8:4:4,scale=1:1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-fps_mode', 'passthrough', '-'])
-const times = execFileSync('ffprobe', ['-v', 'error', '-read_intervals', '%+20', '-select_streams', 'v', '-show_entries', 'frame=pts_time', '-of', 'csv=p=0', raw], { encoding: 'utf8', timeout: 120_000 }).trim().split(/\s+/).map(Number)
-const first = times.findIndex((_, i) => corner[i * 3] > 200 && corner[i * 3 + 1] < 80 && corner[i * 3 + 2] > 200)
-if (first < 0) throw new Error('sync square not found in the recording')
-const offset = Math.round((times[first] - marks.find((x) => x.name === 'sync').t) * 1000) / 1000
+const corner = ffmpeg(['-i', raw, '-vf', 'crop=8:8:4:4,scale=1:1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-fps_mode', 'passthrough', '-'])
+const times = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v', '-show_entries', 'frame=pts_time', '-of', 'csv=p=0', raw], { encoding: 'utf8', timeout: 300_000 }).trim().split(/\s+/).map(Number)
+const magenta = (i) => corner[i * 3] > 200 && corner[i * 3 + 1] < 80 && corner[i * 3 + 2] > 200
+const flashes = times.filter((_, i) => magenta(i) && !(i > 0 && magenta(i - 1)))
+if (flashes.length !== 2) throw new Error(`expected 2 sync squares in the recording, found ${flashes.length}`)
+const at = (name) => marks.find((x) => x.name === name).t
+const offset = Math.round((flashes[0] - at('sync')) * 1000) / 1000
+const drift = Math.round((flashes[1] - at('sync:end') - offset) * 1000) / 1000
+if (Math.abs(drift) > 0.1) console.warn(`marks drift ${drift} s against the video by the end of the run`)
 for (const x of marks) x.t = Math.round((x.t + offset) * 1000) / 1000
 ffmpeg(['-y', '-i', raw, '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-g', '12', '-pix_fmt', 'yuv420p', '-an', join(out, 'footage.mp4')])
 copyFileSync(join(root, 'ugc.mp4'), join(out, 'ugc.mp4'))
 copyFileSync(join(root, 'lumen.mp4'), join(out, 'lumen.mp4'))
-writeFileSync(join(out, 'marks.json'), JSON.stringify({ size: { w: W, h: H }, scale: SCALE, offset, marks }, null, 2))
+writeFileSync(join(out, 'marks.json'), JSON.stringify({ size: { w: W, h: H }, scale: SCALE, offset, drift, marks }, null, 2))
 console.log(out, `marks shifted by ${offset.toFixed(3)} s to the video's clock`)

@@ -89,6 +89,7 @@ const hinge = (mat) => {
 }
 
 function start(c) {
+  if (!c) throw new Error('no <canvas id="c">')
   const W = c.width, H = c.height
   const query = new URLSearchParams(location.search)
   const scale = Number(query.get('scale')) > 0 ? Number(query.get('scale')) : 1
@@ -108,7 +109,6 @@ function start(c) {
   scene.background = new T.Color(INK)
   scene.fog = new T.Fog(INK, 22, 42)
   scene.environment = environment(renderer)
-  scene.environmentIntensity = 1
   const camera = new T.PerspectiveCamera(24, W / H, 0.1, 100)
 
   // The desk, a notebook and a pencil in the pool of light, the lamp's soft contact shadow.
@@ -125,8 +125,7 @@ function start(c) {
   book.position.set(-1.75, 0, 0.55); book.rotation.y = -0.3
   scene.add(book)
   const pencil = new T.Mesh(new T.CylinderGeometry(0.028, 0.028, 1.3, 6), new T.MeshStandardMaterial({ color: 0xd9a53c, roughness: 0.5 }))
-  pencil.rotation.set(Math.PI / 2, 0, 0.0); pencil.rotation.z = Math.PI / 2; pencil.position.set(-1.55, 0.13, 0.7)
-  pencil.rotation.y = 0.45; pencil.castShadow = true
+  pencil.rotation.set(Math.PI / 2, 0.45, Math.PI / 2); pencil.position.set(-1.55, 0.13, 0.7); pencil.castShadow = true
   scene.add(pencil)
   const contact = new T.Mesh(new T.PlaneGeometry(3.2, 3.2), new T.MeshBasicMaterial({ map: blob(), transparent: true, depthWrite: false }))
   contact.rotation.x = -Math.PI / 2; contact.position.y = 0.003
@@ -211,9 +210,7 @@ function start(c) {
     bulb.material.color.copy(col).multiplyScalar(0.25 + 3 * s.power)
     wall.material.color.copy(col).multiplyScalar(0.05 * s.power)
     beamMat.uniforms.color.value.copy(col); beamMat.uniforms.power.value = s.power
-    contact.position.x = lamp.position.x
     const tg = new T.Vector3(...s.target)
-    camera.fov = 24
     camera.position.set(tg.x + s.dist * Math.cos(s.el) * Math.sin(s.az), tg.y + s.dist * Math.sin(s.el), tg.z + s.dist * Math.cos(s.el) * Math.cos(s.az))
     camera.lookAt(tg); camera.updateProjectionMatrix()
     scene.updateMatrixWorld()
@@ -222,12 +219,13 @@ function start(c) {
     const pos = dustGeo.attributes.position.array, cols = dustGeo.attributes.color.array
     for (let i = 0; i < N; i++) {
       const [x, y, z, ph, sp] = seeds[i]
-      p.set(x + Math.sin(s.t * 0.35 * sp + ph) * 0.25, y + Math.sin(s.t * 0.22 * sp + ph * 2) * 0.18 - ((s.t * 0.05 * sp) % 0.6), z + Math.cos(s.t * 0.3 * sp + ph) * 0.25)
+      const fall = (s.t * 0.05 * sp + ph) % 0.6 // each mote falls 0.6, then starts again at the top, faded out around the jump
+      p.set(x + Math.sin(s.t * 0.35 * sp + ph) * 0.25, y + Math.sin(s.t * 0.22 * sp + ph * 2) * 0.18 - fall, z + Math.cos(s.t * 0.3 * sp + ph) * 0.25)
       pos.set([p.x, p.y, p.z], i * 3)
       const along = p.clone().sub(apex).dot(axis)
       const radial = p.clone().sub(apex).addScaledVector(axis, -along).length()
       const inside = along > 0 ? clamp((along * Math.tan(0.46) - radial) / (along * 0.25 + 0.05)) : 0
-      const k = inside * s.power * (0.5 + 0.5 * Math.sin(s.t * 3 * sp + ph * 5)) * 1.4
+      const k = inside * s.power * (0.5 + 0.5 * Math.sin(s.t * 3 * sp + ph * 5)) * 1.4 * Math.sin((Math.PI * fall) / 0.6)
       cols.set([col.r * k, col.g * k, col.b * k], i * 3)
     }
     dustGeo.attributes.position.needsUpdate = dustGeo.attributes.color.needsUpdate = true
@@ -273,9 +271,9 @@ function start(c) {
     }
     g.globalAlpha = 1
   }
-  return { g, W, H, stage, rise, slam, finish, font }
+  return { g, stage, rise, slam, finish, font }
 }
-window.Lumen = { start, tw, clamp, lerp, out, inOut, back, CREAM, AMBER, INK, warmth }
+window.Lumen = { start, tw, clamp, lerp, inOut, back, CREAM, AMBER, INK }
 })()
 `
 writeFileSync(join(dir, 'lumen.js'), LUMEN)
@@ -288,11 +286,13 @@ const page = (total, body) => `<!doctype html>
 <script src="lumen.js?v=1"></script>
 <script>
 const L = Lumen.start(document.getElementById('c'))
-const { tw, clamp, lerp, inOut, CREAM, AMBER } = Lumen
+const { g } = L
+const { tw, clamp, lerp, inOut, CREAM, AMBER, INK } = Lumen
+const query = new URLSearchParams(location.search)
 window.TOTAL = ${total}
 window.ready = document.fonts.ready
 ${body}
-if (new URLSearchParams(location.search).has('t')) window.ready.then(() => window.renderAt(Number(new URLSearchParams(location.search).get('t'))))
+if (query.has('t')) window.ready.then(() => window.renderAt(Number(query.get('t'))))
 </script></body></html>
 `
 
@@ -306,7 +306,7 @@ window.renderAt = (t) => {
   L.slam('LATE,', 80, 590, 210, tw(t, 0.85, 0.32, (x) => x))
   L.slam('SEE.', 80, 800, 210, tw(t, 1.1, 0.32, (x) => x), AMBER)
   L.rise('LUMEN  ·  DESK LAMP', 86, 1720, 44, tw(t, 1.5, 0.5))
-  L.g.fillStyle = CREAM; L.g.fillRect(86, 1760, 520 * tw(t, 1.6, 0.7), 5)
+  g.fillStyle = CREAM; g.fillRect(86, 1760, 520 * tw(t, 1.6, 0.7), 5)
   L.finish(t)
 }
 `)
@@ -325,7 +325,7 @@ window.renderAt = (t) => {
   WARM.forEach((k, i) => {
     const x = 86 + i * 300, on = clamp(1 - Math.abs(w - i))
     L.rise(k, x, 1760, 56, tw(t, 0.4 + i * 0.1, 0.4), on > 0.5 ? CREAM : 'rgba(246,242,234,0.4)')
-    L.g.fillStyle = AMBER; L.g.globalAlpha = on; L.g.fillRect(x, 1790, 190 * on, 6); L.g.globalAlpha = 1
+    g.fillStyle = AMBER; g.globalAlpha = on; g.fillRect(x, 1790, 190 * on, 6); g.globalAlpha = 1
   })
   L.finish(t)
 }
@@ -337,26 +337,29 @@ window.renderAt = (t) => {
   L.stage({ t: t + 5.6, az: lerp(0.25, 0.12, inOut(clamp(t / 2.5))), el: 0.22, dist: lerp(19, 17.5, inOut(clamp(t / 2.5))), target: [-0.6, 1.6, 0], tilt: -0.22, pan: 0, power: 1, warmth: 0 })
   L.rise('Lumen', 540, 330, 200, tw(t, 0.05, 0.5), CREAM, 'center')
   L.rise('Launch week only', 540, 420, 50, tw(t, 0.3, 0.5), 'rgba(246,242,234,0.75)', 'center')
+  // The price tag slams like the hook's type, its amber card with it.
   const p = tw(t, 0.55, 0.3, (x) => x)
   if (p > 0) {
     const k = lerp(2.2, 1, Lumen.back(p))
-    L.g.save(); L.g.translate(540, 1530); L.g.rotate(-0.05); L.g.scale(k, k); L.g.globalAlpha = clamp(p * 5)
-    L.g.fillStyle = AMBER; L.g.beginPath(); L.g.roundRect(-230, -110, 460, 220, 26); L.g.fill()
-    L.font(170); L.g.textAlign = 'center'; L.g.textBaseline = 'middle'; L.g.fillStyle = Lumen.INK; L.g.fillText('$49', 0, 8)
-    L.g.restore()
+    g.save(); g.translate(540, 1530); g.rotate(-0.05); g.scale(k, k); g.globalAlpha = clamp(p * 5)
+    g.fillStyle = AMBER; g.beginPath(); g.roundRect(-230, -110, 460, 220, 26); g.fill()
+    L.font(170); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText('$49', 0, 8)
+    g.restore()
   }
-  const f = tw(t, 1.1, 0.6)
-  L.g.globalAlpha = tw(t, 0.95, 0.3)
-  L.g.strokeStyle = CREAM; L.g.lineWidth = 5
-  L.g.beginPath(); L.g.roundRect(240, 1700, 600, 120, 60); L.g.stroke()
-  // The label is cream on the dark and ink on the fill as the fill passes under it.
-  L.font(50, 800); L.g.textAlign = 'center'; L.g.textBaseline = 'middle'; L.g.fillStyle = CREAM
-  L.g.fillText('PRE-ORDER', 540, 1762)
-  if (f > 0) {
-    L.g.save(); L.g.beginPath(); L.g.roundRect(240, 1700, lerp(120, 600, f), 120, 60); L.g.fillStyle = CREAM; L.g.fill(); L.g.clip()
-    L.g.fillStyle = Lumen.INK; L.g.fillText('PRE-ORDER', 540, 1762); L.g.restore()
+  // The button wipes in from the left inside a mask, then fills; its label is cream on the dark and ink on the fill.
+  const wipe = tw(t, 0.95, 0.35), f = tw(t, 1.1, 0.6)
+  if (wipe > 0) {
+    g.save(); g.beginPath(); g.rect(230, 1690, 620 * wipe, 140); g.clip()
+    g.strokeStyle = CREAM; g.lineWidth = 5
+    g.beginPath(); g.roundRect(240, 1700, 600, 120, 60); g.stroke()
+    L.font(50, 800); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = CREAM
+    g.fillText('PRE-ORDER', 540, 1762)
+    if (f > 0) {
+      g.beginPath(); g.roundRect(240, 1700, lerp(120, 600, f), 120, 60); g.fill(); g.clip()
+      g.fillStyle = INK; g.fillText('PRE-ORDER', 540, 1762)
+    }
+    g.restore()
   }
-  L.g.globalAlpha = 1
   L.finish(t)
 }
 `)

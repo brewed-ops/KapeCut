@@ -20,8 +20,9 @@ const back = (x) => 1 + 2.4 * (x - 1) ** 3 + 1.4 * (x - 1) ** 2
 const tw = (t, s, d, e = out) => e(clamp((t - s) / d))
 const INK = '#141110', CREAM = '#f6f2ea', AMBER = '#f0a726'
 function start(c, file) {
+  if (!c) throw new Error('no <canvas id="c">')
   const W = c.width, H = c.height
-  const scale = Number(new URLSearchParams(location.search).get('scale')) > 0 ? Number(new URLSearchParams(location.search).get('scale')) : 1
+  const asked = Number(new URLSearchParams(location.search).get('scale')), scale = asked > 0 ? asked : 1
   c.width = 2 * Math.round((W * scale) / 2)
   c.height = 2 * Math.round((H * scale) / 2)
   const g = c.getContext('2d')
@@ -93,7 +94,7 @@ function start(c, file) {
     }
     g.globalAlpha = 1
   }
-  return { g, W, H, speaker, draw, punch, captions, kinetic, lowerThird, grain, font }
+  return { g, speaker, draw, punch, captions, kinetic, lowerThird, grain, font }
 }
 window.Ugc = { start, tw, clamp, lerp, back, AMBER, CREAM, INK }
 })()
@@ -108,10 +109,12 @@ const page = (total, body) => `<!doctype html>
 <script src="ugc.js?v=1"></script>
 <script>
 const U = Ugc.start(document.getElementById('c'), 'speaker.mp4')
+const { g } = U
+const query = new URLSearchParams(location.search)
 window.TOTAL = ${total}
 window.ready = Promise.all([document.fonts.ready, U.speaker.ready])
 ${body}
-if (new URLSearchParams(location.search).has('t')) window.ready.then(() => window.renderAt(Number(new URLSearchParams(location.search).get('t'))))
+if (query.has('t')) window.ready.then(() => window.renderAt(Number(query.get('t'))))
 </script></body></html>
 `
 
@@ -146,10 +149,10 @@ window.renderAt = async (t) => {
   const p = Ugc.tw(t, 0.25, 0.3, (x) => x)
   if (p > 0) {
     const k = Ugc.lerp(2.2, 1, Ugc.back(Ugc.clamp(p)))
-    U.g.save(); U.g.translate(800, 330); U.g.rotate(0.08); U.g.scale(k, k)
-    U.g.fillStyle = Ugc.AMBER; U.g.beginPath(); U.g.roundRect(-170, -90, 340, 180, 28); U.g.fill()
-    U.font(130); U.g.textAlign = 'center'; U.g.textBaseline = 'middle'; U.g.fillStyle = Ugc.INK; U.g.fillText('$49', 0, 6)
-    U.g.restore()
+    g.save(); g.translate(800, 330); g.rotate(0.08); g.scale(k, k)
+    g.fillStyle = Ugc.AMBER; g.beginPath(); g.roundRect(-170, -90, 340, 180, 28); g.fill()
+    U.font(130); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = Ugc.INK; g.fillText('$49', 0, 6)
+    g.restore()
   }
   U.captions(t, [[['$49', 0.2], ['pre-order', 0.5]], [['Link', 1.4], ['in', 1.6], ['bio.', 1.8]]], CAP_Y, 3)
   U.grain(t)
