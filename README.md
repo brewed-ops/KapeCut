@@ -5,6 +5,10 @@ code; you review it, point at what to change, and export an MP4. No AI image or 
 
 ![KapeCut with a three-Scene promo open: the Scene list, the viewer on the product shot, the Timeline with a sound effect lane, and the Notes Claude is working through](docs/images/kapecut.png)
 
+[![Demo film: KapeCut floats in a dark studio while Claude Code writes the Scenes of a UGC ad and a 3D lamp ad, then exports the MP4](docs/media/kapecut-demo-poster.jpg)](docs/media/kapecut-demo.mp4)
+
+Watch the [demo film](docs/media/kapecut-demo.mp4) (77 s, with sound).
+
 ## How it helps
 
 Claude Code can already write animation as code. Without KapeCut, though, you can't see a frame of it, point at a
