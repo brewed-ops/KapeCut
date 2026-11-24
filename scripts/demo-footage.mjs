@@ -1,134 +1,205 @@
-// Raw footage for the KapeCut demo film: drives the real app through the whole loop on the Lumen demo Project
-// (scripts/readme-demo.mjs) and records it. An empty folder with a brief, the Scenes landing one by one as Claude would
-// write them, play, a Note pinned on the lamp's light, Copy Prompt, the fix landing and the Note ticked off, Export.
-// Writes <out>/footage.webm, <out>/marks.json (each step's time in seconds from when the window appeared, which the
-// recording starts a moment before, and the boxes of what it touches, in page px) and <out>/lumen.mp4 (the exported ad). Usage: npm run footage:demo -- <out>
+// Raw footage for the KapeCut demo film, recorded at 2x in one run of the real app, in two parts:
+// 1. UGC walkthrough (scripts/ugc-demo.mjs around <clip.mp4>): an empty folder with a brief and the clip, Connect, the
+//    Scenes landing one by one as Claude would write them, play, a Note pinned on a caption that covers the face, Copy
+//    Prompt, the fix landing and the Note ticked off, Export.
+// 2. The Lumen 3D ad (scripts/readme-demo.mjs), shorter: opened from the Projects menu, its Scenes land, play, Export.
+// Writes to <out>: footage.mp4 (H.264, a keyframe every 12 frames for seeking), marks.json (each step's time in seconds
+// of footage.mp4 and the boxes of what it touches, in page px), ugc.mp4 and lumen.mp4 (the two Exports).
+// Usage: npm run footage:demo -- <out> <clip.mp4>   (the clip: a 9:16 talking-head video, at least 15.2 s long)
 import { _electron as electron } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import readyEnv from './ready-env.mjs'
 
 delete process.env.ELECTRON_RUN_AS_NODE // VS Code's terminal sets it to 1, and Electron then starts as plain Node
 const out = resolve(process.argv[2] ?? '.scratch/demo-footage')
+const clip = process.argv[3] && resolve(process.argv[3])
+if (!clip) throw new Error('Usage: npm run footage:demo -- <out> <clip.mp4>')
 mkdirSync(out, { recursive: true })
 const dropEnv = readyEnv()
 const root = mkdtempSync(join(tmpdir(), 'kapecut-demo-'))
 process.on('exit', () => rmSync(root, { recursive: true, force: true })) // a failed run too
-const staged = join(root, 'staged')
-execFileSync(process.execPath, ['scripts/readme-demo.mjs', staged], { stdio: 'ignore' })
-const dir = join(root, 'lumen-launch')
-mkdirSync(dir)
-for (const f of ['brief.md', 'click.wav']) copyFileSync(join(staged, f), join(dir, f))
-const land = (f) => copyFileSync(join(staged, f), join(dir, f))
+const stagedUgc = join(root, 'staged-ugc')
+const stagedLumen = join(root, 'staged-lumen')
+execFileSync(process.execPath, ['scripts/ugc-demo.mjs', stagedUgc, clip], { stdio: ['ignore', 'ignore', 'inherit'] })
+execFileSync(process.execPath, ['scripts/readme-demo.mjs', stagedLumen], { stdio: ['ignore', 'ignore', 'inherit'] })
+const ugc = join(root, 'lumen-ugc')
+const lumen = join(root, 'lumen-launch')
+for (const [dir, staged, files] of [[ugc, stagedUgc, ['brief.md', 'speaker.mp4']], [lumen, stagedLumen, ['brief.md', 'click.wav']]]) {
+  mkdirSync(dir)
+  for (const f of files) copyFileSync(join(staged, f), join(dir, f))
+}
 const W = 1440, H = 900, SCALE = 2 // recorded at 2x so the film can push in without blur
-const userData = join(root, 'user')
 const video = join(root, 'video')
 const app = await electron.launch({
-  args: ['.', `--user-data-dir=${userData}`, `--force-device-scale-factor=${SCALE}`],
-  env: { ...process.env, KAPECUT_PROJECT: dir },
+  args: ['.', `--user-data-dir=${join(root, 'user')}`, `--force-device-scale-factor=${SCALE}`],
+  env: { ...process.env, KAPECUT_PROJECT: ugc },
   recordVideo: { dir: video, size: { width: W * SCALE, height: H * SCALE } },
 })
-const exported = join(root, 'lumen.mp4')
-await app.evaluate(({ dialog }, filePath) => {
-  dialog.showSaveDialog = async () => ({ canceled: false, filePath })
-}, exported)
+// A hung run (an Export that never ends) closes the app and exits instead of holding the machine.
+setTimeout(() => (console.error('demo-footage: 15 min deadline'), app.close().finally(() => process.exit(1))), 15 * 60_000).unref()
+// The save dialog answers with the next Export's path.
+const saveTo = (file) => app.evaluate(({ dialog }, filePath) => void (dialog.showSaveDialog = async () => ({ canceled: false, filePath })), file)
 const marks = []
 let t0
 const box = async (page, sel) => (sel ? await page.locator(sel).first().boundingBox() : null)
 const mark = async (page, name, ...sels) => {
+  const t = (Date.now() - t0) / 1000 // before the boxes are read, which takes a few ms each
   const boxes = {}
   for (const s of sels) boxes[s] = await box(page, s)
-  marks.push({ name, t: (Date.now() - t0) / 1000, boxes })
+  marks.push({ name, t, boxes })
 }
 const hold = (page, ms) => page.waitForTimeout(ms)
-let page
-try {
-  page = await app.firstWindow()
-  t0 = Date.now()
-  // Not this machine's temp path: the page reloads whenever project.json changes, so this runs on every load.
-  await page.addInitScript(() => {
-    setInterval(() => {
-      const el = document.getElementById('files-path')
-      if (el && el.textContent !== '~/Videos/lumen-launch') el.textContent = '~/Videos/lumen-launch'
-    }, 50)
-  })
-  await page.reload()
-  await page.setViewportSize({ width: W, height: H })
-  await page.locator('.set-up').waitFor({ timeout: 30_000 })
-  await hold(page, 1500)
-  await mark(page, 'empty', '#files', '#view', '#connect')
 
-  // Connect Claude: the prompt is copied, then Claude's handshake lands in .kapecut/.
-  await page.locator('#connect').click()
-  await mark(page, 'connect', '#connect', '#toast')
-  await hold(page, 1800)
-  mkdirSync(join(dir, '.kapecut'), { recursive: true })
-  copyFileSync(join(staged, '.kapecut', 'claude.json'), join(dir, '.kapecut', 'claude.json'))
-  await hold(page, 1500)
-  await mark(page, 'connected', '#connect', '#claude-status')
-
-  // Claude writes the Project one Scene at a time: each Scene file, then project.json listing it.
+// Claude writes a Project one Scene at a time: each Scene file, then project.json listing it.
+async function landScenes(page, dir, staged, support = []) {
+  for (const f of support) copyFileSync(join(staged, f), join(dir, f))
   const project = JSON.parse(readFileSync(join(staged, 'project.json'), 'utf8'))
   for (let i = 0; i < project.scenes.length; i++) {
-    land(project.scenes[i])
+    copyFileSync(join(staged, project.scenes[i]), join(dir, project.scenes[i]))
     writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...project, scenes: project.scenes.slice(0, i + 1) }, null, 2))
     await page.locator(`#scene-list li:nth-child(${i + 1})`).waitFor({ timeout: 30_000 })
     await mark(page, `scene:${project.scenes[i]}`, '#scene-list', '#strips')
     await hold(page, 1400)
   }
   await page.locator('#export:enabled').waitFor({ timeout: 30_000 })
+}
+// Sync flash: a magenta square in the top-left corner for 0.5 s, found again in the recording afterwards. The first one
+// gives the offset between Date.now() and the video's clock (the recording starts before firstWindow resolves); the
+// one at the end measures any drift between the two over the run.
+async function flash(page, name) {
+  await page.evaluate(() => new Promise((done) => {
+    const sq = Object.assign(document.createElement('div'), { id: 'sync' })
+    Object.assign(sq.style, { position: 'fixed', left: '0', top: '0', width: '10px', height: '10px', background: '#f0f', zIndex: '99999' })
+    document.body.append(sq)
+    requestAnimationFrame(() => requestAnimationFrame(done))
+  }))
+  await mark(page, name)
+  await hold(page, 500)
+  await page.evaluate(() => document.getElementById('sync')?.remove())
+}
+async function exportTo(page, file, name) {
+  await saveTo(file)
+  await page.locator('#export').click()
+  await mark(page, `${name}:export`, '#export', '#export-status')
+  await page.locator('#export-status').filter({ hasText: /^Exported / }).waitFor({ timeout: 180_000 })
+  await mark(page, `${name}:exported`, '#export-status')
+}
+
+let page
+try {
+  page = await app.firstWindow()
+  t0 = Date.now()
+  // Not this machine's temp paths: the Files panel's folder and any path in the header status (Exported, Export failed)
+  // show ~/Videos/<name> instead. An observer rewrites them before they paint; the page reloads whenever project.json
+  // changes, so this runs on every load.
+  await page.addInitScript(() => {
+    const mask = () => {
+      const path = document.getElementById('files-path')
+      if (path?.textContent && !path.textContent.startsWith('~')) path.textContent = path.title = '~/Videos/' + path.textContent.split(/[\\/]/).pop()
+      // From the path's start (a drive, or a slash after a space, a quote or the line start) to its last separator,
+      // spaces in it included.
+      const status = document.getElementById('export-status'), s = status?.textContent ?? ''
+      const i = s.search(/[A-Za-z]:[\\/]|(?<=^|[\s'"])[\\/]/), j = Math.max(s.lastIndexOf('/'), s.lastIndexOf('\\'))
+      if (!s.includes('~/Videos/') && i >= 0 && j > i) status.textContent = s.slice(0, i) + '~/Videos/' + s.slice(j + 1)
+    }
+    new MutationObserver(mask).observe(document, { subtree: true, childList: true, characterData: true })
+  })
+  await page.reload()
+  await page.setViewportSize({ width: W, height: H })
+  await page.locator('.set-up').waitFor({ timeout: 30_000 })
+  await flash(page, 'sync')
+  await hold(page, 1000)
+
+  // 1. UGC walkthrough.
+  await mark(page, 'ugc:empty', '#files', '#view', '#connect')
+  await page.locator('#connect').click()
+  await mark(page, 'ugc:connect', '#connect', '#toast')
+  await hold(page, 1800)
+  mkdirSync(join(ugc, '.kapecut'), { recursive: true })
+  copyFileSync(join(stagedLumen, '.kapecut', 'claude.json'), join(ugc, '.kapecut', 'claude.json'))
+  await hold(page, 1500)
+  await mark(page, 'ugc:connected', '#connect', '#claude-status')
+  await landScenes(page, ugc, stagedUgc, ['ugc.js'])
   await hold(page, 1200)
-  await mark(page, 'ready', '#scene-list', '#view', '#timeline')
+  await mark(page, 'ugc:ready', '#scene-list', '#view', '#timeline')
 
   await page.locator('#play').click()
-  await mark(page, 'play', '#play', '#view')
-  await hold(page, 4300)
+  await mark(page, 'ugc:play', '#play', '#view')
+  await hold(page, 7000)
   await page.locator('#play').click()
-  await page.locator('#scrub').evaluate((el) => ((el.value = '4.1'), el.dispatchEvent(new Event('input'))))
+  await page.locator('#scrub').evaluate((el) => ((el.value = '7.6'), el.dispatchEvent(new Event('input')))) // the close-up, its caption on the mouth
   await hold(page, 900)
-  await mark(page, 'paused', '#marks', '#scrub')
+  await mark(page, 'ugc:paused', '#marks', '#scrub')
 
-  // A Note on the lamp's light: N, a click on the cone, the text.
+  // A Note on the caption: N, a click on it, the text.
   await page.keyboard.press('n')
   const m = await page.locator('#marks').boundingBox()
-  const at = [m.x + (640 / 1080) * m.width, m.y + (1150 / 1920) * m.height]
+  const at = [m.x + (540 / 1080) * m.width, m.y + (1000 / 1920) * m.height]
   await hold(page, 500)
   await page.mouse.click(...at)
-  await mark(page, 'pin', '#marks')
+  await mark(page, 'ugc:pin', '#marks')
   marks.at(-1).point = { x: at[0], y: at[1] }
   await page.locator('#note-pop textarea').waitFor()
   await hold(page, 400)
-  await page.keyboard.type('The light fades in too fast, slow it down', { delay: 45 })
+  await page.keyboard.type('Caption covers the face, move it lower', { delay: 45 })
   await hold(page, 300)
-  await mark(page, 'typed', '#note-pop')
+  await mark(page, 'ugc:typed', '#note-pop')
   await page.keyboard.press('Enter')
   await page.locator('#note-list li').first().waitFor()
   await hold(page, 900)
-  await mark(page, 'noted', '#note-list', '#copy-prompt')
+  await mark(page, 'ugc:noted', '#note-list', '#copy-prompt')
 
   await page.locator('#copy-prompt').click()
-  await mark(page, 'copied', '#copy-prompt', '#toast')
+  await mark(page, 'ugc:copied', '#copy-prompt', '#toast')
   await hold(page, 2200)
 
-  // Claude's fix: the light fades in over 2 s instead of 1.2 s, then the Note is set done in notes.json.
-  const product = join(dir, 'product.html')
-  writeFileSync(product, readFileSync(product, 'utf8').replace('tw(t, 0.6, 1.2)', 'tw(t, 0.6, 2.0)'))
-  await mark(page, 'fixed', '#view', '#claude-status')
-  await hold(page, 1800)
-  const notes = JSON.parse(readFileSync(join(dir, 'notes.json'), 'utf8'))
+  // Claude's fix: the caption moves down off the face, then the Note is set done in notes.json.
+  const cta = join(ugc, 'cta.html')
+  await page.evaluate(() => (window.before = document.querySelector('iframe.current')?.contentDocument))
+  const before = readFileSync(cta, 'utf8'), fixed = before.replace('const CAP_Y = 1000', 'const CAP_Y = 1400')
+  if (fixed === before) throw new Error('cta.html has no "const CAP_Y = 1000" to fix: keep scripts/ugc-demo.mjs and this script in step')
+  writeFileSync(cta, fixed)
+  await mark(page, 'ugc:fixed', '#view', '#claude-status')
+  // The Scene reloads and starts its video decoder again, black until then: wait for the new page to draw.
+  await page.waitForFunction(() => {
+    const doc = document.querySelector('iframe.current')?.contentDocument
+    const c = doc !== window.before && doc?.querySelector('canvas')
+    return !!c && c.getContext('2d').getImageData(c.width / 2, c.height / 4, 1, 1).data[0] > 0
+  }, null, { timeout: 15_000 })
+  await mark(page, 'ugc:redrawn', '#view')
+  await hold(page, 1500)
+  const notes = JSON.parse(readFileSync(join(ugc, 'notes.json'), 'utf8'))
   notes.notes[0].done = true
-  writeFileSync(join(dir, 'notes.json'), JSON.stringify(notes, null, 2))
+  writeFileSync(join(ugc, 'notes.json'), JSON.stringify(notes, null, 2))
   await page.locator('#note-list .pin.done').waitFor({ timeout: 15_000 })
-  await mark(page, 'done', '#note-list')
+  await mark(page, 'ugc:done', '#note-list')
   await hold(page, 1800)
-
-  await page.locator('#export').click()
-  await mark(page, 'export', '#export', '#export-status')
-  await page.locator('#export-status').filter({ hasText: /^Exported / }).waitFor({ timeout: 120_000 })
-  await mark(page, 'exported', '#export-status')
+  await exportTo(page, join(root, 'ugc.mp4'), 'ugc')
   await hold(page, 2000)
+
+  // 2. The Lumen 3D ad: open its folder, Claude already connected there, the Scenes land, play, Export.
+  mkdirSync(join(lumen, '.kapecut'), { recursive: true })
+  copyFileSync(join(stagedLumen, '.kapecut', 'claude.json'), join(lumen, '.kapecut', 'claude.json'))
+  await app.evaluate(({ dialog }, filePath) => void (dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })), lumen)
+  await page.locator('#projects summary').click()
+  await mark(page, 'lumen:menu', '#projects')
+  await hold(page, 700)
+  await page.locator('#open-folder').click()
+  await page.locator('#project').filter({ hasText: 'lumen-launch' }).waitFor({ timeout: 15_000 })
+  await mark(page, 'lumen:open', '#project', '#files')
+  await hold(page, 1200)
+  await landScenes(page, lumen, stagedLumen, ['three.js', 'lumen.js'])
+  await hold(page, 1000)
+  await mark(page, 'lumen:ready', '#scene-list', '#view', '#timeline')
+  await page.locator('#play').click()
+  await mark(page, 'lumen:play', '#play', '#view')
+  await hold(page, 8300)
+  await exportTo(page, join(root, 'lumen.mp4'), 'lumen')
+  await hold(page, 2000)
+  await flash(page, 'sync:end')
   await mark(page, 'end')
 } catch (e) {
   await page?.screenshot({ path: join(out, 'fail.png') })
@@ -138,7 +209,22 @@ try {
   dropEnv()
 }
 const [webm] = readdirSync(video)
-renameSync(join(video, webm), join(out, 'footage.webm'))
-copyFileSync(exported, join(out, 'lumen.mp4'))
-writeFileSync(join(out, 'marks.json'), JSON.stringify({ size: { w: W, h: H }, scale: SCALE, marks }, null, 2))
-console.log(out)
+const raw = join(video, webm)
+// Each sync square's first frame: where the top-left corner turns magenta (red and blue high, green low).
+const ffmpeg = (args) => execFileSync('ffmpeg', ['-v', 'error', ...args], { maxBuffer: 1 << 28, timeout: 600_000 })
+const corner = ffmpeg(['-i', raw, '-vf', 'crop=8:8:4:4,scale=1:1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-fps_mode', 'passthrough', '-'])
+const times = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v', '-show_entries', 'frame=pts_time', '-of', 'csv=p=0', raw], { encoding: 'utf8', timeout: 300_000 }).trim().split(/\s+/).map(Number)
+const magenta = (i) => corner[i * 3] > 200 && corner[i * 3 + 1] < 80 && corner[i * 3 + 2] > 200
+const flashes = times.filter((_, i) => magenta(i) && !(i > 0 && magenta(i - 1)))
+if (flashes.length !== 2) throw new Error(`expected 2 sync squares in the recording, found ${flashes.length}`)
+const at = (name) => marks.find((x) => x.name === name).t
+const offset = Math.round((flashes[0] - at('sync')) * 1000) / 1000
+const drift = Math.round((flashes[1] - at('sync:end') - offset) * 1000) / 1000
+// Each mark moves by the offset, plus its share of the drift between the two flashes.
+const span = at('sync:end') - at('sync')
+for (const x of marks) x.t = Math.round((x.t + offset + (drift * (x.t - at('sync'))) / span) * 1000) / 1000
+ffmpeg(['-y', '-i', raw, '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-g', '12', '-pix_fmt', 'yuv420p', '-an', join(out, 'footage.mp4')])
+copyFileSync(join(root, 'ugc.mp4'), join(out, 'ugc.mp4'))
+copyFileSync(join(root, 'lumen.mp4'), join(out, 'lumen.mp4'))
+writeFileSync(join(out, 'marks.json'), JSON.stringify({ size: { w: W, h: H }, scale: SCALE, offset, drift, marks }, null, 2))
+console.log(out, `marks shifted by ${offset.toFixed(3)} s to the video's clock`)
