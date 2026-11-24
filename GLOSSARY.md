@@ -67,6 +67,10 @@ _Avoid_: playlist, shot list
 A sound file a Project places at a start (Project time) with a volume. Played with the Scenes and mixed into the Export.
 _Avoid_: track, clip
 
+**Video file**:
+A video in the Project folder that a Scene draws Frame by Frame through KapeCut's `kc-video.js` (ADR 0007). Its picture only: its sound is not played or exported.
+_Avoid_: clip, footage, media
+
 **Files**:
 The panel above the Scene list, under the Project folder path, showing every file in the Project folder except project.json, the Notes and the Scene pages, each labelled with its kind (audio, image, video, font, other). A file dropped anywhere on the window is copied into the Project and shows here; an audio file drags onto the Timeline to become an Audio file of the Project. Other kinds sit here for Scenes to use by their path.
 _Avoid_: media, bin, assets, library
@@ -119,6 +123,7 @@ The set of Pixel KAPE pictures (poses, mouth shapes, blinks) that Scenes can pla
 - A **Note** belongs to one **Project** and has exactly one **Mark**
 - A **Project** has zero or more **Audio files**, each placed in **Project time**
 - The **Timeline** and the **Scene list** both show the same ordered **Scenes**
+- A **Scene** draws zero or more **Video files**, each at a time it derives from **Scene time**
 - **Files** lists what is in the **Project** folder; an audio file from **Files** placed on the **Timeline** is an **Audio file**
 
 ## Flagged ambiguities
