@@ -1,0 +1,34 @@
+# 0007 Video files in Scenes: KapeCut decodes, the Scene draws
+
+Extends ADR 0001. A Scene can draw a Video file from its Project folder, exact to the picture:
+
+```html
+<script src="/kc-video.js"></script>
+<script>
+  const speaker = kcVideo('speaker.mp4') // a path relative to the Scene page, inside the Project folder
+  window.ready = speaker.ready // then speaker.duration, .width, .height are set
+  window.renderAt = async (t) => ctx.drawImage(await speaker.frameAt(t), 0, 0, 1080, 1920)
+</script>
+```
+
+`frameAt(t)` resolves to a canvas holding the Video file's picture showing at `t` seconds, upright (a phone video's
+rotation tag applied, as in `width` and `height`): the last one starting at or before `t`; before the first, the
+first; past the end, the last. The same `t` gives the same picture in any order, so the viewer, a scrub and Export
+agree. Each Video file has one such canvas, redrawn by its next `frameAt`, so no decoded frame is left for a Scene to
+close: a Scene draws it inside the `renderAt` that asked, before asking that Video file for another, and never keeps it.
+Playback asks on every display refresh without waiting, so calls that have not started yet merge into the newest `t`;
+Export awaits each Frame, so its calls never merge.
+
+`kc-video.js` is a classic script, so `kcVideo` exists while the Scene's own classic script runs. It hands the URL to
+the KapeCut page around the Scene, which decodes with mediabunny (as Export encodes with it, ADR 0002): one decoder per
+Video file, walked forward picture by picture and restarted from a keyframe on a jump back or more than 3 s ahead,
+one call at a time. It refuses any URL outside `kapecut://app/project/`, and that fetch goes through `serve()`, so the
+path check that guards every Project file (`fileUnder`) guards it too.
+
+Considered: `<video>` in the Scene. `kapecut://` is not a streaming scheme, so it never loads; made one, seek plus
+`drawImage` drew black Frames and `requestVideoFrameCallback` never fired during Export. Browser seeking is not a
+picture-exact source.
+
+Out of scope: a Video file's sound. Stock talking-head videos ship silent; sound comes in as an Audio file. Outside
+KapeCut (the skill's still and final checks in a plain browser) `/kc-video.js` does not load; the skill ships a
+`<video>` stand-in for those checks, good enough for a still, never for Export.

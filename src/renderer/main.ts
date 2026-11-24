@@ -18,8 +18,10 @@ import { wireSettings } from './settings/settings-ui'
 import { fillIcons, icon } from './icons'
 import { wireSetup } from './setup/setup-ui'
 import { ffmpegDetail } from './setup/setup'
+import { openVideo } from './video/kc-video'
 
 fillIcons()
+Object.assign(window, { kapecutVideo: openVideo }) // what a Scene's /kc-video.js calls (ADR 0007)
 const stage = $('stage')
 const view = $('view')
 const sceneList = $('scene-list')

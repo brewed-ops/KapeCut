@@ -77,8 +77,21 @@ Every Scene page follows it (ADR 0001 in the KapeCut repo). The starter already 
 - `window.TOTAL`: the Scene's length in seconds, a number set when the page loads.
 - `window.renderAt(t)`: draws the Frame at Scene time `t` (seconds). The picture depends on `t` alone: the same `t` always draws the same picture, whatever order Frames are asked in. Derive every position, colour and opacity from `t`; seed any randomness from a fixed number. `renderAt` may be async: await what you need, then draw, and return right after drawing, since KapeCut reads the canvas the moment `renderAt` resolves.
 - `window.ready`: a promise that resolves once every font, image and asset the Scene uses has loaded. KapeCut waits for it, up to 15 seconds, before the first Frame. Load images with `new Image()` from files copied into the Project folder and add their `decode()` to `ready`; load fonts through the `FontFace` API or CSS and keep `document.fonts.ready` in it.
+- A file several Scenes share (a helper `.js`, a stylesheet): load it with a version in the URL, `<script src="kc.js?v=1">`, and raise the number in every Scene that loads it each time you edit the file. KapeCut reloads a Scene page when you save it, but the page reuses the copy of a shared file it already loaded, so new functions show up in KapeCut as "X is not defined" while a fresh-browser still check passes (2026-11-24).
+- 3D (three.js): copy a local `three/build/three.cjs` into the Project wrapped as a classic script (`(function(){var exports={}; <three.cjs> ; window.THREE=exports})()`), so `TOTAL` and `renderAt` still exist at page load and the file needs no web request. Render with `new THREE.WebGLRenderer({ alpha: true, preserveDrawingBuffer: true })` sized to the canvas, then `drawImage` its canvas onto `#c` inside `renderAt` and draw 2D text over it. A perspective camera at distance `(H/2)/tan(fov/2)` makes one unit one Design pixel at z = 0, so 3D objects line up with 2D text. Several classic scripts share one global scope: a Scene `const` with the same name as a helper function (`back`, `text`) throws "already been declared" and blanks the Scene, so check stills for page errors.
+- A video the user gave you (a speaker, b-roll): copy it into the Project folder and draw it through KapeCut's helper, never a `<video>` element (it draws black in Export). `<script src="/kc-video.js"></script>` before the Scene's script, then `const speaker = kcVideo('speaker.mp4')` (a path relative to the page), add `speaker.ready` to `window.ready` (after it, `speaker.duration`, `.width` and `.height` are set), and in `renderAt` `ctx.drawImage(await speaker.frameAt(t), x, y, w, h)`. `frameAt(t)` gives a canvas with the video's picture at `t` exactly, upright, in any order; draw it in the same `renderAt` before asking that video for another, and never keep it, as KapeCut redraws it on the next call. Past the video's end it holds the last picture. Its sound never plays or exports: give the user's audio as an Audio file. Pick the source time yourself (`frameAt(t + 2)` starts 2 s in). Outside KapeCut the helper does not load: see the final check.
 - `window.EVENTS` (optional): `[{ name, t }]`, the beats where a sound effect belongs. KapeCut does not read it yet; it is for the person adding sound.
 - `?t=<seconds>`: the page draws that one Frame by itself. `?scale=<n>` draws it `n` times the Design size. The still check uses both; an Export at a resolution other than the Design size passes `?scale=` too, so draw in Design size coordinates after `ctx.scale(scale, scale)` as the starter does.
+
+## Talking-head styles
+
+When the user gives a video of someone talking to camera, build the Scenes around the speaker. Draw the speaker with `frameAt(t)` as the bottom layer, cropped to cover the canvas (scale by `Math.max(W / speaker.width, H / speaker.height)`, centre it, keep the face in the safe zone), then draw on top. Time every word and beat from the script the user gave or from the Voice's word timings; without either, ask. Three styles, alone or mixed across Scenes:
+
+- **Word-by-word captions.** One short line at a time, centred low in the safe zone (around y 1200 to 1400 for 9:16), heavy type with a dark outline or a soft shadow so it reads on any frame. Each word appears on its spoken time, and the word being said gets the accent colour or a rounded highlight behind it; the words before it stay white. Keep 2 to 4 words on screen, then clear the line and start the next.
+- **Punch-in zooms with kinetic type.** On each key line, scale the speaker up 1.15 to 1.4 around the face over 0.15 to 0.3 s, ease out, hold, and ease back (or cut back hard on the next beat). Pair each punch with one or two words set huge across the frame: they pop in with a quick overshoot scale, a slide or a letter-by-letter reveal, sit for the beat and leave before the next. Vary the move so no two beats look the same.
+- **Motion-design layout around the speaker.** The speaker sits in a shape, not full frame: a rounded frame or a circle that slides or scales in, a split with the speaker on one half and a product picture, a list or a number on the other, shapes and lines that draw in around the frame on the beats. A lower third names the speaker or the point: a bar that wipes in from the side, the text a beat later, out again after 3 to 4 s.
+
+Keep the brief's colours and type in all three. Fades and moves come from `t` like everything else, so the same `t` always draws the same Frame.
 
 ## Still check
 
@@ -95,6 +108,7 @@ chrome --headless --disable-gpu --hide-scrollbars --allow-file-access-from-files
 - On Windows neither is on PATH: `chrome.exe` is in `C:\Program Files\Google\Chrome\Application\`, `msedge.exe` in `C:\Program Files (x86)\Microsoft\Edge\Application\`; elsewhere use `google-chrome`, `chromium` or the Chrome app binary. A browser automation tool you already have (Playwright and the like) works the same way: load the URL, wait for `window.ready`, screenshot.
 - Write the PNGs outside the Project folder, so KapeCut does not see them as saves.
 - When the browser is already open, a headless `--screenshot` can exit at once and write the PNG late or never (seen with Edge on Windows). If the PNG is missing right after the command, take the stills with Playwright instead (below).
+- A Scene that draws a video (`kcVideo`) needs KapeCut's helper, which a plain browser lacks: take its stills with the final check below, which stands in for it.
 - Open every PNG and look at it. A still you did not look at is unchecked. To look at many at once, tile them into one contact sheet with ffmpeg (KapeCut needs it for Export anyway): `ffmpeg -i "<temp dir>/still-%02d.png" -vf tile=6x3 -frames:v 1 sheet.png` for stills named `still-01.png`, `still-02.png`, ...
 
 ## Final check
@@ -106,8 +120,10 @@ A still hides JavaScript errors: a Scene that throws draws a blank canvas, and a
 async function finalCheck(browser, url, project, out) {
   const page = await browser.newPage()
   const errors = []
+  // STAND_IN: kc-video-stand-in.js in this skill's folder. KapeCut's /kc-video.js is not there, so its load error is expected.
+  await page.addInitScript({ path: STAND_IN })
   page.on('pageerror', (e) => errors.push(e.message))
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  page.on('console', (m) => m.type() === 'error' && !m.location().url.endsWith('/kc-video.js') && errors.push(m.text()))
   try {
     await page.goto(url)
     // What KapeCut checks before the first Frame, with its 15 s limit.

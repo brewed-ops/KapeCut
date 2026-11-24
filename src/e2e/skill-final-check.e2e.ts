@@ -1,7 +1,8 @@
 import { chromium, expect, test, type Browser } from '@playwright/test'
+import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir, userInfo } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 // The skill's Final check snippet ships to users' Claude and was only ever run by hand (#115). This runs it straight
@@ -10,12 +11,13 @@ type FinalCheck = (browser: Browser, url: string, project: unknown, out: string)
 const skill = readFileSync('skills/kapecut/SKILL.md', 'utf8')
 const snippet = /## Final check[\s\S]*?```js\r?\n([\s\S]*?)```/.exec(skill)?.[1]
 if (!snippet) throw new Error('no ```js block under "## Final check" in skills/kapecut/SKILL.md')
-const finalCheck = new Function(`${snippet}\nreturn finalCheck`)() as FinalCheck
+// The snippet reads STAND_IN, the stand-in's path in the skill folder, as a user's Claude sets it.
+const finalCheck = new Function('STAND_IN', `${snippet}\nreturn finalCheck`)(resolve('skills/kapecut/kc-video-stand-in.js')) as FinalCheck
 
 const project = { size: { w: 1080, h: 1920 }, fps: 30 }
 const dir = mkdtempSync(join(tmpdir(), 'kapecut-final-'))
-const scene = (name: string, body: string) => {
-  writeFileSync(join(dir, name), `<!doctype html><canvas id="c" width="1080" height="1920"></canvas><script>${body}</script>`)
+const scene = (name: string, body: string, head = '') => {
+  writeFileSync(join(dir, name), `<!doctype html><canvas id="c" width="1080" height="1920"></canvas>${head}<script>${body}</script>`)
   return pathToFileURL(join(dir, name)).href
 }
 
@@ -40,4 +42,9 @@ test('the skill snippet passes a good Scene and fails broken ones', async () => 
 
   const badRender = scene('bad-render.html', "window.TOTAL = 3; window.renderAt = () => { throw new Error('boom') }")
   expect((await finalCheck(browser, badRender, project, join(dir, 'bad-render'))).join()).toContain('boom')
+
+  // A Scene that draws a Video file: KapeCut's /kc-video.js is missing here, the stand-in draws it, no error.
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=red:s=64x64:r=30:d=1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', join(dir, 'speaker.mp4')], { timeout: 30_000 })
+  const video = scene('video.html', "const g = document.getElementById('c').getContext('2d'); const s = kcVideo('speaker.mp4'); window.TOTAL = 1; window.ready = s.ready; window.renderAt = async (t) => g.drawImage(await s.frameAt(t), 0, 0, 1080, 1920)", '<script src="/kc-video.js"></script>')
+  expect(await finalCheck(browser, video, project, join(dir, 'video'))).toEqual([])
 })
