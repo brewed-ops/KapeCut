@@ -18,7 +18,7 @@ const nesting = (s: string) => (s.match(/[([{]/g)?.length ?? 0) - (s.match(/[)\]
 
 // Every e2e launches through src/e2e/launch.ts (#97); the shot scripts launch on their own, as they call readyEnv()
 // themselves and have no expect to wait with.
-const LAUNCHERS = ['src/e2e/launch.ts', 'scripts/shot.mjs', 'scripts/shot-states.mjs', 'scripts/readme-shot.mjs', 'scripts/smoke-packaged.mjs']
+const LAUNCHERS = ['src/e2e/launch.ts', 'scripts/shot.mjs', 'scripts/shot-states.mjs', 'scripts/readme-shot.mjs', 'scripts/demo-footage.mjs', 'scripts/smoke-packaged.mjs']
 
 test('only the launch helper and the shot scripts launch Electron, each spreading process.env first in its own env', () => {
   // shortcut: matches electron.launch( / _electron.launch( by name; a file importing _electron with no such call fails
