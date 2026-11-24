@@ -19,6 +19,7 @@
     "shot:states": "electron-vite build && node scripts/shot-states.mjs",
     "dist": "electron-vite build && electron-builder --publish never",
     "shot:readme": "electron-vite build && node scripts/readme-shot.mjs",
+    "footage:demo": "electron-vite build && node scripts/demo-footage.mjs",
     "smoke:packaged": "node scripts/smoke-packaged.mjs"
   },
   "dependencies": {
