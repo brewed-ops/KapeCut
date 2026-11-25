@@ -9,8 +9,9 @@ import { join } from 'node:path'
 
 // One of each kind: main amber, labelled, icon-only, small in-row, and the Projects menu's summary.
 const KINDS = ['#export', '#play', '#zoom-fit', '#zoom-in', '#file-list li:not([draggable]) button', '#projects summary']
-// These darken instead of shrinking: a full-width Scene row, a draggable Audio row's button, a window caption button.
-const TONE_KINDS = ['#scene-list button', '#file-list li[draggable] button', '#win-min']
+// These darken instead of shrinking: a full-width Scene row, a draggable Audio row's button, a window caption button
+// (not on macOS, which hides them for its own traffic lights).
+const TONE_KINDS = ['#scene-list button', '#file-list li[draggable] button', ...(process.platform === 'darwin' ? [] : ['#win-min'])]
 
 function project() {
   const dir = mkdtempSync(join(tmpdir(), 'kapecut-motion-'))
