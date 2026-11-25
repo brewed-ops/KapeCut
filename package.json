@@ -68,11 +68,6 @@
       "provider": "github",
       "owner": "brewed-ops",
       "repo": "KapeCut"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "resources/logo/kapecut-512.png",
-      "category": "AudioVideo"
     }
   }
 }
