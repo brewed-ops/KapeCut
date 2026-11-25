@@ -45,7 +45,7 @@ macOS; the Terminal line skips that block ([see what it runs](scripts/install-ma
 3. Copy this line, paste it into Terminal (**Command + V**) and press **Return**:
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/brewed-ops/KapeCut/main/scripts/install-mac.sh | bash
+   curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
    ```
 
 4. Wait while it downloads (about 120 MB). When Terminal says **KapeCut is in /Applications.**, KapeCut opens by

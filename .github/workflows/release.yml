@@ -82,5 +82,5 @@ jobs:
           MAC_INSTALL: |
             **Mac (Apple silicon):** install from Terminal, no Gatekeeper prompt:
             ```sh
-            curl -fsSL https://raw.githubusercontent.com/brewed-ops/KapeCut/main/scripts/install-mac.sh | bash
+            curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
             ```
