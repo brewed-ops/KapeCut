@@ -8,7 +8,14 @@ import type { UpdateStatus } from '../main/update-status'
 let theme = ipcRenderer.sendSync('settings:theme-now') as Theme
 const osLight = matchMedia('(prefers-color-scheme: light)')
 const paint = () => (document.documentElement.dataset.theme = theme === 'system' ? (osLight.matches ? 'light' : 'dark') : theme)
-const firstPaint = () => ((document.documentElement.dataset.platform = process.platform), paint())
+// Full screen too (macOS hides the traffic lights there): asked in step for a reloaded page, then followed live.
+const fullScreen = (on: boolean) => document.documentElement.toggleAttribute('data-full-screen', on)
+const firstPaint = () => {
+  document.documentElement.dataset.platform = process.platform
+  fullScreen(ipcRenderer.sendSync('window:full-screen-now') === true)
+  paint()
+}
+ipcRenderer.on('window:full-screen', (_e, on: boolean) => document.documentElement && fullScreen(on))
 osLight.addEventListener('change', paint)
 // The preload runs before <html> exists: paint once the parser adds it, a microtask, so still before the first frame.
 if (document.documentElement) firstPaint()
