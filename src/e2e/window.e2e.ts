@@ -139,11 +139,7 @@ test('macOS: the native window buttons sit on the header line, clear of the logo
   const { app, page } = await launch({ project: dir })
   try {
     await expect(page.locator('.win-buttons')).toBeHidden()
-    // The header lines up on its text baseline: measure once the web fonts have landed (offline they never do).
-    await expect
-      .poll(() => page.evaluate(() => document.querySelector<HTMLLinkElement>('link[href*="fonts.googleapis"]')?.media), { timeout: 10_000 })
-      .toBe('all')
-      .catch(() => {})
+    // The header lines up on its text baseline: measure once the bundled fonts have loaded.
     await page.evaluate(() => document.fonts.ready)
     const lights = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getWindowButtonPosition())
     const logo = (await page.locator('header h1').boundingBox())!
@@ -187,11 +183,7 @@ test('caption buttons: hover lifts them onto the panel step, a press darkens the
       root.setProperty('--press-tone', '0.5')
       document.addEventListener('click', (e) => (e.preventDefault(), e.stopImmediatePropagation()), true)
     })
-    // The web fonts land late and shift the header by half a pixel under the test (CI, #80). Offline they never land.
-    await expect
-      .poll(() => page.evaluate(() => document.querySelector<HTMLLinkElement>('link[href*="fonts.googleapis"]')?.media), { timeout: 10_000 })
-      .toBe('all')
-      .catch(() => {})
+    // The fonts load after the first paint and would shift the header by half a pixel under the test (#80).
     await page.evaluate(() => document.fonts.ready)
     for (const name of ['Minimise', 'Maximise', 'Close']) {
       const button = page.getByRole('button', { name, exact: true })

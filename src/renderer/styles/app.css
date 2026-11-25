@@ -1,3 +1,4 @@
+@import './fonts.css';
 @import './tokens.css';
 
 /* [hidden] wins over every display rule, ID rules too (#95). Layered !important beats unlayered !important, and a
