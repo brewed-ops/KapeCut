@@ -32,26 +32,46 @@ direct than keyframe.
 
 ## Install
 
-Mac (Apple silicon): paste this into Terminal. It installs the latest KapeCut into Applications and opens it, with no
-Gatekeeper prompt ([what it runs](scripts/install-mac.sh)).
+KapeCut is free. It runs on Windows 10 or 11 and on Macs with Apple silicon (M1 or newer).
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/brewed-ops/KapeCut/main/scripts/install-mac.sh | bash
-```
+### Mac
 
-Or download the installer for your OS from [Releases](../../releases): `KapeCut-Setup-<version>.exe` (Windows),
-`KapeCut-<version>-arm64.dmg` (Mac, Apple silicon) or `KapeCut-<version>.AppImage` (Linux).
+KapeCut installs on a Mac with one line in Terminal. It is not signed by Apple, so a downloaded copy gets blocked by
+macOS; the Terminal line skips that block ([see what it runs](scripts/install-mac.sh)).
 
-The installers are not signed yet:
+1. Check your Mac: Apple menu > **About This Mac**. **Chip** must say **Apple M1** or newer. An Intel Mac cannot run
+   KapeCut.
+2. Open **Terminal**: press **Command + Space**, type `Terminal`, press **Return**.
+3. Copy this line, paste it into Terminal (**Command + V**) and press **Return**:
 
-- Windows SmartScreen says "Windows protected your PC": click **More info**, then **Run anyway**.
-- Mac blocks KapeCut the first time: open **System Settings > Privacy & Security**, scroll down and click **Open
-  Anyway**. If it says KapeCut "is damaged", run `xattr -cr /Applications/KapeCut.app` in Terminal and open it again.
-- Linux: `chmod +x KapeCut-*.AppImage`, then run it. On Ubuntu 22.04 and later, install FUSE 2 first:
-  `sudo apt install libfuse2` (`libfuse2t64` on 24.04).
+   ```sh
+   curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
+   ```
 
-On first launch the Setup window lists what is still missing (ffmpeg, Claude Code, the KapeCut skill, Chrome or Edge)
-with the install command for each.
+4. Wait while it downloads (about 120 MB). When Terminal says **KapeCut is in /Applications.**, KapeCut opens by
+   itself. You can close Terminal.
+5. Next time, open KapeCut from **Applications** or Launchpad like any app.
+
+To update, run the same line again. It closes KapeCut, replaces it with the newest version and opens it.
+
+### Windows
+
+1. Open the [latest release](https://github.com/brewed-ops/KapeCut/releases/latest) and, under **Assets**, click
+   **KapeCut-Setup-&lt;version&gt;.exe** to download it.
+2. Open the downloaded file.
+3. If Windows shows **Windows protected your PC**, click **More info**, then **Run anyway**. It asks because the
+   installer is not signed yet.
+4. Follow the installer (you can keep the suggested folder) and click **Finish**. KapeCut opens.
+5. Next time, open KapeCut from the Start menu.
+
+To update, open **Settings > Updates** in KapeCut and click **Check for updates**, then **Update**, then **Restart**.
+
+### First launch (both)
+
+The **Setup** window checks for the tools KapeCut works with: ffmpeg, Claude Code, the KapeCut skill and Chrome or
+Edge. For anything missing it shows the install command with a **Copy** button. Install it, then click **Re-check**.
+The skill installs with the **Install skill** button. With Claude Code already installed, **Copy Prompt** copies one
+prompt that has Claude install the rest for you.
 
 ## Run from source
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Installs the latest KapeCut on a Mac in one line:
-#   curl -fsSL https://raw.githubusercontent.com/brewed-ops/KapeCut/main/scripts/install-mac.sh | bash
+#   curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
+# (the site redirects /install.sh to this file: KapeCutSite deploy/nginx/site.conf)
 # The DMG is not notarized yet, so a browser download is quarantined and Gatekeeper blocks the app. curl sets no
 # quarantine flag; the xattr below clears one anyway. Tests set KAPECUT_DMG_URL, KAPECUT_APPS and KAPECUT_TEST.
 # All in main(), called on the last line: piped into bash, nothing runs until the whole file has arrived.

@@ -1,8 +1,8 @@
 name: Release
 
-# A v* tag builds the three installers into a draft Release; publishing it is a manual step. Each comes with its update
-# feed (latest.yml, latest-mac.yml, latest-linux.yml), which the app's updater reads only from a published Release of a
-# public repo (ADR 0006).
+# A v* tag builds the two installers (Windows, Mac; no Linux build) into a draft Release; publishing it is a manual
+# step. Each comes with its update feed (latest.yml, latest-mac.yml), which the app's updater reads only from a
+# published Release of a public repo (ADR 0006).
 # Run by hand (Actions > Release > Run workflow), or a PR that touches packaging, builds them as workflow artifacts only.
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10 # the slowest (Windows) takes about 3
     steps:
@@ -33,15 +33,14 @@ jobs:
       - name: The update feed is there
         shell: bash
         run: ls release/latest*.yml
-      # The packaged app opens and gets to the editor (Windows and macOS; Linux has no display here). Export waits on
-      # ffmpeg, a Setup requirement neither runner image has.
+      # The packaged app opens and gets to the editor. Export waits on ffmpeg, a Setup requirement neither runner image
+      # has.
       - if: runner.os == 'Windows'
         run: choco install ffmpeg -y --no-progress
       - if: runner.os == 'macOS'
         run: brew install ffmpeg
-      - if: runner.os != 'Linux'
-        run: npm run smoke:packaged
-      - if: always() && runner.os != 'Linux'
+      - run: npm run smoke:packaged
+      - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kapecut-shots-${{ matrix.os }}
@@ -54,7 +53,6 @@ jobs:
           path: |
             release/*.exe
             release/*.dmg
-            release/*.AppImage
             release/latest*.yml
             release/*.blockmap
           if-no-files-found: error
@@ -82,5 +80,5 @@ jobs:
           MAC_INSTALL: |
             **Mac (Apple silicon):** install from Terminal, no Gatekeeper prompt:
             ```sh
-            curl -fsSL https://raw.githubusercontent.com/brewed-ops/KapeCut/main/scripts/install-mac.sh | bash
+            curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
             ```
