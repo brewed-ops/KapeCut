@@ -63,19 +63,22 @@ test('frameless window: the header drags, its own buttons minimise, maximise and
     expect(await region('header')).toBe('drag')
 
     // Maximise / restore by keyboard: the label and the window follow. The one test that takes focus in a hidden run:
-    // Windows activates a window it maximises, and the menu accelerators below need it.
-    const max = page.getByRole('button', { name: 'Maximise' })
-    await max.focus()
-    await page.keyboard.press('Enter')
-    await expect.poll(async () => (await win(app)).maximized).toBe(true)
-    await expect(page.getByRole('button', { name: 'Restore' })).toBeFocused()
-    await page.keyboard.press('Enter')
-    await expect.poll(async () => (await win(app)).maximized).toBe(false)
-    await expect(max).toBeVisible()
+    // Windows activates a window it maximises, and the menu accelerators below need it. macOS hides these buttons for
+    // its own traffic lights (the macOS test below).
+    if (process.platform !== 'darwin') {
+      const max = page.getByRole('button', { name: 'Maximise' })
+      await max.focus()
+      await page.keyboard.press('Enter')
+      await expect.poll(async () => (await win(app)).maximized).toBe(true)
+      await expect(page.getByRole('button', { name: 'Restore' })).toBeFocused()
+      await page.keyboard.press('Enter')
+      await expect.poll(async () => (await win(app)).maximized).toBe(false)
+      await expect(max).toBeVisible()
 
-    await page.getByRole('button', { name: 'Minimise' }).click()
-    await expect.poll(async () => (await win(app)).minimized).toBe(true)
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].restore())
+      await page.getByRole('button', { name: 'Minimise' }).click()
+      await expect.poll(async () => (await win(app)).minimized).toBe(true)
+      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].restore())
+    }
 
     // Ctrl+Z / Ctrl+C / Ctrl+V in the Note text box.
     await page.keyboard.press('n')
@@ -112,22 +115,44 @@ test('frameless window: the header drags, its own buttons minimise, maximise and
       await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.isDevToolsOpened())).toBe(true)
     }
 
-    const closed = app.waitForEvent('close')
-    // Any press feedback on Close (#77) repaints it between mouse down and up, and Playwright's click then waits for an
-    // input ack the closed window never sends (main 12/12 green, with press feedback ~1 in 3 red). Only that error is
-    // allowed; the close event below is the proof.
-    await page
-      .getByRole('button', { name: 'Close' })
-      .click()
-      .catch((e: Error) => expect(e.message).toContain('has been closed'))
-    await closed
+    if (process.platform !== 'darwin') {
+      const closed = app.waitForEvent('close')
+      // Any press feedback on Close (#77) repaints it between mouse down and up, and Playwright's click then waits for an
+      // input ack the closed window never sends (main 12/12 green, with press feedback ~1 in 3 red). Only that error is
+      // allowed; the close event below is the proof.
+      await page
+        .getByRole('button', { name: 'Close' })
+        .click()
+        .catch((e: Error) => expect(e.message).toContain('has been closed'))
+      await closed
+    }
   } finally {
     await app.close() // a no-op once Close has closed it
     cleanUp(dir)
   }
 })
 
+test('macOS: the native window buttons sit on the header line, clear of the logo, and the app hides its own', async () => {
+  test.skip(process.platform !== 'darwin', 'the traffic lights are macOS only')
+  const dir = oneScene()
+  const { app, page } = await launch({ project: dir })
+  try {
+    await expect(page.locator('.win-buttons')).toBeHidden()
+    const lights = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getWindowButtonPosition())
+    const logo = (await page.locator('header h1').boundingBox())!
+    const exportButton = (await page.locator('#export').boundingBox())!
+    // Three 14 px lights 6 px apart from lights.x: the logo starts past them, with the header's gap to spare.
+    expect(logo.x).toBeGreaterThanOrEqual(lights!.x + 3 * 14 + 2 * 6 + 14)
+    // Their 14 px row is centred on the header's controls (Export is its tallest).
+    expect(Math.abs(lights!.y + 7 - (exportButton.y + exportButton.height / 2))).toBeLessThanOrEqual(1.5)
+  } finally {
+    await app.close()
+    cleanUp(dir)
+  }
+})
+
 test('caption buttons: hover lifts them onto the panel step, a press darkens them, neither moves them', async () => {
+  test.skip(process.platform === 'darwin', 'macOS shows its own traffic lights instead')
   const dir = oneScene()
   const { app, page } = await launch({ project: dir })
   try {
