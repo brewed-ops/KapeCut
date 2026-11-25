@@ -8,14 +8,16 @@ const SCRIPT = join(__dirname, '../../scripts/install-mac.sh')
 const dirs: string[] = []
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
 
-// A DMG holding a stand-in KapeCut.app, as electron-builder lays it out (the app at the volume's root).
+// A DMG holding a stand-in KapeCut.app, as electron-builder lays it out (the app at the volume's root). Its app is
+// quarantined, as a browser download's is, so only the script's own xattr can clear the flag.
 function fakeDmg(version: string) {
   const dir = mkdtempSync(join(tmpdir(), 'kapecut-dmg-'))
   dirs.push(dir)
   const app = join(dir, 'src', 'KapeCut.app', 'Contents')
   mkdirSync(app, { recursive: true })
   writeFileSync(join(app, 'version'), version)
-  const dmg = join(dir, 'KapeCut.dmg')
+  execFileSync('xattr', ['-w', 'com.apple.quarantine', '0081;00000000;Chrome;', join(app, 'version')])
+  const dmg = join(dir, 'source.dmg') // not KapeCut.dmg, the name the script mounts its own copy under
   execFileSync('hdiutil', ['create', '-quiet', '-fs', 'HFS+', '-volname', 'KapeCut', '-srcfolder', join(dir, 'src'), dmg], { timeout: 60_000 })
   return dmg
 }
@@ -46,6 +48,7 @@ describe.runIf(process.platform === 'darwin')('scripts/install-mac.sh', () => {
     install(dmg, apps)
     expect(readFileSync(join(apps, 'KapeCut.app', 'Contents', 'version'), 'utf8')).toBe('2')
     expect(existsSync(join(apps, 'KapeCut.app', 'Contents', 'stale'))).toBe(false)
-    expect(execFileSync('hdiutil', ['info'], { encoding: 'utf8' })).not.toContain(dmg)
+    // The script mounts its download as <temp>/KapeCut.dmg: none may be left attached.
+    expect(execFileSync('hdiutil', ['info'], { encoding: 'utf8' })).not.toMatch(/image-path\s*:.*\/KapeCut\.dmg$/m)
   }, 180_000)
 })
