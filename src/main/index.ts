@@ -230,6 +230,12 @@ app.whenReady().then(() => {
   const sendMaximized = (maximized: boolean) => !win.isDestroyed() && win.webContents.send('window:maximized', maximized)
   win.on('maximize', () => sendMaximized(true))
   win.on('unmaximize', () => sendMaximized(false))
+  // macOS full screen hides the traffic lights, so the header drops the room it keeps for them (app.css). Read in step
+  // at first paint too, as a Project switch reloads the page.
+  const sendFullScreen = (on: boolean) => !win.isDestroyed() && win.webContents.send('window:full-screen', on)
+  win.on('enter-full-screen', () => sendFullScreen(true))
+  win.on('leave-full-screen', () => sendFullScreen(false))
+  on('window:full-screen-now', (e) => (e.returnValue = win.isFullScreen()))
   handleUpdates(win.webContents)
   // KAPECUT_PROJECT (set by the e2e tests) wins over the last opened Project.
   const start = [process.env.KAPECUT_PROJECT, readRecent()[0]].find(isFolder)

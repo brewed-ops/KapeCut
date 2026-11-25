@@ -153,6 +153,20 @@ test('macOS: the native window buttons sit on the header line, clear of the logo
     expect(logo.x).toBeGreaterThanOrEqual(lights!.x + 3 * 14 + 2 * 6 + 14)
     // Their 14 px row is centred on the header's controls (Export is its tallest).
     expect(Math.abs(lights!.y + 7 - (exportButton.y + exportButton.height / 2))).toBeLessThanOrEqual(1.5)
+
+    // Native full screen hides the lights: the logo goes back to the gutter, then makes room again on the way out.
+    // The window's own events, not setFullScreen: a real one opens a Space on the user's screen mid-run.
+    const fullScreen = (on: boolean) =>
+      app.evaluate(({ BrowserWindow }, on) => BrowserWindow.getAllWindows()[0].emit(on ? 'enter-full-screen' : 'leave-full-screen'), on)
+    const logoX = () => page.locator('header h1').boundingBox().then((b) => b?.x).catch(() => null) // reload-safe
+    await fullScreen(true)
+    await expect.poll(logoX).toBe(24) // --gutter
+    await fullScreen(false)
+    await expect.poll(logoX).toBe(logo.x)
+    // A Project switch reloads the page, in full screen too: the page asks main at first paint.
+    await app.evaluate(({ BrowserWindow }) => (BrowserWindow.getAllWindows()[0].isFullScreen = () => true))
+    await page.reload()
+    await expect.poll(logoX).toBe(24)
   } finally {
     await app.close()
     cleanUp(dir)

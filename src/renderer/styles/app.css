@@ -84,9 +84,10 @@ body:has(.files.dropping) header { -webkit-app-region: no-drag; }
 #win-max .restore, #win-max.restore .max { display: none; }
 #win-max.restore .restore { display: inline; }
 /* macOS draws its own traffic lights at the header's left (trafficLightPosition in main, x on the gutter): the app's
-   buttons give way and the logo starts past the three 14 px lights and their 6 px gaps, plus the header's gap. */
+   buttons give way and the logo starts past the three 14 px lights and their 6 px gaps, plus the header's gap. Full
+   screen hides the lights, so the room goes too. */
 :root[data-platform='darwin'] .win-buttons { display: none; }
-:root[data-platform='darwin'] header { padding-left: calc(var(--gutter) + 3 * 14px + 2 * 6px + 14px); }
+:root[data-platform='darwin']:not([data-full-screen]) header { padding-left: calc(var(--gutter) + 3 * 14px + 2 * 6px + 14px); }
 #resolution {
   align-self: center;
   height: var(--control-h);
