@@ -147,12 +147,7 @@ test('the pill cross-fades between not connected, active and idle, and its dot a
     await page.setViewportSize({ width: 1440, height: 900 }) // wide enough for the label
     const pill = page.locator('#claude-status')
     await expect(pill).toHaveAttribute('data-s', 'none')
-    // The web fonts land late (index.html loads them without blocking) and would widen the label under the test. Offline
-    // they never land, and nothing moves: go on after a while.
-    await expect
-      .poll(() => page.evaluate(() => document.querySelector<HTMLLinkElement>('link[href*="fonts.googleapis"]')?.media), { timeout: 10_000 })
-      .toBe('all')
-      .catch(() => {})
+    // The fonts load after the first paint and would widen the label under the test: wait for them.
     await page.evaluate(() => document.fonts.ready)
     // Where the dot and the visible label sit, and how much of each state's look shows (0 to 1).
     const read = () =>

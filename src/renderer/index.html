@@ -3,9 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>KapeCut</title>
-    <!-- shortcut: fonts load from Google, falls back to system fonts offline; bundle them before public release.
-         media=print + onload: a pending stylesheet blocks the app script, and this one takes ~2 s (CI timed out on it). -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" media="print" onload="this.media = 'all'" />
+    <!-- Fonts ship inside the app (styles/fonts.css): no web font request. -->
     <link rel="stylesheet" href="./styles/app.css" />
   </head>
   <body>
