@@ -73,8 +73,14 @@ jobs:
           merge-multiple: true
       # A re-run finds the draft it made before and replaces its files.
       - run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --draft --generate-notes
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --draft --generate-notes --notes "$MAC_INSTALL"
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
+          # Goes above the generated notes: the DMG is not notarized, so a browser download meets Gatekeeper.
+          MAC_INSTALL: |
+            **Mac (Apple silicon):** install from Terminal, no Gatekeeper prompt:
+            ```sh
+            curl -fsSL https://raw.githubusercontent.com/brewed-ops/KapeCut/main/scripts/install-mac.sh | bash
+            ```

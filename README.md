@@ -32,7 +32,14 @@ direct than keyframe.
 
 ## Install
 
-Download the installer for your OS from [Releases](../../releases): `KapeCut-Setup-<version>.exe` (Windows),
+Mac (Apple silicon): paste this into Terminal. It installs the latest KapeCut into Applications and opens it, with no
+Gatekeeper prompt ([what it runs](scripts/install-mac.sh)).
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/brewed-ops/KapeCut/main/scripts/install-mac.sh | bash
+```
+
+Or download the installer for your OS from [Releases](../../releases): `KapeCut-Setup-<version>.exe` (Windows),
 `KapeCut-<version>-arm64.dmg` (Mac, Apple silicon) or `KapeCut-<version>.AppImage` (Linux).
 
 The installers are not signed yet:
