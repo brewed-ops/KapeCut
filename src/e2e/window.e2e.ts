@@ -36,7 +36,7 @@ const win = (app: ElectronApplication) =>
     }
   })
 
-test('frameless window: the header drags, its own buttons minimise, maximise and close, the menu keeps its shortcuts', async () => {
+test('frameless window: the header drags, its own buttons (not on macOS) minimise, maximise and close, the menu keeps its shortcuts', async () => {
   const dir = oneScene()
   const { app, page } = await launch({ project: dir })
   try {
@@ -48,7 +48,8 @@ test('frameless window: the header drags, its own buttons minimise, maximise and
     // The header drags the window; its controls still click.
     const region = (sel: string) => page.locator(sel).evaluate((el) => getComputedStyle(el).getPropertyValue('-webkit-app-region'))
     expect(await region('header')).toBe('drag')
-    for (const sel of ['#projects', '#projects .menu', '#export-status', '#resolution', '#export', '#win-min', '#win-max', '#win-close'])
+    const captions = process.platform === 'darwin' ? [] : ['#win-min', '#win-max', '#win-close'] // hidden on macOS
+    for (const sel of ['#projects', '#projects .menu', '#export-status', '#resolution', '#export', ...captions])
       expect(await region(sel), sel).toBe('no-drag')
     // An Export error in the header can be selected and copied.
     expect(await page.locator('#export-status').evaluate((el) => getComputedStyle(el).userSelect)).toBe('text')
@@ -138,10 +139,17 @@ test('macOS: the native window buttons sit on the header line, clear of the logo
   const { app, page } = await launch({ project: dir })
   try {
     await expect(page.locator('.win-buttons')).toBeHidden()
+    // The header lines up on its text baseline: measure once the web fonts have landed (offline they never do).
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector<HTMLLinkElement>('link[href*="fonts.googleapis"]')?.media), { timeout: 10_000 })
+      .toBe('all')
+      .catch(() => {})
+    await page.evaluate(() => document.fonts.ready)
     const lights = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getWindowButtonPosition())
     const logo = (await page.locator('header h1').boundingBox())!
     const exportButton = (await page.locator('#export').boundingBox())!
-    // Three 14 px lights 6 px apart from lights.x: the logo starts past them, with the header's gap to spare.
+    // macOS draws three 14 px lights 6 px apart from lights.x (its sizes, checked on a real capture, not read from the
+    // OS): the logo starts past them, with the header's gap to spare.
     expect(logo.x).toBeGreaterThanOrEqual(lights!.x + 3 * 14 + 2 * 6 + 14)
     // Their 14 px row is centred on the header's controls (Export is its tallest).
     expect(Math.abs(lights!.y + 7 - (exportButton.y + exportButton.height / 2))).toBeLessThanOrEqual(1.5)
