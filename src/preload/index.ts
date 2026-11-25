@@ -4,13 +4,15 @@ import type { Checks, Media } from '../main/setup-checks'
 import type { UpdateStatus } from '../main/update-status'
 
 // The theme (#114) is on <html> before the page's first paint (read in step from main), and System follows the OS live.
+// So is the platform: on a Mac the header gives way to the OS's own window buttons from the first frame.
 let theme = ipcRenderer.sendSync('settings:theme-now') as Theme
 const osLight = matchMedia('(prefers-color-scheme: light)')
 const paint = () => (document.documentElement.dataset.theme = theme === 'system' ? (osLight.matches ? 'light' : 'dark') : theme)
+const firstPaint = () => ((document.documentElement.dataset.platform = process.platform), paint())
 osLight.addEventListener('change', paint)
 // The preload runs before <html> exists: paint once the parser adds it, a microtask, so still before the first frame.
-if (document.documentElement) paint()
-else new MutationObserver((_, seen) => document.documentElement && (seen.disconnect(), paint())).observe(document, { childList: true })
+if (document.documentElement) firstPaint()
+else new MutationObserver((_, seen) => document.documentElement && (seen.disconnect(), firstPaint())).observe(document, { childList: true })
 
 const bridge = {
   project: {

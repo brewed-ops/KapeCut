@@ -27,8 +27,8 @@ const CHECKS: [string, string, string][] = [
   ['#resolution', 'fontSize', FONT],
   ['#claude-status', 'height', H],
   ['#claude-status', 'columnGap', GAP],
-  ['.win-buttons button', 'height', ICON_H],
-  ['.win-buttons svg', 'width', ICON],
+  // The caption buttons: hidden on macOS, which shows its own traffic lights (window.e2e.ts).
+  ...(process.platform === 'darwin' ? [] : ([['.win-buttons button', 'height', ICON_H], ['.win-buttons svg', 'width', ICON]] as [string, string, string][])),
   ['#projects summary', 'height', H],
   ['#projects summary', 'paddingLeft', PAD],
   ['#projects summary svg', 'width', ICON],

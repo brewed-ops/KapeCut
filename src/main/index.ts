@@ -202,6 +202,9 @@ app.whenReady().then(() => {
     // The header is the title bar (drag region) with the app's own window buttons. The default application menu stays
     // set, hidden with the frame, so its undo / copy / paste / reload / devtools shortcuts keep working.
     titleBarStyle: 'hidden',
+    // macOS keeps its traffic lights on a hidden title bar: on the gutter (24 px, tokens.css) and centred on the
+    // header's controls, while the app hides its own buttons (app.css, data-platform from the preload).
+    ...(process.platform === 'darwin' && { trafficLightPosition: { x: 24, y: 27 } }),
     title: 'KapeCut',
     // Window and taskbar icon (docs/design/logo.md). The .ico carries the hand-checked 16-48 px sizes, a PNG would be
     // shrunk from 256. out/main/ -> repo root, in dev and in the build.
