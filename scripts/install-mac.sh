@@ -12,12 +12,14 @@ main() {
 
   local apps="${KAPECUT_APPS:-/Applications}" url="${KAPECUT_DMG_URL:-}"
   if [ -z "$url" ]; then
-    # A Release holds one dmg: universal (Intel and Apple silicon) after v0.0.2, Apple silicon only up to it.
-    url=$(curl -fsSL https://api.github.com/repos/brewed-ops/KapeCut/releases/latest | grep -o '"browser_download_url": *"[^"]*\.dmg"' | grep -o 'https://[^"]*' | head -1 || true)
+    local dmgs
+    dmgs=$(curl -fsSL https://api.github.com/repos/brewed-ops/KapeCut/releases/latest | grep -o '"browser_download_url": *"[^"]*\.dmg"' | grep -o 'https://[^"]*' || true)
+    # The universal dmg (Intel and Apple silicon) first; a Release up to v0.0.2 has only an Apple silicon one.
+    url=$(grep -m1 -- '-universal\.dmg$' <<<"$dmgs" || head -1 <<<"$dmgs")
     [ -n "$url" ] || fail "Could not find the latest KapeCut DMG on GitHub: https://github.com/brewed-ops/KapeCut/releases"
-    # hw.optional.arm64, not uname -m: a Terminal under Rosetta reports x86_64 on Apple silicon.
-    case "$url" in *-arm64.dmg) [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ] || fail "The latest KapeCut is for Apple silicon only. The Intel build comes with the next release." ;; esac
   fi
+  # hw.optional.arm64, not uname -m: a Terminal under Rosetta reports x86_64 on Apple silicon.
+  case "$url" in *-arm64.dmg) [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ] || fail "This KapeCut is for Apple silicon (M1 and later) only. Intel Macs need a newer release." ;; esac
 
   work=$(mktemp -d)
   mnt="$work/mnt"

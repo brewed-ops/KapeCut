@@ -46,7 +46,7 @@ macOS; the Terminal line skips that block ([see what it runs](scripts/install-ma
    curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
    ```
 
-3. Wait while it downloads (about 120 MB). When Terminal says **KapeCut is in /Applications.**, KapeCut opens by
+3. Wait while it downloads (about 220 MB). When Terminal says **KapeCut is in /Applications.**, KapeCut opens by
    itself. You can close Terminal.
 4. Next time, open KapeCut from **Applications** or Launchpad like any app.
 

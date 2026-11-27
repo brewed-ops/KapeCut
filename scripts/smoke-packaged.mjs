@@ -16,11 +16,11 @@ const home = process.env.HOME // ready-env points HOME and USERPROFILE at the sa
 rmSync(join(home, '.claude'), { recursive: true, force: true }) // now the skill is missing
 const userData = mkdtempSync(join(tmpdir(), 'kapecut-pkg-'))
 const ok = (cond, what) => console.log(cond ? 'PASS' : 'FAIL', what) || cond || (process.exitCode = 1)
-// The runner is Apple silicon, so only the binary itself shows the Intel half is there (#16)
-if (process.platform === 'darwin') ok(execFileSync('lipo', ['-archs', exe], { encoding: 'utf8' }).trim().split(' ').sort().join(' ') === 'arm64 x86_64', 'the Mac app runs on Intel and Apple silicon')
 
 const app = await electron.launch({ executablePath: exe, args: [`--user-data-dir=${userData}`], env: { ...process.env, KAPECUT_PROJECT: resolve('examples/hello') } })
 try {
+  // The runner is Apple silicon, so only the binary itself shows the Intel half is there (#16)
+  if (process.platform === 'darwin') ok(execFileSync('lipo', ['-archs', exe], { encoding: 'utf8' }).trim().split(' ').sort().join(' ') === 'arm64 x86_64', 'the Mac app runs on Intel and Apple silicon')
   const page = await app.firstWindow()
   ok((await app.evaluate(({ app }) => app.isPackaged)), 'runs as the packaged app')
   const install = page.getByRole('button', { name: 'Install skill' })
