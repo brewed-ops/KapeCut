@@ -130,7 +130,7 @@ export const deleteNote =(file: NotesFile, n: number): NotesFile => ({ ...file, 
  * a scanner, Claude or a test polling the file holds it for a moment (#137). Half a file is a write in place caught
  * midway. Both ask again for about a second, as writeAtomic does; one that never clears (a folder named notes.json,
  * broken JSON) shows its error that much later. The second is on the clock: a read is a fetch, 100+ ms each on a slow
- * machine (#29), where 41 tries took 5 s.
+ * machine (#29).
  */
 export async function readNotes(): Promise<unknown> {
   const until = Date.now() + 1000

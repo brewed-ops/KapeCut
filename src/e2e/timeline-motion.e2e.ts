@@ -29,7 +29,7 @@ async function withApp(run: (page: Page, dir: string) => Promise<void>, total = 
     // frame or more later, so every test measures the track only once it fills the view (#29).
     await expect.poll(() => page.locator('#tl-scroll').evaluate((el) => {
       const pad = parseFloat(getComputedStyle(el).paddingLeft)
-      return Math.abs(document.getElementById('tl-track')!.getBoundingClientRect().width - (el.clientWidth - 2 * pad))
+      return Math.abs((document.getElementById('tl-track')?.getBoundingClientRect().width ?? NaN) - (el.clientWidth - 2 * pad))
     })).toBeLessThan(1)
     await run(page, dir)
   } finally {

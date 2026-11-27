@@ -19,6 +19,7 @@ export const ownLanded = (file: string) => landed.delete(resolve(file))
  * own temp name, so two at once never rename each other's half. On Windows the rename fails while another process
  * (Claude, an editor) has the file open, so it retries for about a second. skills/kapecut/mark-done.mjs, Claude's
  * side of notes.json, and readNotes in src/renderer/notes/notes.ts (the read side) copy this retry: change all three together.
+ * readNotes times its second on the clock, as each of its reads is a fetch that can take 100+ ms (#29).
  */
 export async function writeAtomic(file: string, data: string | Uint8Array) {
   const tmp = `${file}.${process.pid}-${++seq}.tmp`
