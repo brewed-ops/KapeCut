@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path'
 import readyEnv from './ready-env.mjs'
 
 delete process.env.ELECTRON_RUN_AS_NODE
-// electron-builder unpacks to win-unpacked, or mac / mac-arm64 (by the runner's arch) holding the .app
+// electron-builder unpacks to win-unpacked, or mac-universal holding the .app
 const mac = readdirSync('release').find((d) => /^mac/.test(d))
 const exe = resolve(process.platform === 'darwin' ? `release/${mac}/KapeCut.app/Contents/MacOS/KapeCut` : 'release/win-unpacked/KapeCut.exe')
 const done = readyEnv() // dummy claude on PATH, temp home WITH the skill

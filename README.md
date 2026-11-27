@@ -32,25 +32,23 @@ direct than keyframe.
 
 ## Install
 
-KapeCut is free. It runs on Windows 10 or 11 and on Macs with Apple silicon (M1 or newer).
+KapeCut is free. It runs on Windows 10 or 11 and on Macs, Intel or Apple silicon: the one Mac download runs on both.
 
 ### Mac
 
 KapeCut installs on a Mac with one line in Terminal. It is not signed by Apple, so a downloaded copy gets blocked by
 macOS; the Terminal line skips that block ([see what it runs](scripts/install-mac.sh)).
 
-1. Check your Mac: Apple menu > **About This Mac**. **Chip** must say **Apple M1** or newer. An Intel Mac cannot run
-   KapeCut.
-2. Open **Terminal**: press **Command + Space**, type `Terminal`, press **Return**.
-3. Copy this line, paste it into Terminal (**Command + V**) and press **Return**:
+1. Open **Terminal**: press **Command + Space**, type `Terminal`, press **Return**.
+2. Copy this line, paste it into Terminal (**Command + V**) and press **Return**:
 
    ```sh
    curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
    ```
 
-4. Wait while it downloads (about 120 MB). When Terminal says **KapeCut is in /Applications.**, KapeCut opens by
+3. Wait while it downloads (about 120 MB). When Terminal says **KapeCut is in /Applications.**, KapeCut opens by
    itself. You can close Terminal.
-5. Next time, open KapeCut from **Applications** or Launchpad like any app.
+4. Next time, open KapeCut from **Applications** or Launchpad like any app.
 
 To update, run the same line again. It closes KapeCut, replaces it with the newest version and opens it.
 

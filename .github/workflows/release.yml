@@ -78,7 +78,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           # Goes above the generated notes: the DMG is not notarized, so a browser download meets Gatekeeper.
           MAC_INSTALL: |
-            **Mac (Apple silicon):** install from Terminal, no Gatekeeper prompt:
+            **Mac (Intel or Apple silicon, one universal dmg):** install from Terminal, no Gatekeeper prompt:
             ```sh
             curl -fsSL https://kapecut.brewedops.cloud/install.sh | bash
             ```

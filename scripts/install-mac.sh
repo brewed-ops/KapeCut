@@ -9,12 +9,11 @@ set -euo pipefail
 
 main() {
   [ "$(uname -s)" = Darwin ] || fail "This installs KapeCut on a Mac. Other systems: https://github.com/brewed-ops/KapeCut/releases"
-  # hw.optional.arm64, not uname -m: a Terminal under Rosetta reports x86_64 on Apple silicon.
-  [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ] || fail "KapeCut's Mac build is for Apple silicon (M1 and later) only."
 
   local apps="${KAPECUT_APPS:-/Applications}" url="${KAPECUT_DMG_URL:-}"
   if [ -z "$url" ]; then
-    url=$(curl -fsSL https://api.github.com/repos/brewed-ops/KapeCut/releases/latest | grep -o '"browser_download_url": *"[^"]*-arm64\.dmg"' | grep -o 'https://[^"]*' | head -1 || true)
+    # A Release holds one dmg: universal (Intel and Apple silicon) after v0.0.2, Apple silicon only up to it.
+    url=$(curl -fsSL https://api.github.com/repos/brewed-ops/KapeCut/releases/latest | grep -o '"browser_download_url": *"[^"]*\.dmg"' | grep -o 'https://[^"]*' | head -1 || true)
     [ -n "$url" ] || fail "Could not find the latest KapeCut DMG on GitHub: https://github.com/brewed-ops/KapeCut/releases"
   fi
 

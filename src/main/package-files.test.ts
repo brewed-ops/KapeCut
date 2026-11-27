@@ -17,3 +17,8 @@ test('every repo path main reads ships in the installer, outside an asar', () =>
   expect(pkg.build.asar).toBe(false)
   for (const path of [...read, 'out']) expect(pkg.build.files, path).toContain(`${path}/**`)
 })
+
+// One download for every Mac, Intel or Apple silicon (#16)
+test('the Mac target is one universal dmg', () => {
+  expect(pkg.build.mac.target).toEqual([{ target: 'dmg', arch: ['universal'] }])
+})
