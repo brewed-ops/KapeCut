@@ -4,7 +4,7 @@ import { icon } from '../icons'
 import type { Size } from '../viewer/project'
 import { frameAt } from '../viewer/project-time'
 import type { SceneLayout } from '../viewer/scene-layout'
-import { addNote, deleteNote, editNote, mergeNotes, parseNotes, readNotes, spanAt, spanOf, type Box, type Note, type NotesFile, type Point, type Range } from './notes'
+import { addNote, deleteNote, editNote, mergeNotes, notesOnScene, parseNotes, readNotes, spanAt, spanOf, type Box, type Note, type NotesFile, type Point, type Range } from './notes'
 
 type Here = Pick<Note, 'scene' | 'sceneTime' | 'time' | 'frame'>
 type Marks = Required<Pick<Note, 'point' | 'box' | 'stroke' | 'range'>>
@@ -509,6 +509,19 @@ export function wireNotes(o: Options) {
         .filter((m) => Number.isFinite(m.start)),
       ...(span ? [{ n: file.next, done: false, ...span, draft: true }] : []),
     ],
+    /** The Notes that go when Scene `index` of `order` is deleted. */
+    onScene: (index: number, order: string[]) => notesOnScene(file.notes, index, order),
+    /** Scene `index` of `order` was deleted: its Notes go too, then their pictures. */
+    dropScene(index: number, order: string[]) {
+      let gone: Note[] = []
+      return save((f) => {
+        gone = notesOnScene(f.notes, index, order)
+        if (gone.some((n) => n.n === editing)) closePop()
+        return { next: { ...f, notes: f.notes.filter((n) => !gone.includes(n)) } }
+      }).then(async (ok) => {
+        for (const n of ok ? gone.filter((n) => n.image) : []) await kapecut.notes.image(n.n, null).catch((e) => say(`Could not delete notes/note-${n.n}.png: ${errorText(e)}`))
+      })
+    },
     /** A drag on the Timeline picks a span instead of only seeking. */
     picksSpan: () => adding === 'note' && !popOpen(),
     /** A Timeline drag is over Frames a to b. Ignored once Note mode is left (Escape, N) mid-drag. */

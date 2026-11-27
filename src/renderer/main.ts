@@ -326,8 +326,9 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
   // and render() does not follow); a changed row slides there.
   const renderSceneList = () => {
     const current = layout.locate(tr.time).scene
+    const rows = layout.rows()
     sceneList.replaceChildren(
-      ...layout.rows().map(({ file, start, len, error }, i) => {
+      ...rows.map(({ file, start, len, error }, i) => {
         const { thumb } = slots.get(file)!
         const item = document.createElement('li')
         item.innerHTML =
@@ -339,6 +340,14 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
         button.querySelector<HTMLElement>('.badge')!.hidden = !error
         button.addEventListener('click', () => (tr.pause(), tr.seek(start)))
         if (i === current) button.setAttribute('aria-current', 'true')
+        // Shown on the row's hover or focus (app.css). Off for the last Scene and while an Export runs (pauseViewer).
+        const del = item.appendChild(Object.assign(document.createElement('button'), { className: 'del', innerHTML: icon('delete') }))
+        del.setAttribute('aria-label', `Delete Scene ${file}`)
+        del.setAttribute('aria-keyshortcuts', 'Delete')
+        del.title = rows.length < 2 ? 'The last Scene of a Project cannot be deleted' : 'Delete Scene (Delete)'
+        del.disabled = viewerPaused || rows.length < 2
+        del.addEventListener('click', () => askDelete(i))
+        button.addEventListener('keydown', (e) => (e.key === 'Delete' || e.key === 'Backspace') && (e.preventDefault(), del.click())) // a disabled one does nothing
         return item
       }),
     )
@@ -346,6 +355,34 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     rowSizes.disconnect()
     for (const li of sceneList.children) rowSizes.observe(li, { box: 'border-box' }) // the row's whole height, padding too
   }
+
+  // Deleting a Scene (#17): main takes it out of project.json and trashes its page, then the page re-reads project.json
+  // and drops the Scene's Notes. Both writes are the app's own, so neither is Claude activity.
+  const confirmDelete = $('delete-scene') as HTMLDialogElement
+  const deleteStatus = $('delete-scene-status')
+  let deleting: { index: number; file: string; order: string[] } | undefined
+  const askDelete = (index: number) => {
+    const n = notes.onScene(index, project.scenes).length
+    deleting = { index, file: project.scenes[index], order: project.scenes }
+    $('delete-scene-text').textContent = `Delete ${deleting.file}${n ? ` and its ${n} Note${n === 1 ? '' : 's'}` : ''}?`
+    deleteStatus.textContent = ''
+    confirmDelete.showModal()
+  }
+  $('delete-scene-cancel').addEventListener('click', () => confirmDelete.close())
+  $('delete-scene-ok').addEventListener('click', async () => {
+    const d = deleting
+    deleting = undefined // a second click while main works deletes nothing more
+    if (!d) return
+    try {
+      await kapecut.project.deleteScene(d.index, d.file)
+    } catch (e) {
+      deleteStatus.textContent = errorText(e)
+      return
+    }
+    confirmDelete.close()
+    queueSave('project.json')
+    void notes.dropScene(d.index, d.order)
+  })
 
   let queue = reload(sync())
   // One reload at a time; saves landing meanwhile collapse into one pass over every file saved.
@@ -481,6 +518,7 @@ let viewerPaused = false
 function pauseViewer(on: boolean) {
   viewerPaused = on
   for (const id of ['play', 'back', 'fwd', 'note', 'pen']) ($(id) as HTMLButtonElement).disabled = on
+  for (const b of sceneList.querySelectorAll<HTMLButtonElement>('.del')) b.disabled = on || sceneList.children.length < 2 // no Scene deleted mid-Export
 }
 const refuse = (why: string) => void ((exportButton.disabled = false), (exportStatus.textContent = why))
 // Set while Frames encode. A save that lands then waits in the reload queue; the status says so, or it looks lost.

@@ -1,9 +1,9 @@
-import { constants, statSync } from 'node:fs'
+import { constants, existsSync, statSync } from 'node:fs'
 import { copyFile, lstat, readdir, readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, join, relative, sep } from 'node:path'
 import { parseProject } from '../renderer/viewer/project'
 import { staysUnder } from './file-under'
-import { lastOwnWrite, writeOwned } from './owned-writes'
+import { lastOwnWrite, markLanded, ownLanded, writeOwned } from './owned-writes'
 import { MAX_LISTED } from '../renderer/files/kind'
 
 const MAX_FILE = 2 ** 30 // a whole audio file is decoded in memory; an hour of 48 kHz stereo WAV is ~700 MB
@@ -76,12 +76,53 @@ let writing: Promise<unknown> = Promise.resolve()
  * the app's own last write: the page's copy is older, so it must read the file again.
  */
 export function writeAudio(dir: string, list: unknown): Promise<boolean> {
-  const run = writing.then(() => setAudio(dir, list))
+  return queued(() =>
+    editProject(dir, (json) => {
+      const { audio } = parseProject({ ...json, audio: list })
+      const away = audio.find((a) => !staysUnder(dir, join(dir, a.file)))
+      if (away) throw new Error(`Audio file ${away.file} is outside the Project`)
+      return { ...json, audio }
+    }),
+  )
+}
+
+/**
+ * Takes Scene `index` out of project.json's `scenes` (it must still be `file`: the page's list may be older), then moves
+ * its page to the OS trash with `trash` (shell.trashItem), never erasing it. Refuses the last Scene of a Project. A page
+ * another entry still lists, or one that is not there, stays. Moving the page is the app's own change, not Claude's.
+ * Queued with writeAudio, and resolves like it.
+ */
+export function deleteScene(dir: string, index: unknown, file: unknown, trash: (path: string) => Promise<void>): Promise<boolean> {
+  return queued(async () => {
+    let page = ''
+    const stale = await editProject(dir, (json) => {
+      const { scenes } = parseProject(json)
+      if (!Number.isInteger(index) || typeof file !== 'string' || scenes[index as number] !== file) throw new Error('The Scene list changed. Try again')
+      if (scenes.length < 2) throw new Error('The last Scene of a Project cannot be deleted')
+      const left = scenes.filter((_, i) => i !== index)
+      page = left.includes(file) ? '' : join(dir, file)
+      if (page && !staysUnder(dir, page)) throw new Error(`Scene ${file} is outside the Project`)
+      return { ...json, scenes: left }
+    })
+    if (page && existsSync(page)) {
+      markLanded(page) // before the move: the watcher may report it first
+      await trash(page).catch((e) => {
+        ownLanded(page) // never moved: the next change to it is not the app's
+        throw e
+      })
+    }
+    return stale
+  })
+}
+
+function queued<T>(job: () => Promise<T>) {
+  const run = writing.then(job)
   writing = run.catch(() => {})
   return run
 }
 
-async function setAudio(dir: string, list: unknown) {
+/** project.json as it is on disk now, changed by `change`, written whole once parseProject takes the result. */
+async function editProject(dir: string, change: (json: Record<string, unknown>) => Record<string, unknown>) {
   const file = join(dir, 'project.json')
   if (!staysUnder(dir, file)) throw new Error('project.json links outside the Project')
   const before = await readFile(file, 'utf8').catch(() => '')
@@ -92,10 +133,9 @@ async function setAudio(dir: string, list: unknown) {
   } catch {
     throw new Error('project.json has an error. Fix it, save, then try again')
   }
-  const { audio } = parseProject({ ...json, audio: list })
-  const away = audio.find((a) => !staysUnder(dir, join(dir, a.file)))
-  if (away) throw new Error(`Audio file ${away.file} is outside the Project`)
-  const text = JSON.stringify({ ...json, audio }, null, 2) + '\n'
+  const next = change(json)
+  parseProject(next)
+  const text = JSON.stringify(next, null, 2) + '\n'
   if (Buffer.byteLength(text) > MAX_PROJECT_JSON) throw new Error('project.json would be too large')
   const stale = before !== lastOwnWrite(file)
   await writeOwned(file, text)

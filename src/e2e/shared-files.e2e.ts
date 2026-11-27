@@ -24,16 +24,16 @@ test('a Scene picks up an edited shared script without a reopen, and its Scene e
     await expect.poll(() => pixel(page)).toEqual([255, 0, 0])
     const badge = page.locator('#scene-list li').nth(1).locator('.badge')
     await expect(badge).toBeVisible()
-    await page.locator('#scene-list button').nth(1).click()
+    await page.locator('#scene-list li > button:first-child').nth(1).click()
     await expect(page.locator('.error')).toContainText('lockup is not defined')
-    await page.locator('#scene-list button').nth(0).click()
+    await page.locator('#scene-list li > button:first-child').nth(0).click()
     await expect.poll(() => pixel(page)).toEqual([255, 0, 0])
 
     // The edit lands in kc.js only: no Scene page is saved.
     writeFileSync(join(dir, 'kc.js'), helper('paint', '#0000ff') + '\n' + helper('lockup', '#00ff00'))
     await expect.poll(() => pixel(page)).toEqual([0, 0, 255])
     await expect(badge).toBeHidden()
-    await page.locator('#scene-list button').nth(1).click()
+    await page.locator('#scene-list li > button:first-child').nth(1).click()
     await expect(page.locator('.error')).toHaveCount(0)
     await expect.poll(() => pixel(page)).toEqual([0, 255, 0])
   } finally {

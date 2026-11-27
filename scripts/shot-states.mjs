@@ -20,6 +20,7 @@
 // settings-update-{off,idle,checking,latest,available,downloading,ready,out,error}.png (each Update status, as main sends it;
 // out is the Mac's),
 // default-light.png (the editor in the light theme). default.png opens with a handshake: idle pill.
+// scene-delete-hover.png (a Scene row's trash on hover) and scene-delete-confirm.png (its confirm, then cancelled).
 // setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, Claude Code and the skill missing, then all set),
 // setup-window-prompt.png and setup-window-prompt-copied.png (Claude Code found, ffmpeg missing: Copy Prompt beside
 // Re-check, then clicked: its toast).
@@ -198,6 +199,17 @@ try {
   await page.getByRole('radio', { name: 'Dark' }).check() // the later shots as before, Settings on General
   await page.getByRole('dialog', { name: 'Settings' }).getByRole('navigation').getByRole('button', { name: 'General' }).click()
   await page.keyboard.press('Escape')
+  await page.locator('#settings-panel').waitFor({ state: 'hidden' })
+
+  // Deleting a Scene (#17): a row's trash on hover, then the confirm naming it; cancelled, so the later shots keep b.html.
+  await page.locator('#scene-list > li').nth(1).hover()
+  await page.waitForTimeout(200)
+  await shot('scene-delete-hover')
+  await page.getByRole('button', { name: 'Delete Scene b.html' }).click()
+  await settled(page, '#delete-scene')
+  await shot('scene-delete-confirm')
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await page.mouse.move(0, 0)
 
   // Files: one of each kind beside click.wav, then an audio file dragged over the Timeline (the drop line at 3 s).
   mkdirSync(join(dir, 'img'))

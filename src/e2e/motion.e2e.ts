@@ -11,7 +11,7 @@ import { join } from 'node:path'
 const KINDS = ['#export', '#play', '#zoom-fit', '#zoom-in', '#file-list li:not([draggable]) button', '#projects summary']
 // These darken instead of shrinking: a full-width Scene row, a draggable Audio row's button, a window caption button
 // (not on macOS, which hides them for its own traffic lights).
-const TONE_KINDS = ['#scene-list button', '#file-list li[draggable] button', ...(process.platform === 'darwin' ? [] : ['#win-min'])]
+const TONE_KINDS = ['#scene-list li > button:first-child', '#file-list li[draggable] button', ...(process.platform === 'darwin' ? [] : ['#win-min'])]
 
 function project() {
   const dir = mkdtempSync(join(tmpdir(), 'kapecut-motion-'))

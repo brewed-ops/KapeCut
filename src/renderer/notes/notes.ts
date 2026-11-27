@@ -27,6 +27,9 @@ export function sceneIndex(note: Pick<Note, 'scene' | 'scenes'>, order: string[]
   const run = note.scenes && !crossedApart(note, order) ? runAt(note.scenes, order) : -1
   return run >= 0 ? run : order.indexOf(note.scene)
 }
+/** The Notes that go with Scene `index` of `order` when it is deleted: Marked on it, or a span that starts in it. */
+export const notesOnScene = <N extends Pick<Note, 'scene' | 'scenes'>>(notes: N[], index: number, order: string[]) =>
+  notes.filter((n) => sceneIndex(n, order) === index)
 export type Note = {
   n: number
   text: string
