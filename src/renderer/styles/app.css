@@ -34,7 +34,7 @@ body {
 }
 /* Glass (tokens.css): the wash in place of grain, and every floating surface frosts what is under it. */
 :root[data-theme='glass'] body { background: var(--wash), var(--bg); background-blend-mode: normal; }
-:root[data-theme='glass'] :is(.window, #settings, #claude-status, .pop, .toast) { backdrop-filter: var(--glass); box-shadow: inset 0 1px 0 var(--edge), var(--shadow); }
+:root[data-theme='glass'] :is(.window, #settings, #agent-status, .pop, .toast) { backdrop-filter: var(--glass); box-shadow: inset 0 1px 0 var(--edge), var(--shadow); }
 :root[data-theme='glass'] #settings-panel { background: var(--panel-2); backdrop-filter: var(--glass); }
 
 .eyebrow {
@@ -54,29 +54,29 @@ header #export-status { margin-left: auto; color: var(--muted); }
 header > :not(#export-status, #project) { flex-shrink: 0; white-space: nowrap; } /* a long status wraps, the controls never do */
 /* The header is the window's title bar (frameless window): it drags the window, its controls do not. */
 header { -webkit-app-region: drag; user-select: none; }
-header :is(button, select, details, #export-status, #claude-status) { -webkit-app-region: no-drag; }
+header :is(button, select, details, #export-status, #agent-status) { -webkit-app-region: no-drag; }
 header #export-status { user-select: text; } /* an Export error can be copied into an issue */
 /* A drag region is OS caption area, so while files are dragged over the window the header takes drops instead. */
 body:has(.files.dropping) header { -webkit-app-region: no-drag; }
-/* Claude status (#55): "Claude", then the state dimmed; the dot is red not connected, green active, amber idle. */
-#claude-status { align-self: center; display: inline-flex; align-items: center; gap: var(--control-gap); height: var(--control-h); padding: 0 var(--control-pad-x); border: 1.5px solid transparent; border-radius: 999px; background: none; color: var(--text); font: 500 12px/var(--lead-label) var(--sans); white-space: nowrap; }
+/* Agent status (#55): "Agent", then the state dimmed; the dot is red not connected, green active, amber idle. */
+#agent-status { align-self: center; display: inline-flex; align-items: center; gap: var(--control-gap); height: var(--control-h); padding: 0 var(--control-pad-x); border: 1.5px solid transparent; border-radius: 999px; background: none; color: var(--text); font: 500 12px/var(--lead-label) var(--sans); white-space: nowrap; }
 /* A change cross-fades in place (#80): the three labels are stacked faces (the pill is as wide as the longest, so the dot
    and label never move) and the green (::after) or amber (::before) dot fades over the red one. The live text is only for screen readers and the title. */
-#claude-status i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
-#claude-status i::before, #claude-status i::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--warn); opacity: 0; }
-#claude-status i::after { background: var(--ok); }
-#claude-status .faces { display: grid; }
-#claude-status [data-face] { grid-area: 1 / 1; opacity: 0; } /* opacity, not display: a hidden face must keep the pill as wide as the longest */
-#claude-status :is([data-face], .name)::after { content: attr(data-label); } /* drawn, not text: the pill reads as its one live label */
-#claude-status [data-face] { color: var(--dim); }
-#claude-status i::before, #claude-status i::after, #claude-status [data-face] { transition: opacity var(--dur-s) var(--ease-out); }
-#claude-status[data-s='none'] [data-face='none'], #claude-status[data-s='active'] [data-face='active'], #claude-status[data-s='active'] i::after,
-#claude-status[data-s='idle'] [data-face='idle'], #claude-status[data-s='idle'] i::before { opacity: 1; }
-#claude-status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#agent-status i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+#agent-status i::before, #agent-status i::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--warn); opacity: 0; }
+#agent-status i::after { background: var(--ok); }
+#agent-status .faces { display: grid; }
+#agent-status [data-face] { grid-area: 1 / 1; opacity: 0; } /* opacity, not display: a hidden face must keep the pill as wide as the longest */
+#agent-status :is([data-face], .name)::after { content: attr(data-label); } /* drawn, not text: the pill reads as its one live label */
+#agent-status [data-face] { color: var(--dim); }
+#agent-status i::before, #agent-status i::after, #agent-status [data-face] { transition: opacity var(--dur-s) var(--ease-out); }
+#agent-status[data-s='none'] [data-face='none'], #agent-status[data-s='active'] [data-face='active'], #agent-status[data-s='active'] i::after,
+#agent-status[data-s='idle'] [data-face='idle'], #agent-status[data-s='idle'] i::before { opacity: 1; }
+#agent-status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* A small window: only the dot, so the header never scrolls. */
 @media (max-width: 1180px) {
-  #claude-status { width: var(--control-h); padding: 0; justify-content: center; }
-  #claude-status :is(.faces, .name) { display: none; }
+  #agent-status { width: var(--control-h); padding: 0; justify-content: center; }
+  #agent-status :is(.faces, .name) { display: none; }
 }
 .win-buttons { align-self: center; display: flex; gap: 2px; } /* they end on the panels' right edge; caption buttons sit nearly touching, like the OS's own */
 .win-buttons button { width: calc(var(--control-h-icon) + 8px); /* caption buttons run wider than tall */ height: var(--control-h-icon); display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; }
@@ -385,7 +385,7 @@ main { min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr)
 :is(.error, .paused) p { margin: 0; color: var(--muted); max-width: 32ch; }
 :is(.error, .paused) .eyebrow { color: var(--accent); }
 
-/* Set-up state (#51): the folder has no project.json yet; Scenes and Timeline wait for Claude */
+/* Set-up state (#51): the folder has no project.json yet; Scenes and Timeline wait for the Agent */
 .set-up { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; padding: 28px; text-align: center; color: var(--muted); font-size: 13px; line-height: var(--lead-dense); }
 .set-up h2 { margin: 0; font: 24px/var(--lead-display) var(--display); letter-spacing: var(--track-display); color: var(--text); }
 .set-up h2 b { color: var(--accent); font-weight: inherit; }
@@ -553,10 +553,10 @@ main:has(> .timeline[hidden]) { grid-template-rows: minmax(0, 1fr); } /* no empt
   #view .titlebar .eyebrow { margin-left: 4px; letter-spacing: var(--track-mono); }
 }
 #scene-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Connect Claude via Prompt (#54): the main button, at the left of the title bar. It shortens before the Scene name
-   goes: "via Prompt" first, then the whole label (the icon and its accessible name stay). */
+/* Connect your agent (#54): the main button, at the left of the title bar. It shortens before the Scene name
+   goes: "your" first, then the whole label (the icon and its accessible name stay). */
 .connect { flex: none; display: flex; align-items: center; gap: var(--control-gap); height: var(--control-h); padding: 0 var(--control-pad-x); white-space: nowrap; }
-/* Once Claude is connected (#55): no longer the main action, a pill like Note and Pencil (see .tools button). */
+/* Once the Agent is connected (#55): no longer the main action, a pill like Note and Pencil (see .tools button). */
 .connect.primary .on, .connect:not(.primary) .off { display: none; }
 .connect:not(.primary) svg { color: var(--accent); } /* color, not stroke: the plug's prongs are filled */
 .connect svg { stroke-width: 2.4; }
@@ -586,7 +586,7 @@ main:has(> .timeline[hidden]) { grid-template-rows: minmax(0, 1fr); } /* no empt
 }
 .toast svg { width: 18px; height: 18px; color: var(--accent); stroke-width: 2.4; }
 .tools { margin-left: auto; display: flex; gap: var(--control-gap); }
-/* Labelled pills with their key (docs/design/claude-connect.md); the left of the title bar is kept for Connect Claude. */
+/* Labelled pills with their key (docs/design/claude-connect.md); the left of the title bar is kept for Connect your agent. */
 .tools button, .connect:not(.primary) { width: auto; height: var(--control-h); padding: 0 var(--control-pad-x); gap: var(--control-gap); display: flex; align-items: center; border-radius: 999px; background: none; font: 500 var(--control-font)/var(--lead-label) var(--sans); }
 .tools button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
 .tools button:disabled { opacity: 0.4; cursor: default; } /* Set-up state: no Frame to mark yet */

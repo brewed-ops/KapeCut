@@ -13,12 +13,13 @@ const cleanUp = (root: string) => {
   }
 }
 
-const handshake = (dir: string) => {
+// agent.json is the handshake (ADR 0008); Projects connected before it hold claude.json, which still connects.
+const handshake = (dir: string, file = 'agent.json') => {
   mkdirSync(join(dir, '.kapecut'), { recursive: true })
-  writeFileSync(join(dir, '.kapecut', 'claude.json'), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
+  writeFileSync(join(dir, '.kapecut', file), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
 }
 
-// What Claude writes to turn Set-up state into a one-Scene Project. The canvas follows ?scale= (ADR 0001), so it Exports.
+// What the Agent writes to turn Set-up state into a one-Scene Project. The canvas follows ?scale= (ADR 0001), so it Exports.
 const build = (dir: string) => {
   writeFileSync(
     join(dir, 'a.html'),
@@ -40,11 +41,11 @@ test("the app's own writes never reach the page as activity; the handshake turns
     mkdirSync(dir)
     build(dir)
     const { app, page } = await launch({ project: dir, userData: join(root, 'user') })
-    const pill = page.getByRole('status').filter({ hasText: /^Claude / })
+    const pill = page.getByRole('status').filter({ hasText: /^Agent / })
     await expect(pill).toBeVisible()
-    await expect(pill).toHaveText('Claude not connected')
+    await expect(pill).toHaveText('Agent not connected')
 
-    // Every file event main forwards to the page: each one is Claude activity.
+    // Every file event main forwards to the page: each one is Agent activity.
     await app.evaluate(({ BrowserWindow }) => {
       const g = globalThis as unknown as { forwarded: string[] }
       g.forwarded = []
@@ -76,12 +77,12 @@ test("the app's own writes never reach the page as activity; the handshake turns
     writeFileSync(join(dir, 'later-2.txt'), 'x')
     await expect.poll(forwarded).toContain('later-2.txt')
     expect(await forwarded()).toEqual(['later.txt', 'out.mp4 (own)', 'later-2.txt'])
-    await expect(pill).toHaveText('Claude not connected') // activity alone never connects
-    await expect(page.getByRole('button', { name: 'Connect Claude via Prompt' })).toBeVisible()
+    await expect(pill).toHaveText('Agent not connected') // activity alone never connects
+    await expect(page.getByRole('button', { name: 'Connect your agent' })).toBeVisible()
 
     handshake(dir)
-    await expect(pill).toHaveText('Claude active')
-    const connect = page.getByRole('button', { name: 'Claude connected, copy again' })
+    await expect(pill).toHaveText('Agent active')
+    const connect = page.getByRole('button', { name: 'Agent connected, copy again' })
     await expect(connect).toBeVisible()
     await expect(connect.locator('svg.on')).toBeVisible() // the check, not the link (a narrow viewer shows only the icon)
     await expect(connect.locator('svg.off')).toBeHidden()
@@ -93,36 +94,36 @@ test("the app's own writes never reach the page as activity; the handshake turns
     await expect(page.locator('#toast')).toBeVisible()
     expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toContain(`Project folder (open in KapeCut now): ${dir}\n`)
 
-    rmSync(join(dir, '.kapecut', 'claude.json'))
-    await expect(pill).toHaveText('Claude not connected')
-    await expect(page.getByRole('button', { name: 'Connect Claude via Prompt' })).toBeVisible()
+    rmSync(join(dir, '.kapecut', 'agent.json'))
+    await expect(pill).toHaveText('Agent not connected')
+    await expect(page.getByRole('button', { name: 'Connect your agent' })).toBeVisible()
     handshake(dir)
-    await expect(pill).toHaveText('Claude active')
+    await expect(pill).toHaveText('Agent active')
     renameSync(join(dir, '.kapecut'), join(dir, '.gone')) // the folder goes (Explorer's delete is a move): one event, '.kapecut'
-    await expect(pill).toHaveText('Claude not connected')
+    await expect(pill).toHaveText('Agent not connected')
     await app.close()
   } finally {
     cleanUp(root)
   }
 })
 
-test('a Project opened with a handshake starts idle, stays active through its own reload, and starts idle when opened again', async () => {
+test('a Project connected before agent.json (claude.json) opens connected: starts idle, stays active through its own reload, and starts idle when opened again', async () => {
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
     const dir = join(root, 'Lumen')
     mkdirSync(dir)
-    handshake(dir)
+    handshake(dir, 'claude.json')
     const { app, page } = await launch({ project: dir, userData: join(root, 'user'), waitForExport: false })
     await expect(page.locator('.set-up')).toBeVisible()
-    const pill = page.getByRole('status').filter({ hasText: /^Claude / })
+    const pill = page.getByRole('status').filter({ hasText: /^Agent / })
     await expect(pill).toBeVisible()
-    await expect(pill).toHaveText('Claude idle')
-    await expect(page.getByRole('button', { name: 'Claude connected, copy again' })).toBeVisible()
+    await expect(pill).toHaveText('Agent idle')
+    await expect(page.getByRole('button', { name: 'Agent connected, copy again' })).toBeVisible()
 
     // Set-up state reloads into the editor when project.json lands: the activity survives that reload.
     build(dir)
     await expect(page.locator('#export')).toBeEnabled()
-    await expect(pill).toHaveText('Claude active')
+    await expect(pill).toHaveText('Agent active')
 
     // Opened again (Projects menu): a fresh open, idle until the first activity.
     await app.evaluate(({ dialog }, filePath) => {
@@ -130,7 +131,7 @@ test('a Project opened with a handshake starts idle, stays active through its ow
     }, dir)
     await page.locator('#projects summary').click()
     await page.locator('#open-folder').click()
-    await expect.poll(() => page.locator('#claude-status').textContent().catch(() => null)).toBe('Claude idle')
+    await expect.poll(() => page.locator('#agent-status').textContent().catch(() => null)).toBe('Agent idle')
     await app.close()
   } finally {
     cleanUp(root)
@@ -145,7 +146,7 @@ test('the pill cross-fades between not connected, active and idle, and its dot a
     build(dir)
     const { app, page } = await launch({ project: dir, userData: join(root, 'user') })
     await page.setViewportSize({ width: 1440, height: 900 }) // wide enough for the label
-    const pill = page.locator('#claude-status')
+    const pill = page.locator('#agent-status')
     await expect(pill).toHaveAttribute('data-s', 'none')
     // The fonts load after the first paint and would widen the label under the test: wait for them.
     await page.evaluate(() => document.fonts.ready)
@@ -190,7 +191,7 @@ test('the pill cross-fades between not connected, active and idle, and its dot a
     await expect.poll(async () => (await read()).faces).toEqual({ none: 0, active: 0, idle: 1 })
     expect((await read()).amber).toBe(0)
     expect((await read()).at).toBe(rest.at)
-    await expect(pill).toHaveText('Claude idle') // one label for screen readers, not all three
+    await expect(pill).toHaveText('Agent idle') // one label for screen readers, not all three
     await app.close()
   } finally {
     cleanUp(root)

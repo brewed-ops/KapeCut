@@ -19,7 +19,7 @@ const cleanUp = (root: string) => {
 function project(root: string, name: string) {
   const dir = join(root, name)
   mkdirSync(join(dir, '.kapecut'), { recursive: true })
-  writeFileSync(join(dir, '.kapecut', 'claude.json'), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
+  writeFileSync(join(dir, '.kapecut', 'agent.json'), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
   writeFileSync(join(dir, 'a.html'), '<canvas id="c" width="200" height="200"></canvas><script>window.TOTAL = 1; window.renderAt = () => {}</script>')
   writeFileSync(join(dir, 'project.json'), JSON.stringify({ name, size: { w: 200, h: 200 }, fps: 30, scenes: ['a.html'] }))
   return dir
@@ -143,7 +143,7 @@ test('idle minutes change the pill live and survive a restart', async () => {
     const dir = project(root, 'Alpha')
     const userData = join(root, 'user')
     let { app, page } = await launch({ project: dir, userData })
-    const pill = page.locator('#claude-status')
+    const pill = page.locator('#agent-status')
     await expect(pill).toHaveAttribute('data-s', 'idle')
     await page.clock.install()
     await settingsButton(page).click()
@@ -186,13 +186,13 @@ test('idle minutes change the pill live and survive a restart', async () => {
     await app.close()
 
     ;({ app, page } = await launch({ project: dir, userData }))
-    await expect(page.locator('#claude-status')).toHaveAttribute('data-s', 'idle')
+    await expect(page.locator('#agent-status')).toHaveAttribute('data-s', 'idle')
     await page.clock.install()
     await settingsButton(page).click()
     await expect(page.getByLabel('Idle minutes')).toHaveValue('2')
-    await expect(page.locator('#claude-status')).toHaveAttribute('data-s', 'active') // the click
+    await expect(page.locator('#agent-status')).toHaveAttribute('data-s', 'active') // the click
     await page.clock.fastForward(121_000)
-    await expect(page.locator('#claude-status')).toHaveAttribute('data-s', 'idle')
+    await expect(page.locator('#agent-status')).toHaveAttribute('data-s', 'idle')
     await app.close()
   } finally {
     cleanUp(root)

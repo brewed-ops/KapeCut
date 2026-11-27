@@ -40,7 +40,7 @@ test('opening a Project writes the Session file; Connect Claude copies the Conne
     const clipboard = () => app.evaluate(({ clipboard }) => clipboard.readText())
     await app.evaluate(({ clipboard }) => clipboard.writeText(''))
     await expect(page.locator('#toast')).toBeHidden()
-    await page.getByRole('button', { name: 'Connect Claude via Prompt' }).click()
+    await page.getByRole('button', { name: 'Connect your agent' }).click()
     await expect(page.locator('#toast')).toBeVisible()
     await expect(page.getByRole('status').filter({ has: page.locator('#toast') })).toContainText('Prompt copied') // announced
     const prompt = await clipboard()
@@ -57,14 +57,14 @@ test('opening a Project writes the Session file; Connect Claude copies the Conne
     await page.locator('#open-folder').click()
     await expect.poll(() => readSession(userData)).toEqual({ version: 1, project: built })
     await expect(page.locator('#export')).toBeEnabled()
-    await page.getByRole('button', { name: 'Connect Claude via Prompt' }).click()
+    await page.getByRole('button', { name: 'Connect your agent' }).click()
     await expect.poll(clipboard).toContain(`Project folder (open in KapeCut now): ${built}\n`)
     expect(await clipboard()).toContain('project.json is set.')
 
     // A broken project.json: the prompt asks Claude to fix it first.
     writeFileSync(join(built, 'project.json'), '{ not json')
     await expect(page.locator('.error')).toContainText('project.json is not valid JSON')
-    await page.getByRole('button', { name: 'Connect Claude via Prompt' }).click()
+    await page.getByRole('button', { name: 'Connect your agent' }).click()
     await expect.poll(clipboard).toContain('project.json has an error')
 
     await app.close()

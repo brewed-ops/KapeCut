@@ -12,8 +12,8 @@ import { AUDIO_FILE_TYPE, wireFiles } from './files/files-ui'
 import { fileKind } from './files/kind'
 import { kapecut } from './bridge'
 import { $, errorText, toast } from './dom'
-import { connectPrompt, fixPrompt } from './claude/connect-prompt'
-import { wireClaudeStatus } from './claude/status-ui'
+import { connectPrompt, fixPrompt } from './agent/connect-prompt'
+import { wireAgentStatus } from './agent/status-ui'
 import { wireSettings } from './settings/settings-ui'
 import { fillIcons, icon } from './icons'
 import { wireSetup } from './setup/setup-ui'
@@ -70,7 +70,7 @@ kapecut.window.onMaximized((maximized) => {
 const folderName = (dir: string) => dir.split(/[\\/]/).filter(Boolean).pop() ?? dir
 
 const SET_UP = 'set-up'
-// What the Connect prompt asks Claude to do; follows project.json breaking and being fixed under an open Project.
+// What the Connect prompt asks the Agent to do; follows project.json breaking and being fixed under an open Project.
 let projectState: Parameters<typeof connectPrompt>[0]['state'] = 'error'
 const PROJECT_TMP = /^project\.json\..*\.tmp$/ // temp files of a project.json write, before its rename
 // Writing or fixing project.json opens the Project. shortcut: a fresh page, as no Scene is open yet to keep.
@@ -1141,7 +1141,7 @@ function showSetUp(dir: string) {
   showName(folderName(dir), ' · set up')
   stage.insertAdjacentHTML(
     'beforeend',
-    '<div class="set-up"><h2>Drop your files in.<br><b>Claude builds the rest.</b></h2><p>Put pictures, PDFs and audio in the folder. Then Connect Claude and paste the prompt into Claude Code.</p></div>',
+    '<div class="set-up"><h2>Drop your files in.<br><b>Your agent builds the rest.</b></h2><p>Put pictures, PDFs and audio in the folder. Then Connect your agent and paste the prompt into it.</p></div>',
   )
   for (const id of ['scenes-waiting', 'timeline', 'tl-waiting', 'note-tools']) $(id).hidden = false
   for (const id of ['tl-scroll', 'zoom']) $(id).hidden = true
@@ -1203,7 +1203,7 @@ state
       void readProject(current).then(() => location.reload(), () => {})
     })
     if (current) {
-      void wireClaudeStatus(opened) // shows Connect once it knows which face it has
+      void wireAgentStatus(opened) // shows Connect once it knows which face it has
       projectState = project === SET_UP ? 'set-up' : project ? 'ready' : 'error'
       $('connect').addEventListener('click', () =>
         copyPrompt(connectPrompt({ project: current, session, state: projectState })),

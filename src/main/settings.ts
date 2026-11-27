@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { IDLE_MS } from '../renderer/claude/status'
+import { IDLE_MS } from '../renderer/agent/status'
 import { writeAtomic } from './owned-writes'
 
 export type Theme = 'dark' | 'light' | 'glass' | 'system'

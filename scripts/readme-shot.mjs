@@ -1,5 +1,5 @@
 // The README screenshot (docs/images/kapecut.png): builds the demo Project (scripts/readme-demo.mjs) in a temp folder,
-// opens it with Claude active and one Note done, scrubs to the product shot and shoots at 1440x900.
+// opens it with the Agent active and one Note done, scrubs to the product shot and shoots at 1440x900.
 // Usage: npm run shot:readme   (builds first)
 import { _electron as electron } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
@@ -20,8 +20,8 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.locator('#export:enabled').waitFor({ timeout: 30_000 })
   await page.locator('#note-list .pin.done').waitFor({ timeout: 15_000 })
-  appendFileSync(join(dir, 'brief.md'), '\n') // a change: Claude active
-  await page.locator('#claude-status[data-s="active"]').waitFor({ timeout: 15_000 })
+  appendFileSync(join(dir, 'brief.md'), '\n') // a change: the Agent active
+  await page.locator('#agent-status[data-s="active"]').waitFor({ timeout: 15_000 })
   await page.locator('#scrub').evaluate((el) => ((el.value = '3.1'), el.dispatchEvent(new Event('input')))) // mid-sweep on the product shot, Note 2 on the beam
   await page.waitForTimeout(1000) // the Frame and thumbnails settle
   await page.locator('#files-path').evaluate((el) => (el.textContent = '~/Videos/lumen-launch')) // not this machine's path

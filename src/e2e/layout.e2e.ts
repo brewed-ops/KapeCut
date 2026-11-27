@@ -3,7 +3,7 @@ import { launch } from './launch'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { HANDSHAKE } from '../renderer/claude/status'
+import { HANDSHAKE } from '../renderer/agent/status'
 
 // The editor grid of Kenneth's sketch (docs/design/sketch-2026-11-23.png, #66): left column header to bottom, Timeline
 // right of it, the viewer window filling the middle column with the picture centred in it.

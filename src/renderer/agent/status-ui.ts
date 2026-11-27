@@ -1,13 +1,14 @@
 import { kapecut } from '../bridge'
 import { $ } from '../dom'
-import { claudeStatus, HANDSHAKE, IDLE_MS } from './status'
+import { agentStatus, HANDSHAKES, IDLE_MS } from './status'
 
-const LABEL = { none: 'Claude not connected', active: 'Claude active', idle: 'Claude idle' }
-/** What the pill shows after its fixed "Claude": the state, short. */
+const LABEL = { none: 'Agent not connected', active: 'Agent active', idle: 'Agent idle' }
+/** What the pill shows after its fixed "Agent": the state, short. */
 const FACE = { none: '· Not connected', active: '· Active', idle: '· Idle' }
 
 // A file there but unreadable right now (mid-write) answers 500: it exists.
-const hasHandshake = () => fetch(`/project/${HANDSHAKE}`, { method: 'HEAD', cache: 'no-store' }).then((r) => r.status !== 404, () => false)
+const exists = (file: string) => fetch(`/project/${file}`, { method: 'HEAD', cache: 'no-store' }).then((r) => r.status !== 404, () => false)
+const hasHandshake = async () => (await Promise.all(HANDSHAKES.map(exists))).includes(true)
 
 let idleMs = IDLE_MS
 let redraw = () => {} // the pill's own redraw, once it is wired
@@ -19,36 +20,36 @@ export function setIdleMinutes(minutes: number) {
 }
 
 /**
- * The header's Claude status pill for the open Project (ADR 0005), and the face of the Connect button. Activity is every
+ * The header's Agent status pill for the open Project (ADR 0005), and the face of the Connect button. Activity is every
  * file event main forwards that the app did not write itself, and pointer, key or wheel input in the window (Scene
  * frames take none). opened: which open of the Project this is, so the page's own reloads (Set-up state turning into
  * the editor) keep the last activity, and opening the Project again starts idle.
  */
-export async function wireClaudeStatus(opened: number) {
-  const pill = $('claude-status')
+export async function wireAgentStatus(opened: number) {
+  const pill = $('agent-status')
   const connect = $('connect')
   // One face per state, stacked, so a change cross-fades in place (app.css); the live text stays the one label read out.
-  $('claude-status-faces').replaceChildren(
+  $('agent-status-faces').replaceChildren(
     ...Object.entries(FACE).map(([face, label]) => {
       const span = document.createElement('span')
       Object.assign(span.dataset, { face, label })
       return span
     }),
   )
-  const key = `claude-activity:${opened}`
+  const key = `agent-activity:${opened}`
   let last = Number(sessionStorage.getItem(key)) || -Infinity
   let connected = false
   let timer: ReturnType<typeof setTimeout> | undefined
   const show = () => {
     const now = Date.now()
-    const status = claudeStatus(connected, last, now, idleMs)
+    const status = agentStatus(connected, last, now, idleMs)
     clearTimeout(timer)
     if (status === 'active') timer = setTimeout(show, last + idleMs - now) // the exact idle moment
     if (pill.dataset.s === status) return // the live region speaks only on a change
     pill.dataset.s = status
-    $('claude-status-text').textContent = pill.title = LABEL[status]
+    $('agent-status-text').textContent = pill.title = LABEL[status]
     connect.classList.toggle('primary', !connected)
-    connect.setAttribute('aria-label', connected ? 'Claude connected, copy again' : 'Connect Claude via Prompt')
+    connect.setAttribute('aria-label', connected ? 'Agent connected, copy again' : 'Connect your agent')
   }
   const activity = () => {
     last = Date.now()
@@ -65,7 +66,7 @@ export async function wireClaudeStatus(opened: number) {
   // Listening before the first check, so a handshake written meanwhile is not missed. A deleted one (or its folder)
   // disconnects.
   kapecut.onFileSaved(async (file, own) => {
-    if (file === HANDSHAKE || HANDSHAKE.startsWith(file + '/')) await check()
+    if (HANDSHAKES.some((h) => file === h || h.startsWith(file + '/'))) await check()
     if (own) show()
     else activity()
   })

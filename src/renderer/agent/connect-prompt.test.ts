@@ -5,7 +5,7 @@ const at = { project: 'D:\\Videos\\Lumen', session: 'C:\\Users\\me\\AppData\\Roa
 const head = `I'm using KapeCut. Use the kapecut skill.
 Project folder (open in KapeCut now): D:\\Videos\\Lumen
 Before any work, read C:\\Users\\me\\AppData\\Roaming\\kapecut\\session.json and confirm its "project" is this folder. If it is not, stop, tell me KapeCut has a different Project open and ask me which folder to work in.
-Then write .kapecut/claude.json in the Project so KapeCut shows you as connected.
+Then write .kapecut/agent.json in the Project so KapeCut shows you as connected.
 `
 
 it('in Set-up state asks the format, safe zone and fps before the video', () => {
@@ -18,7 +18,7 @@ it('for a built Project keeps project.json and asks what to work on', () => {
   expect(connectPrompt({ ...at, state: 'ready' })).toBe(head + 'project.json is set. Ask me what to work on in the video.')
 })
 
-it('with a broken project.json asks Claude to fix it first', () => {
+it('with a broken project.json asks the Agent to fix it first', () => {
   expect(connectPrompt({ ...at, state: 'error' })).toBe(
     head + 'project.json has an error, shown in KapeCut. Fix it first, then ask me what to work on in the video.',
   )

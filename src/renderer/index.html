@@ -18,7 +18,7 @@
       </details>
       <span id="project">No Project open</span>
       <span class="eyebrow" id="export-status" role="status"></span>
-      <span id="claude-status" role="status" hidden><i></i><span class="name" data-label="Claude" aria-hidden="true"></span><span class="faces" id="claude-status-faces" aria-hidden="true"></span><span id="claude-status-text"></span></span>
+      <span id="agent-status" role="status" hidden><i></i><span class="name" data-label="Agent" aria-hidden="true"></span><span class="faces" id="agent-status-faces" aria-hidden="true"></span><span id="agent-status-text"></span></span>
       <select id="resolution" aria-label="Export resolution" disabled></select>
       <button class="primary" id="export" disabled><span id="export-progress" aria-hidden="true" hidden></span><span id="export-label">Export</span><svg data-icon="export"></svg></button>
       <div class="win-buttons">
@@ -37,7 +37,7 @@
           <h2 id="setup-title">KapeCut needs <b>a few tools.</b></h2>
           <p>Install what is missing, then Re-check. KapeCut checks them on every launch.</p>
           <ul id="setup-list" aria-label="Checks"></ul>
-          <div class="row"><p id="setup-status" role="status"></p><button id="setup-prompt" title="Copy a prompt that has Claude Code install what is missing" hidden><svg data-icon="copy"></svg>Copy Prompt</button><button class="primary" id="setup-recheck"><svg data-icon="arrow-clockwise"></svg>Re-check</button></div>
+          <div class="row"><p id="setup-status" role="status"></p><button id="setup-prompt" title="Copy a prompt that has your agent install what is missing" hidden><svg data-icon="copy"></svg>Copy Prompt</button><button class="primary" id="setup-recheck"><svg data-icon="arrow-clockwise"></svg>Re-check</button></div>
         </div>
       </section>
     </div>
@@ -56,7 +56,7 @@
         </aside>
         <aside class="window scenes">
           <div class="titlebar"><span class="title">Scenes</span></div>
-          <p class="waiting" id="scenes-waiting" hidden>Claude writes the Scenes here once you connect it.</p>
+          <p class="waiting" id="scenes-waiting" hidden>Your agent writes the Scenes here once you connect it.</p>
           <ol id="scene-list" aria-label="Scenes"></ol>
         </aside>
         <!-- App-wide options (#57), a modal panel (#114, docs/design/settings-reference.png). settings/settings-ui.ts -->
@@ -75,10 +75,10 @@
               </div>
               <div class="settings-body">
                 <section data-section="general">
-                  <h2>Claude</h2>
+                  <h2>Agent</h2>
                   <div class="card">
                     <div class="row">
-                      <div><label for="idle-minutes">Idle minutes</label><p id="idle-hint">Claude turns idle after this long with no activity.</p></div>
+                      <div><label for="idle-minutes">Idle minutes</label><p id="idle-hint">The Agent status turns idle after this long with no activity.</p></div>
                       <input id="idle-minutes" type="number" min="1" max="120" step="1" required aria-describedby="idle-hint" />
                     </div>
                   </div>
@@ -131,10 +131,10 @@
       <section class="window">
         <div class="titlebar">
           
-          <button class="primary connect" id="connect" aria-label="Connect Claude via Prompt" title="Copies a prompt for Claude Code naming this Project" hidden>
-            <!-- Two faces: .primary until Claude's handshake exists (claude/status-ui.ts), then a check and "copy again". -->
-            <svg data-icon="plug-disconnected" class="off"></svg><span class="label off">Connect Claude <span class="via">via Prompt</span></span>
-            <svg data-icon="plug-connected" class="on"></svg><span class="label on">Claude connected<span class="via">, copy again</span></span>
+          <button class="primary connect" id="connect" aria-label="Connect your agent" title="Copies a prompt for your agent naming this Project" hidden>
+            <!-- Two faces: .primary until the Agent's handshake exists (agent/status-ui.ts), then a check and "copy again". -->
+            <svg data-icon="plug-disconnected" class="off"></svg><span class="label off">Connect <span class="via">your </span>agent</span>
+            <svg data-icon="plug-connected" class="on"></svg><span class="label on">Agent connected<span class="via">, copy again</span></span>
           </button>
           <span class="eyebrow" id="scene-name">Scene</span>
           <!-- In the title bar, not the transport: a 9:16 viewer leaves the transport no room for them -->
@@ -168,7 +168,7 @@
         <p id="notes-empty" hidden>No Notes yet. Pause on a Frame, press <b>N</b>, then click or drag on the picture, or drag on the Timeline for a span (<b>[</b> and <b>]</b> by keyboard). <b>P</b> draws on the picture.</p>
         <p id="notes-status" role="status"></p>
         <ol id="note-list" aria-label="Notes"></ol>
-        <div id="notes-foot" hidden><button class="primary" id="copy-prompt" title="Copies a prompt for Claude Code to fix the open Notes"><svg data-icon="copy-checkmark" class="ok"></svg><svg data-icon="copy" class="icon"></svg><span>Copy Prompt</span></button></div>
+        <div id="notes-foot" hidden><button class="primary" id="copy-prompt" title="Copies a prompt for your agent to fix the open Notes"><svg data-icon="copy-checkmark" class="ok"></svg><svg data-icon="copy" class="icon"></svg><span>Copy Prompt</span></button></div>
       </aside>
       <section class="window timeline" id="timeline" hidden>
         <div class="titlebar">
@@ -181,7 +181,7 @@
             <button id="zoom-fit"><svg data-icon="zoom-fit"></svg>Fit</button>
           </span>
         </div>
-        <p class="tl-waiting" id="tl-waiting" hidden>The Timeline fills when Claude writes the first Scene.</p>
+        <p class="tl-waiting" id="tl-waiting" hidden>The Timeline fills when your agent writes the first Scene.</p>
         <div class="tl-scroll" id="tl-scroll">
           <div class="tl-track" id="tl-track">
             <div class="ruler" id="ruler"></div>

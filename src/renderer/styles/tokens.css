@@ -5,9 +5,9 @@
   --panel-2: #221e19;
   --frame: #3a332b;
   --accent: #f0a726;  --text: #f6f2ea;
-  --ok: #3fbf6f; /* Claude active */
-  --warn: #f0a726; /* Claude idle */
-  --bad: #e5484d; /* Claude not connected */
+  --ok: #3fbf6f; /* Agent active */
+  --warn: #f0a726; /* Agent idle */
+  --bad: #e5484d; /* Agent not connected */
   --muted: #cfc6b6;
   --dim: #8a7d6b;
   --scrim: rgb(8 7 6 / 0.6); /* behind a modal panel (Settings) */

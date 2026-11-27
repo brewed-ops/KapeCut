@@ -1,6 +1,6 @@
 import type { Settings, Theme } from '../../main/settings'
 import { kapecut } from '../bridge'
-import { setIdleMinutes } from '../claude/status-ui'
+import { setIdleMinutes } from '../agent/status-ui'
 import { $, errorText } from '../dom'
 import { icon } from '../icons'
 import { probeH264 } from '../viewer/probe'
