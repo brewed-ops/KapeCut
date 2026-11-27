@@ -251,23 +251,37 @@ describe('readNotes', () => {
 
   it('a notes.json that stays locked fails after about a second', async () => {
     vi.useFakeTimers()
-    answers(...Array(100).fill(500))
-    const start = Date.now()
+    vi.stubGlobal('fetch', async () => new Response('Cannot read', { status: 500 }))
+    const start = performance.now()
     const read = expect(readNotes()).rejects.toThrow('HTTP 500')
     await vi.runAllTimersAsync()
     await read
-    expect(Date.now() - start).toBeGreaterThanOrEqual(1000)
-    expect(Date.now() - start).toBeLessThan(1200)
+    expect(performance.now() - start).toBeGreaterThanOrEqual(1000)
+    expect(performance.now() - start).toBeLessThan(1200)
   })
 
   // A slow machine (the macOS CI runner, #29) takes 100+ ms a read: still about a second, not 41 slow reads.
   it('a notes.json that stays unreadable fails after about a second, however slow each read', async () => {
     vi.useFakeTimers()
     vi.stubGlobal('fetch', async () => (await new Promise((r) => setTimeout(r, 100)), new Response('{ not json')))
-    const start = Date.now()
+    const start = performance.now()
     const read = expect(readNotes()).rejects.toThrow(SyntaxError)
     await vi.runAllTimersAsync()
     await read
-    expect(Date.now() - start).toBeLessThan(1200)
+    expect(performance.now() - start).toBeGreaterThanOrEqual(1000)
+    expect(performance.now() - start).toBeLessThan(1300)
+  })
+
+  it('a first read slower than the whole second still asks again', async () => {
+    vi.useFakeTimers()
+    let calls = 0
+    vi.stubGlobal('fetch', async () => {
+      if (++calls === 1) await new Promise((r) => setTimeout(r, 1500))
+      return calls === 1 ? new Response('Cannot read', { status: 500 }) : new Response('{"version":1,"notes":[]}')
+    })
+    const read = readNotes()
+    await vi.runAllTimersAsync()
+    expect(await read).toEqual({ version: 1, notes: [] })
+    expect(calls).toBe(2)
   })
 })
