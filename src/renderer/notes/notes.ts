@@ -129,10 +129,12 @@ export const deleteNote =(file: NotesFile, n: number): NotesFile => ({ ...file, 
  * notes.json as it is on disk now, unparsed; null when there is none. A 500 is a file main could not open: on Windows
  * a scanner, Claude or a test polling the file holds it for a moment (#137). Half a file is a write in place caught
  * midway. Both ask again for about a second, as writeAtomic does; one that never clears (a folder named notes.json,
- * broken JSON) shows its error that much later.
+ * broken JSON) shows its error that much later. The second is on the clock: a read is a fetch, 100+ ms each on a slow
+ * machine (#29), where 41 tries took 5 s.
  */
 export async function readNotes(): Promise<unknown> {
-  for (let i = 0; ; i++) {
+  const until = Date.now() + 1000
+  for (;;) {
     const res = await fetch('/project/notes.json', { cache: 'no-store' })
     if (res.status === 404) return null
     const body = await res.text() // read on a 500 too, so no response stays open
@@ -140,9 +142,9 @@ export async function readNotes(): Promise<unknown> {
       try {
         return JSON.parse(body)
       } catch (e) {
-        if (i >= 40) throw e
+        if (Date.now() >= until) throw e
       }
-    } else if (res.status !== 500 || i >= 40) throw new Error(`HTTP ${res.status}`)
+    } else if (res.status !== 500 || Date.now() >= until) throw new Error(`HTTP ${res.status}`)
     await new Promise((r) => setTimeout(r, 25))
   }
 }

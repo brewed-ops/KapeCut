@@ -257,4 +257,15 @@ describe('readNotes', () => {
     await read
     expect(fetch).toHaveBeenCalledTimes(41)
   })
+
+  // A slow machine (the macOS CI runner, #29) takes 100+ ms a read: still about a second, not 41 slow reads.
+  it('a notes.json that stays unreadable fails after about a second, however slow each read', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', async () => (await new Promise((r) => setTimeout(r, 100)), new Response('{ not json')))
+    const start = Date.now()
+    const read = expect(readNotes()).rejects.toThrow(SyntaxError)
+    await vi.runAllTimersAsync()
+    await read
+    expect(Date.now() - start).toBeLessThan(1200)
+  })
 })

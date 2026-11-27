@@ -25,6 +25,12 @@ async function withApp(run: (page: Page, dir: string) => Promise<void>, total = 
   try {
     await page.setViewportSize({ width: 1280, height: 800 })
     await expect(page.locator('#lanes .lane > svg')).toHaveCount(1) // tone.wav decoded
+    // A small screen (macOS CI) opens the window narrower: the Timeline fits the new width on its ResizeObserver, a
+    // frame or more later, so every test measures the track only once it fills the view (#29).
+    await expect.poll(() => page.locator('#tl-scroll').evaluate((el) => {
+      const pad = parseFloat(getComputedStyle(el).paddingLeft)
+      return Math.abs(document.getElementById('tl-track')!.getBoundingClientRect().width - (el.clientWidth - 2 * pad))
+    })).toBeLessThan(1)
     await run(page, dir)
   } finally {
     await app.close()
