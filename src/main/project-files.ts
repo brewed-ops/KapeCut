@@ -76,20 +76,19 @@ let writing: Promise<unknown> = Promise.resolve()
  * the app's own last write: the page's copy is older, so it must read the file again.
  */
 export function writeAudio(dir: string, list: unknown): Promise<boolean> {
-  return queued(async () => {
-    const { stale } = await editProject(dir, (json) => {
+  return queued(() =>
+    editProject(dir, (json) => {
       const { audio } = parseProject({ ...json, audio: list })
       const away = audio.find((a) => !staysUnder(dir, join(dir, a.file)))
       if (away) throw new Error(`Audio file ${away.file} is outside the Project`)
       return { ...json, audio }
-    })
-    return stale
-  })
+    }),
+  )
 }
 
 /**
  * Takes Scene `index` out of project.json's `scenes`, then moves its page to the OS trash with `trash`
- * (shell.trashItem), never erasing it. A failed move puts project.json back, so either both happen or neither. The Scene
+ * (shell.trashItem), never erasing it. A failed move puts the Scene back in its place, so the page stays listed. The Scene
  * must still be `file` at `index` (the page's list may be older). Refuses the last Scene of a Project. A page another
  * entry still names (also as ./a.html, or A.html where names ignore case) stays, and only a plain .html file is moved: a
  * hand-edited list naming notes.json, a folder or a link only loses the entry. Moving the page is the app's own change,
@@ -100,7 +99,7 @@ export function deleteScene(dir: string, index: unknown, file: unknown, trash: (
   return queued(async () => {
     let order: string[] = []
     let page = ''
-    const { before } = await editProject(dir, (json) => {
+    await editProject(dir, (json) => {
       const { scenes } = parseProject(json)
       if (!Number.isInteger(index) || typeof file !== 'string' || scenes[index as number] !== file) throw new Error('The Scene list changed. Close this, then try again')
       if (scenes.length < 2) throw new Error(LAST_SCENE)
@@ -114,12 +113,21 @@ export function deleteScene(dir: string, index: unknown, file: unknown, trash: (
     })
     // Checked again right before the move: the page may have become a link since.
     if (page && /\.html?$/i.test(page) && (await lstat(page).catch(() => null))?.isFile() && staysUnder(dir, page)) {
-      markLanded(page) // before the move: the watcher may report it first
+      // Marked by its name on disk (B.html in the list may be b.html), as the watcher reports it, before the move: the
+      // watcher may report it first. Forgotten after a while, so an event that never comes leaves no mark behind.
+      const landed = join(dir, relative(await realpath(dir), await realpath(page)))
+      markLanded(landed)
+      setTimeout(() => ownLanded(landed), 10_000).unref()
       try {
         await trash(page)
       } catch (e) {
-        ownLanded(page) // never moved: the next change to it is not the app's
-        await writeOwned(join(dir, 'project.json'), before) // the Scene comes back with its page
+        ownLanded(landed) // never moved: the next change to it is not the app's
+        // The Scene comes back at its place, into project.json as it is now. If even that fails the page re-reads the file.
+        const back = (json: Record<string, unknown>) => {
+          const { scenes } = parseProject(json)
+          return { ...json, scenes: [...scenes.slice(0, index as number), file as string, ...scenes.slice(index as number)] }
+        }
+        await editProject(dir, back).catch((err) => console.error('[kapecut] could not put the Scene back in project.json:', err))
         throw e
       }
     }
@@ -134,8 +142,8 @@ function queued<T>(job: () => Promise<T>) {
 }
 
 /**
- * project.json as it is on disk now, changed by `change`, written whole once parseProject takes the result. Returns the
- * text it replaced, and whether that had changed since the app's own last write.
+ * project.json as it is on disk now, changed by `change`, written whole once parseProject takes the result. Returns
+ * whether the file had changed since the app's own last write.
  */
 async function editProject(dir: string, change: (json: Record<string, unknown>) => Record<string, unknown>) {
   const file = join(dir, 'project.json')
@@ -154,5 +162,5 @@ async function editProject(dir: string, change: (json: Record<string, unknown>) 
   if (Buffer.byteLength(text) > MAX_PROJECT_JSON) throw new Error('project.json would be too large')
   const stale = before !== lastOwnWrite(file)
   await writeOwned(file, text)
-  return { before, stale }
+  return stale
 }

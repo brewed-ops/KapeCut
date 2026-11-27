@@ -185,3 +185,29 @@ test('the last Scene cannot be deleted: its button is off with a tooltip, and ma
     await app.close()
   }
 })
+
+test('a delete that could not finish is refused up front: unreadable Notes, then a broken project.json', async () => {
+  const dir = project(['a.html', 'b.html'])
+  writeFileSync(join(dir, 'notes.json'), '{ broken')
+  const { app, page } = await launch({ project: dir })
+  try {
+    const confirm = page.getByRole('dialog', { name: 'Delete Scene' })
+    const ok = confirm.getByRole('button', { name: 'Delete', exact: true })
+    await rows(page).nth(1).hover()
+    await page.getByRole('button', { name: 'Delete Scene b.html' }).click()
+    await expect(confirm).toContainText('notes.json could not be read')
+    await expect(ok).toBeDisabled()
+    await page.keyboard.press('Escape')
+    writeFileSync(join(dir, 'notes.json'), JSON.stringify({ version: 1, next: 1, notes: [] }))
+    await expect(page.locator('#notes-status')).toBeHidden()
+    writeFileSync(join(dir, 'project.json'), '{ nope')
+    await expect(page.locator('.error')).toBeVisible()
+    await rows(page).nth(1).hover()
+    await page.getByRole('button', { name: 'Delete Scene b.html' }).click()
+    await expect(confirm).toContainText('project.json has an error')
+    await expect(ok).toBeDisabled()
+    expect(existsSync(join(dir, 'b.html'))).toBe(true)
+  } finally {
+    await app.close()
+  }
+})

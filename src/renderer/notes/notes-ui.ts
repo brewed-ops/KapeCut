@@ -502,6 +502,8 @@ export function wireNotes(o: Options) {
     draw,
     reload,
     renderList,
+    /** False while notes.json is unread or unreadable: every save would be refused. */
+    writable: () => readable,
     /** Every shown Note on the Timeline (a Note whose Scene is gone has no time, so no marker), and the span being picked. */
     markers: (): TimelineMarker[] => [
       ...shown()

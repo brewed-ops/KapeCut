@@ -345,7 +345,7 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
         del.setAttribute('aria-label', `Delete Scene ${file}`)
         del.setAttribute('aria-keyshortcuts', 'Delete Backspace')
         setTrash(del, rows.length)
-        del.addEventListener('click', () => askDelete(i))
+        del.addEventListener('click', () => askDelete(i, file))
         return item
       }),
     )
@@ -365,12 +365,18 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     confirmDelete.setAttribute('closedby', on ? 'none' : 'any')
   }
   let deleting: { index: number; file: string } | undefined
-  const askDelete = (index: number) => {
+  // file: the row's own, so a list about to redraw after Claude's re-order never names another Scene.
+  const askDelete = (index: number, file: string) => {
+    if (project.scenes[index] !== file) return // the list redraws in a moment
     const n = notes.onScene(index, project.scenes).length
-    deleting = { index, file: project.scenes[index] }
-    $('delete-scene-text').textContent = `Delete ${deleting.file}${n ? ` and its ${n} Note${n === 1 ? '' : 's'}` : ''}?`
-    deleteStatus.textContent = ''
+    deleting = { index, file }
+    $('delete-scene-text').textContent = `Delete ${file}${n ? ` and its ${n} Note${n === 1 ? '' : 's'}` : ''}?`
+    // Refused up front when it could not finish: main would refuse a broken project.json, and Notes that cannot be
+    // written could not go with their Scene.
+    const why = projectError ? 'project.json has an error. Fix it, save, then try again' : notes.writable() ? '' : 'notes.json could not be read, so its Notes could not go with it. Fix notes.json first'
+    deleteStatus.textContent = why
     confirmDelete.showModal()
+    okDelete.disabled = !!why
   }
   cancelDelete.addEventListener('click', () => confirmDelete.close())
   okDelete.addEventListener('click', async () => {
@@ -382,6 +388,7 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
       order = await kapecut.project.deleteScene(d.index, d.file)
     } catch (e) {
       deleteStatus.textContent = errorText(e) // still open: Delete can be tried again
+      queueSave('project.json') // the list as main left it, whatever went wrong
       return
     } finally {
       lockDelete(false)
@@ -437,12 +444,15 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     if (!saved.size) queue = queue.catch(() => {}).then(applySaves).catch((e) => showError(errorText(e)))
     saved.add(file)
   }
-  kapecut.onFileSaved((file) => {
+  kapecut.onFileSaved((file, own) => {
     // Notes never change a Scene. Main sends notes.json only when someone else (Claude) wrote it.
     if (file === 'notes.json') return void notes.reload()
     if (/^notes(\.json\.|\/note-\d+\.png)/.test(file)) return // the Notes' pictures, and temp files of a notes.json write
     if (PROJECT_TMP.test(file)) return // temp files of the app's own project.json write
     void files.refresh() // a file added, changed or deleted
+    // A deleted Scene's page leaving: its own project.json reload drops it, so reloading it now would flash its error.
+    // An Export's MP4 (own too) still reloads, as a Scene may draw it.
+    if (own && fileKind(file) !== 'video') return
     if (fileKind(file) === 'audio' && !isAudio(file)) return // a sound file off the Timeline: only the Files panel shows it
     queueSave(file)
   })

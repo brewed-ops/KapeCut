@@ -182,11 +182,14 @@ describe('deleteScene', () => {
     expect(readFileSync(join(dir, 'project.json'), 'utf8')).toBe(JSON.stringify(PROJECT))
   })
 
-  it('a failed move puts project.json back; a page another entry names as ./a.html or A.html stays', async () => {
+  it('a failed move puts the Scene back at its place, keeping an edit Claude made meanwhile; a page another entry names as ./a.html or A.html stays', async () => {
     const dir = three()
-    const before = readFileSync(join(dir, 'project.json'), 'utf8')
-    await expect(deleteScene(dir, 1, 'b.html', async () => Promise.reject(new Error('The trash is busy')))).rejects.toThrow('busy')
-    expect(readFileSync(join(dir, 'project.json'), 'utf8')).toBe(before)
+    const claudeAddsD = async () => {
+      writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...read(dir), scenes: [...read(dir).scenes, 'd.html'] }))
+      throw new Error('The trash is busy')
+    }
+    await expect(deleteScene(dir, 1, 'b.html', claudeAddsD)).rejects.toThrow('busy')
+    expect(read(dir)).toEqual({ ...PROJECT, scenes: ['a.html', 'b.html', 'c.html', 'd.html'] })
     expect(ownLanded(join(dir, 'b.html'))).toBe(false)
     writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...PROJECT, scenes: ['a.html', './a.html', ...(process.platform === 'linux' ? [] : ['A.html'])] }))
     trashed.length = 0
@@ -194,6 +197,15 @@ describe('deleteScene', () => {
     if (process.platform !== 'linux') await deleteScene(dir, 1, 'A.html', trash)
     expect(read(dir).scenes).toEqual(['a.html'])
     expect(trashed).toEqual([])
+  })
+
+  it.skipIf(process.platform === 'linux')('marks the page by its name on disk, as the watcher reports it', async () => {
+    const dir = project({ ...PROJECT, scenes: ['a.html', 'B.html'] })
+    writeFileSync(join(dir, 'b.html'), 'b')
+    trashed.length = 0
+    await deleteScene(dir, 1, 'B.html', trash)
+    expect(trashed).toHaveLength(1)
+    expect(ownLanded(join(dir, 'b.html'))).toBe(true)
   })
 
   it('moves only a plain .html page: an entry naming notes.json, a folder or a link loses only the entry', async () => {
