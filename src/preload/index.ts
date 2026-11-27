@@ -34,6 +34,9 @@ const bridge = {
     openRecent: (dir: string): Promise<string | undefined> => ipcRenderer.invoke('project:open-recent', dir),
     // Resolves true when project.json had changed on disk since the app last wrote it: read it again.
     setAudio: (list: unknown): Promise<boolean> => ipcRenderer.invoke('project:audio', list),
+    // Main checks the Scene is still `file` at `index` in project.json, and refuses the last one. Resolves to the list it
+    // took the Scene from.
+    deleteScene: (index: number, file: string): Promise<string[]> => ipcRenderer.invoke('project:delete-scene', index, file),
   },
   files: {
     list: (): Promise<string[]> => ipcRenderer.invoke('files:list'),
