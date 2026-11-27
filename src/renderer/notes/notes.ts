@@ -27,6 +27,15 @@ export function sceneIndex(note: Pick<Note, 'scene' | 'scenes'>, order: string[]
   const run = note.scenes && !crossedApart(note, order) ? runAt(note.scenes, order) : -1
   return run >= 0 ? run : order.indexOf(note.scene)
 }
+/**
+ * The Notes that go with Scene `index` of `order` when it is deleted: Marked on it, or a span that starts in it. When
+ * `order` lists that page again elsewhere, the page stays, and so do its Notes: only a span over a cut drawn from this
+ * copy goes.
+ */
+export const notesOnScene = <N extends Pick<Note, 'scene' | 'scenes'>>(notes: N[], index: number, order: string[]) => {
+  const listedAgain = order.filter((f) => f === order[index]).length > 1
+  return notes.filter((n) => sceneIndex(n, order) === index && (!listedAgain || (!!n.scenes && !crossedApart(n, order))))
+}
 export type Note = {
   n: number
   text: string
@@ -129,20 +138,23 @@ export const deleteNote =(file: NotesFile, n: number): NotesFile => ({ ...file, 
  * notes.json as it is on disk now, unparsed; null when there is none. A 500 is a file main could not open: on Windows
  * a scanner, Claude or a test polling the file holds it for a moment (#137). Half a file is a write in place caught
  * midway. Both ask again for about a second, as writeAtomic does; one that never clears (a folder named notes.json,
- * broken JSON) shows its error that much later.
+ * broken JSON) shows its error that much later. The second is on the clock, from the first answer: a read is a fetch,
+ * 100+ ms each on a slow machine (#29), and a slow first read still gets its retries.
  */
 export async function readNotes(): Promise<unknown> {
-  for (let i = 0; ; i++) {
+  let until: number | undefined
+  for (;;) {
     const res = await fetch('/project/notes.json', { cache: 'no-store' })
+    until ??= performance.now() + 1000
     if (res.status === 404) return null
     const body = await res.text() // read on a 500 too, so no response stays open
     if (res.ok) {
       try {
         return JSON.parse(body)
       } catch (e) {
-        if (i >= 40) throw e
+        if (performance.now() >= until) throw e
       }
-    } else if (res.status !== 500 || i >= 40) throw new Error(`HTTP ${res.status}`)
+    } else if (res.status !== 500 || performance.now() >= until) throw new Error(`HTTP ${res.status}`)
     await new Promise((r) => setTimeout(r, 25))
   }
 }

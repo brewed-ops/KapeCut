@@ -1,4 +1,4 @@
-import { parseProject, type Audio, type Project, type Size } from './viewer/project'
+import { LAST_SCENE, parseProject, type Audio, type Project, type Size } from './viewer/project'
 import { openScene, type SceneWindow } from './viewer/scene'
 import { createTransport } from './viewer/transport'
 import { frameAt, frameCount } from './viewer/project-time'
@@ -326,8 +326,9 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
   // and render() does not follow); a changed row slides there.
   const renderSceneList = () => {
     const current = layout.locate(tr.time).scene
+    const rows = layout.rows()
     sceneList.replaceChildren(
-      ...layout.rows().map(({ file, start, len, error }, i) => {
+      ...rows.map(({ file, start, len, error }, i) => {
         const { thumb } = slots.get(file)!
         const item = document.createElement('li')
         item.innerHTML =
@@ -339,6 +340,12 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
         button.querySelector<HTMLElement>('.badge')!.hidden = !error
         button.addEventListener('click', () => (tr.pause(), tr.seek(start)))
         if (i === current) button.setAttribute('aria-current', 'true')
+        // Shown on the row's hover or focus (app.css). Off for the last Scene and while an Export runs (pauseViewer).
+        const del = item.appendChild(Object.assign(document.createElement('button'), { className: 'del', innerHTML: icon('delete') }))
+        del.setAttribute('aria-label', `Delete Scene ${file}`)
+        del.setAttribute('aria-keyshortcuts', 'Delete Backspace')
+        setTrash(del, rows.length)
+        del.addEventListener('click', () => askDelete(i, file))
         return item
       }),
     )
@@ -346,6 +353,61 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     rowSizes.disconnect()
     for (const li of sceneList.children) rowSizes.observe(li, { box: 'border-box' }) // the row's whole height, padding too
   }
+
+  // Deleting a Scene (#17): main takes it out of project.json and trashes its page, then the page re-reads project.json
+  // and drops the Scene's Notes. Both writes are the app's own, so neither is Claude activity.
+  const confirmDelete = $('delete-scene') as HTMLDialogElement
+  const deleteStatus = $('delete-scene-status')
+  const [okDelete, cancelDelete] = ['delete-scene-ok', 'delete-scene-cancel'].map($) as HTMLButtonElement[]
+  // While main works the confirm cannot close or be sent again, so its answer always lands in it, for the Scene it names.
+  const lockDelete = (on: boolean) => {
+    okDelete.disabled = cancelDelete.disabled = on
+    confirmDelete.setAttribute('closedby', on ? 'none' : 'any')
+  }
+  let deleting: { index: number; file: string } | undefined
+  // file: the row's own, so a list about to redraw after Claude's re-order never names another Scene.
+  const askDelete = (index: number, file: string) => {
+    if (confirmDelete.open) return // a Delete key pressed while one is open (focus on body as main works) retargets nothing
+    if (project.scenes[index] !== file) return // the list redraws in a moment
+    const n = notes.onScene(index, project.scenes).length
+    deleting = { index, file }
+    $('delete-scene-text').textContent = `Delete ${file}${n ? ` and its ${n} Note${n === 1 ? '' : 's'}` : ''}?`
+    // Refused up front when it could not finish: main would refuse a broken project.json, and Notes that cannot be
+    // written could not go with their Scene.
+    const why = projectError ? 'project.json has an error. Fix it, save, then try again' : notes.writable() ? '' : 'notes.json could not be read, so its Notes could not go with it. Fix notes.json first'
+    deleteStatus.textContent = why
+    confirmDelete.showModal()
+    okDelete.disabled = !!why
+  }
+  cancelDelete.addEventListener('click', () => confirmDelete.close())
+  okDelete.addEventListener('click', async () => {
+    const d = deleting
+    if (!d) return
+    let order: string[]
+    lockDelete(true)
+    try {
+      order = await kapecut.project.deleteScene(d.index, d.file)
+    } catch (e) {
+      deleteStatus.textContent = errorText(e) // still open: Delete can be tried again
+      queueSave('project.json') // the list as main left it, whatever went wrong
+      return
+    } finally {
+      lockDelete(false)
+    }
+    deleting = undefined
+    confirmDelete.close()
+    queueSave('project.json')
+    void notes.dropScene(d.index, order) // the order main checked, so a Claude re-order meanwhile picks no other Scene's Notes
+  })
+  // Delete (Backspace on a Mac keyboard) on a focused Scene row, or on the current Scene when nothing has focus. Its trash
+  // button opens the confirm, so a disabled one (the last Scene, an Export) does nothing.
+  window.addEventListener('keydown', (e) => {
+    if ((e.key !== 'Delete' && e.key !== 'Backspace') || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+    const row = e.target === document.body ? sceneList.querySelector('[aria-current]')?.parentElement : (e.target as Element).closest?.('#scene-list > li')
+    if (!row) return
+    e.preventDefault()
+    row.querySelector<HTMLButtonElement>('.del')?.click()
+  })
 
   let queue = reload(sync())
   // One reload at a time; saves landing meanwhile collapse into one pass over every file saved.
@@ -383,12 +445,15 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     if (!saved.size) queue = queue.catch(() => {}).then(applySaves).catch((e) => showError(errorText(e)))
     saved.add(file)
   }
-  kapecut.onFileSaved((file) => {
+  kapecut.onFileSaved((file, own) => {
     // Notes never change a Scene. Main sends notes.json only when someone else (Claude) wrote it.
     if (file === 'notes.json') return void notes.reload()
     if (/^notes(\.json\.|\/note-\d+\.png)/.test(file)) return // the Notes' pictures, and temp files of a notes.json write
     if (PROJECT_TMP.test(file)) return // temp files of the app's own project.json write
     void files.refresh() // a file added, changed or deleted
+    // A deleted Scene's page leaving: its own project.json reload drops it, so reloading it now would flash its error.
+    // An Export's MP4 (own too) still reloads, as a Scene may draw it.
+    if (own && fileKind(file) !== 'video') return
     if (fileKind(file) === 'audio' && !isAudio(file)) return // a sound file off the Timeline: only the Files panel shows it
     queueSave(file)
   })
@@ -481,6 +546,12 @@ let viewerPaused = false
 function pauseViewer(on: boolean) {
   viewerPaused = on
   for (const id of ['play', 'back', 'fwd', 'note', 'pen']) ($(id) as HTMLButtonElement).disabled = on
+  for (const b of sceneList.querySelectorAll<HTMLButtonElement>('.del')) setTrash(b, sceneList.children.length)
+}
+/** A Scene row's trash, of `scenes` rows: off, saying why, for the last Scene and while an Export runs (main refuses both too). */
+function setTrash(b: HTMLButtonElement, scenes: number) {
+  b.disabled = viewerPaused || scenes < 2
+  b.title = scenes < 2 ? LAST_SCENE : viewerPaused ? 'Delete Scenes once the Export is done' : 'Delete Scene (Delete)'
 }
 const refuse = (why: string) => void ((exportButton.disabled = false), (exportStatus.textContent = why))
 // Set while Frames encode. A save that lands then waits in the reload queue; the status says so, or it looks lost.

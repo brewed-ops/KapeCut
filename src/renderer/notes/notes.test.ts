@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { projectTime, timeIn } from '../viewer/project-time'
-import { addNote, crossedApart, sceneIndex, deleteNote, editNote, mergeNotes, parseNotes, readNotes, spanAt, spanOf, type NotesFile } from './notes'
+import { addNote, crossedApart, sceneIndex, notesOnScene, deleteNote, editNote, mergeNotes, parseNotes, readNotes, spanAt, spanOf, type NotesFile } from './notes'
 
 const at = { scene: 'a.html', sceneTime: 0.2, time: 0.2, frame: 6 }
 const T1 = '2026-11-22T10:00:00.000Z'
@@ -85,6 +85,18 @@ describe('notes.json', () => {
       const moved = where(ac, order('a.html', 'b.html', 'a.html', 'c.html'))
       expect(moved.start).toBeCloseTo(40 / 30, 9) // the second a.html starts at Frame 30
       expect(sceneIndex({ scene: 'a.html' }, ['b.html', 'a.html', 'a.html'])).toBe(1) // any other Note: the first copy
+    })
+
+    it('deleting a Scene takes the Notes Marked on it and the spans that start in it; a page listed again keeps its own', () => {
+      const note = (n: number, scene: string, scenes?: string[]) => ({ n, scene, scenes })
+      const order = ['a.html', 'b.html', 'a.html', 'c.html']
+      const notes = [note(1, 'a.html'), note(2, 'b.html'), note(3, 'a.html', ['a.html', 'b.html']), note(4, 'b.html', ['b.html', 'a.html']), note(5, 'a.html', ['a.html', 'c.html']), note(6, 'gone.html'), note(7, 'c.html')]
+      const ns = (i: number) => notesOnScene(notes, i, order).map((x) => x.n)
+      // a.html stays listed whichever copy goes: its point Note (1) stays, only the span over a cut from that copy goes.
+      expect(ns(0)).toEqual([3])
+      expect(ns(2)).toEqual([5])
+      expect(ns(1)).toEqual([2, 4]) // a span that ends in b.html (3) stays with its start Scene
+      expect(ns(3)).toEqual([7])
     })
 
     it('stores the Scenes it crossed, and a file without them still opens', () => {
@@ -249,12 +261,39 @@ describe('readNotes', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('a notes.json that stays unreadable fails after 41 tries', async () => {
+  it('a notes.json that stays locked fails after about a second', async () => {
     vi.useFakeTimers()
-    const fetch = answers(...Array(41).fill(500))
+    vi.stubGlobal('fetch', async () => new Response('Cannot read', { status: 500 }))
+    const start = performance.now()
     const read = expect(readNotes()).rejects.toThrow('HTTP 500')
     await vi.runAllTimersAsync()
     await read
-    expect(fetch).toHaveBeenCalledTimes(41)
+    expect(performance.now() - start).toBeGreaterThanOrEqual(1000)
+    expect(performance.now() - start).toBeLessThan(1200)
+  })
+
+  // A slow machine (the macOS CI runner, #29) takes 100+ ms a read: still about a second, not 41 slow reads.
+  it('a notes.json that stays unreadable fails after about a second, however slow each read', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', async () => (await new Promise((r) => setTimeout(r, 100)), new Response('{ not json')))
+    const start = performance.now()
+    const read = expect(readNotes()).rejects.toThrow(SyntaxError)
+    await vi.runAllTimersAsync()
+    await read
+    expect(performance.now() - start).toBeGreaterThanOrEqual(1000)
+    expect(performance.now() - start).toBeLessThan(1300)
+  })
+
+  it('a first read slower than the whole second still asks again', async () => {
+    vi.useFakeTimers()
+    let calls = 0
+    vi.stubGlobal('fetch', async () => {
+      if (++calls === 1) await new Promise((r) => setTimeout(r, 1500))
+      return calls === 1 ? new Response('Cannot read', { status: 500 }) : new Response('{"version":1,"notes":[]}')
+    })
+    const read = readNotes()
+    await vi.runAllTimersAsync()
+    expect(await read).toEqual({ version: 1, notes: [] })
+    expect(calls).toBe(2)
   })
 })

@@ -14,6 +14,9 @@ export type Bridge = {
     openRecent(dir: string): Promise<string | undefined>
     /** Writes project.json's audio list. True: the file had changed on disk, read it again. */
     setAudio(list: Audio[]): Promise<boolean>
+    /** Takes Scene `index` (named `file`) out of project.json and moves its page to the OS trash. Throws on the last Scene,
+     *  when the list on disk no longer has `file` there, or during an Export. Resolves to the list it took the Scene from. */
+    deleteScene(index: number, file: string): Promise<string[]>
   }
   /** The open Project's files ('/'-separated). choose copies picked files in and resolves to a message. */
   files: {

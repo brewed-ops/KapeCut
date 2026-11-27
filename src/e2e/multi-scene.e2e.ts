@@ -144,7 +144,7 @@ const thumbs = (page: Page) =>
 test('the Scene list shows every Scene, seeks on click, follows playback and refreshes on save', async () => {
   const dir = threeScenes()
   const { app, page } = await launch({ project: dir })
-  const items = page.locator('#scene-list button')
+  const items = page.locator('#scene-list li > button:first-child')
   await expect(items).toHaveText([/a\.html.*0\.50s · 15 F/, /b\.html.*0\.50s · 15 F/, /c\.html.*0\.50s · 15 F/])
   await expect.poll(() => thumbs(page)).toEqual([RED, GREEN, BLUE])
   await expect(items.nth(0)).toHaveAttribute('aria-current', 'true')
@@ -183,7 +183,7 @@ test('a long Scene list scrolls inside its window; the viewer and transport stay
   const dir = threeScenes()
   writeProject(dir, Array.from({ length: 12 }, (_, i) => 'abc'[i % 3] + '.html'))
   const { app, page } = await launch({ project: dir })
-  await expect(page.locator('#scene-list button')).toHaveCount(12)
+  await expect(page.locator('#scene-list li > button:first-child')).toHaveCount(12)
   const list = await page.locator('#scene-list').evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight }))
   expect(list.scroll).toBeGreaterThan(list.client)
   for (const el of ['#transport', '.scenes', '#settings']) {
