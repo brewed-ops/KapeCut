@@ -1141,7 +1141,7 @@ function showSetUp(dir: string) {
   showName(folderName(dir), ' · set up')
   stage.insertAdjacentHTML(
     'beforeend',
-    '<div class="set-up"><h2>Drop your files in.<br><b>Your agent builds the rest.</b></h2><p>Put pictures, PDFs and audio in the folder. Then Connect your agent and paste the prompt into it.</p></div>',
+    '<div class="set-up"><h2>Drop your files in.<br><b>Your Agent builds the rest.</b></h2><p>Put pictures, PDFs and audio in the folder. Then click Connect your agent and paste the prompt into your Agent.</p></div>',
   )
   for (const id of ['scenes-waiting', 'timeline', 'tl-waiting', 'note-tools']) $(id).hidden = false
   for (const id of ['tl-scroll', 'zoom']) $(id).hidden = true

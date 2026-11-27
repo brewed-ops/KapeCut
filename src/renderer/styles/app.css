@@ -554,7 +554,7 @@ main:has(> .timeline[hidden]) { grid-template-rows: minmax(0, 1fr); } /* no empt
 }
 #scene-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Connect your agent (#54): the main button, at the left of the title bar. It shortens before the Scene name
-   goes: "your" first, then the whole label (the icon and its accessible name stay). */
+   goes: ", copy again" first (connected), then the whole label (the icon and its accessible name stay). */
 .connect { flex: none; display: flex; align-items: center; gap: var(--control-gap); height: var(--control-h); padding: 0 var(--control-pad-x); white-space: nowrap; }
 /* Once the Agent is connected (#55): no longer the main action, a pill like Note and Pencil (see .tools button). */
 .connect.primary .on, .connect:not(.primary) .off { display: none; }

@@ -43,13 +43,13 @@ test('the setup prompt names each missing tool with its command for this OS, and
   const missing = { ffmpeg: false, ffmpegVersion: null, browser: false }
   expect(setupPrompt(setupRows({ ...ALL, ...missing }, 'win'), 'win')).toBe(`KapeCut needs these tools on this Windows computer. Run each install command in a terminal and check it worked:
 - ffmpeg 4.4+ (ffmpeg is not on PATH. Export encodes the MP4 with it): winget install Gyan.FFmpeg
-- Chrome or Edge (Not found. Your agent checks each Scene with a still from it): winget install Google.Chrome
+- Chrome or Edge (Not found. Claude checks each Scene with a still from it): winget install Google.Chrome
 A tool that is there but too old: upgrade it and make sure the new one comes first on PATH.
 A command that stops for my password (sudo) or an agreement (winget): give it to me to run in my own terminal.
 When they are all installed, tell me to press Re-check in KapeCut's Setup window.`)
   const mac = setupPrompt(setupRows({ ...ALL, browser: false }, 'mac'), 'mac')!
   expect(mac).toContain('this macOS computer')
-  expect(mac).toContain('- Chrome or Edge (Not found. Your agent checks each Scene with a still from it): brew install --cask google-chrome\n')
+  expect(mac).toContain('- Chrome or Edge (Not found. Claude checks each Scene with a still from it): brew install --cask google-chrome\n')
   expect(mac).not.toContain('ffmpeg')
   const linux = setupPrompt(setupRows({ ...ALL, ffprobe: false }, 'linux'), 'linux')!
   expect(linux).toContain('this Linux computer')

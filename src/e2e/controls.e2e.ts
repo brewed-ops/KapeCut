@@ -101,7 +101,7 @@ const CHECKS: [string, string, string][] = [
   ['#idle-minutes', 'fontSize', FONT],
 ]
 
-// The smallest window: the Claude status is only its dot, Connect only its icon.
+// The smallest window: the Agent status is only its dot, Connect only its icon.
 const NARROW: [string, string, string][] = [
   ['#agent-status', 'height', H],
   ['#agent-status', 'width', H],

@@ -33,7 +33,7 @@ export function setupRows(c: Checks, os: Os): Row[] {
       detail: { current: 'In ~/.claude/skills, the same as this KapeCut', missing: 'Not in ~/.claude/skills. Claude needs it to build a Project', outdated: 'Your copy in ~/.claude/skills differs from this KapeCut' }[c.skill],
       skill: c.skill === 'current' ? undefined : c.skill,
     },
-    tool('browser', 'Chrome or Edge', c.browser, c.browser ? 'Installed' : 'Not found. Your agent checks each Scene with a still from it', BROWSER[os]),
+    tool('browser', 'Chrome or Edge', c.browser, c.browser ? 'Installed' : 'Not found. Claude checks each Scene with a still from it', BROWSER[os]),
   ]
 }
 

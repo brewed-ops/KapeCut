@@ -2,7 +2,7 @@
   "name": "kapecut",
   "version": "0.0.2",
   "private": true,
-  "description": "Desktop video editor where Claude writes every scene as code",
+  "description": "Desktop video editor where your AI Agent writes every scene as code",
   "license": "MIT",
   "main": "out/main/index.js",
   "engines": {

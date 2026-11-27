@@ -21,7 +21,7 @@ const readSession =(userData: string) => {
   }
 }
 
-test('opening a Project writes the Session file; Connect Claude copies the Connect prompt and says so', async () => {
+test('opening a Project writes the Session file; Connect your agent copies the Connect prompt and says so', async () => {
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
     const userData = join(root, 'user')
@@ -61,7 +61,7 @@ test('opening a Project writes the Session file; Connect Claude copies the Conne
     await expect.poll(clipboard).toContain(`Project folder (open in KapeCut now): ${built}\n`)
     expect(await clipboard()).toContain('project.json is set.')
 
-    // A broken project.json: the prompt asks Claude to fix it first.
+    // A broken project.json: the prompt asks the Agent to fix it first.
     writeFileSync(join(built, 'project.json'), '{ not json')
     await expect(page.locator('.error')).toContainText('project.json is not valid JSON')
     await page.getByRole('button', { name: 'Connect your agent' }).click()

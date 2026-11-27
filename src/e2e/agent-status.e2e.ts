@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test'
 import { launch } from './launch'
 import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { HANDSHAKE, OLD_HANDSHAKE } from '../renderer/agent/status'
 
 // Best effort: Electron's helper processes can hold the profile or a watched folder a moment past close on Windows.
 const cleanUp = (root: string) => {
@@ -13,10 +14,9 @@ const cleanUp = (root: string) => {
   }
 }
 
-// agent.json is the handshake (ADR 0008); Projects connected before it hold claude.json, which still connects.
-const handshake = (dir: string, file = 'agent.json') => {
-  mkdirSync(join(dir, '.kapecut'), { recursive: true })
-  writeFileSync(join(dir, '.kapecut', file), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
+const handshake = (dir: string, file = HANDSHAKE) => {
+  mkdirSync(dirname(join(dir, file)), { recursive: true })
+  writeFileSync(join(dir, file), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
 }
 
 // What the Agent writes to turn Set-up state into a one-Scene Project. The canvas follows ?scale= (ADR 0001), so it Exports.
@@ -94,7 +94,7 @@ test("the app's own writes never reach the page as activity; the handshake turns
     await expect(page.locator('#toast')).toBeVisible()
     expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toContain(`Project folder (open in KapeCut now): ${dir}\n`)
 
-    rmSync(join(dir, '.kapecut', 'agent.json'))
+    rmSync(join(dir, HANDSHAKE))
     await expect(pill).toHaveText('Agent not connected')
     await expect(page.getByRole('button', { name: 'Connect your agent' })).toBeVisible()
     handshake(dir)
@@ -112,7 +112,7 @@ test('a Project connected before agent.json (claude.json) opens connected: start
   try {
     const dir = join(root, 'Lumen')
     mkdirSync(dir)
-    handshake(dir, 'claude.json')
+    handshake(dir, OLD_HANDSHAKE)
     const { app, page } = await launch({ project: dir, userData: join(root, 'user'), waitForExport: false })
     await expect(page.locator('.set-up')).toBeVisible()
     const pill = page.getByRole('status').filter({ hasText: /^Agent / })
