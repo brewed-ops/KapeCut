@@ -63,8 +63,8 @@ export async function wireAgentStatus(opened: number) {
     const found = await hasHandshake()
     if (n === checks) connected = found
   }
-  // Listening before the first check, so a handshake written meanwhile is not missed. A deleted one (or its folder)
-  // disconnects.
+  // Listening before the first check, so a handshake written meanwhile is not missed. Deleting it (or its folder)
+  // disconnects; the skill leaves one handshake, deleting an old claude.json once it writes agent.json.
   kapecut.onFileSaved(async (file, own) => {
     if (HANDSHAKES.some((h) => file === h || h.startsWith(file + '/'))) await check()
     if (own) show()

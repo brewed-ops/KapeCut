@@ -84,6 +84,7 @@ test("the app's own writes never reach the page as activity; the handshake turns
     await expect(pill).toHaveText('Agent active')
     const connect = page.getByRole('button', { name: 'Agent connected, copy again' })
     await expect(connect).toBeVisible()
+    await expect(connect.locator('.label.on .via')).toBeVisible() // ", copy again": dropped only in a narrow viewer (layout.e2e.ts)
     await expect(connect.locator('svg.on')).toBeVisible() // the check, not the link (a narrow viewer shows only the icon)
     await expect(connect.locator('svg.off')).toBeHidden()
     // One colour: the plug's filled prongs match its amber outline.

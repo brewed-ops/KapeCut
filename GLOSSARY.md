@@ -76,7 +76,7 @@ The panel above the Scene list, under the Project folder path, showing every fil
 _Avoid_: media, bin, assets, library
 
 **Set-up state**:
-A Project folder opened before it has a project.json: Files works, the Scene list and Timeline wait for Claude, Export is off.
+A Project folder opened before it has a project.json: Files works, the Scene list and Timeline wait for the Agent, Export is off.
 _Avoid_: empty project, new project
 
 **Agent**:
@@ -97,7 +97,7 @@ The text the Notes window's **Copy Prompt** copies: where the KapeCut instructio
 The text the Setup window's **Copy Prompt** copies, while an Agent is found: each missing tool with its row's install command for this OS, for the Agent to run, then a Re-check. Each row also has its own **Run** button, which opens a terminal with the command typed in for the user to watch.
 
 **Session file**:
-`session.json` in KapeCut's app data folder, naming the Project open now. Claude reads it to check it is working on that Project (ADR 0005).
+`session.json` in KapeCut's app data folder, naming the Project open now. The Agent reads it to check it is working on that Project (ADR 0005).
 
 **Agent status**:
 What the header pill shows: not connected, active or idle. Connected once the Agent has written its handshake (`.kapecut/agent.json`); idle after the idle time with no activity in the Project or the app.

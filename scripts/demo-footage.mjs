@@ -180,7 +180,7 @@ try {
   await exportTo(page, join(root, 'ugc.mp4'), 'ugc')
   await hold(page, 2000)
 
-  // 2. The Lumen 3D ad: open its folder, Claude already connected there, the Scenes land, play, Export.
+  // 2. The Lumen 3D ad: open its folder, the Agent already connected there, the Scenes land, play, Export.
   mkdirSync(join(lumen, '.kapecut'), { recursive: true })
   copyFileSync(join(stagedLumen, '.kapecut', 'agent.json'), join(lumen, '.kapecut', 'agent.json'))
   await app.evaluate(({ dialog }, filePath) => void (dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })), lumen)

@@ -17,7 +17,7 @@ Do this first, before any job here or in fix-notes.md, when the user's prompt na
 
 1. **Check the Session file.** Read it: `session.json` in KapeCut's app data folder (`%APPDATA%\kapecut\session.json` on Windows), the path the prompt names. It is `{ "version": 1, "project": "<absolute folder path>" }`, the Project KapeCut has open now. Compare `project` with the Project folder you are about to work in, as full paths (on Windows ignore letter case and `\` versus `/`). When they differ, stop: tell the user KapeCut has another Project open (name it) and ask which folder to work in. When the file is missing, KapeCut is closed (it removes the file on quit) or could not write it: stop and ask the user to open the Project folder in KapeCut. Write nothing until they answer. Done when `project` is the Project folder.
 
-2. **Handshake.** Write `.kapecut/agent.json` in the Project folder: `{ "version": 1, "connected": "<now, ISO 8601>" }`. Create the `.kapecut` folder when it is missing. KapeCut then shows the Agent as connected. Done when the file is written.
+2. **Handshake.** Write `.kapecut/agent.json` in the Project folder: `{ "version": 1, "connected": "<now, ISO 8601>" }`. Create the `.kapecut` folder when it is missing. Then delete `.kapecut/claude.json` when it is there (an older KapeCut's handshake), so the Project keeps one. KapeCut then shows the Agent as connected. Done when `agent.json` is written and `claude.json` is gone.
 
 Then, with no `project.json` in the folder, go on with the steps below. With one, the video exists: ask the user what to change, follow fix-notes.md for Notes, and for anything else edit the Scenes and `project.json` as the steps below describe, ending with the still check (step 6) and the final check (step 7).
 

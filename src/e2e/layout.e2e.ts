@@ -95,6 +95,7 @@ for (const connected of [false, true]) {
       await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1, 1))
       await expect.poll(() => page.evaluate(() => innerWidth <= 1000 && innerHeight <= 700)).toBe(true)
       await expect(page.locator('#connect')).toBeVisible() // the Agent check has reported: the widest header and title bar
+      if (connected) await expect(page.locator('#connect .label.on .via')).toBeHidden() // ", copy again" goes first
       const bars = ['header', '#files .titlebar', '.scenes .titlebar', '.settings', '#view .titlebar', '.notes .titlebar', '#notes-foot', '#timeline .titlebar']
       await expect(async () => {
         const bad = await page.evaluate((bars) => {
