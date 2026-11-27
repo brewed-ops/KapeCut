@@ -48,8 +48,8 @@ if (changed) {
   const tmp = `${file}.${process.pid}.tmp`
   try {
     writeFileSync(tmp, JSON.stringify(notes, null, 2) + '\n')
-    // Same retry as writeAtomic in src/main/owned-writes.ts and readNotes in src/renderer/notes/notes.ts: Windows
-    // refuses the rename while KapeCut has the file open.
+    // Same retry as writeAtomic in src/main/owned-writes.ts and readNotes in src/renderer/notes/notes.ts (which times
+    // its second on the clock): Windows refuses the rename while KapeCut has the file open.
     for (let i = 0; ; i++) {
       try {
         renameSync(tmp, file)
