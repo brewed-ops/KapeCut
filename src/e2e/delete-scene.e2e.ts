@@ -22,15 +22,21 @@ function project(scenes: string[]) {
 }
 const readJson = (dir: string, file: string) => JSON.parse(readFileSync(join(dir, file), 'utf8'))
 
-// shell.trashItem moves the page into `trash` instead of the OS trash, and says what it was handed.
-const fakeTrash = (trash: string) => (app: ElectronApplication) =>
-  app.evaluate(({ shell }, trash) => {
+// shell.trashItem moves the page into `trash` instead of the OS trash, and says what it was handed. failOnce: the first
+// call fails, as the OS trash can.
+const fakeTrash = (trash: string, failOnce = false) => (app: ElectronApplication) =>
+  app.evaluate(({ shell }, [trash, failOnce]) => {
     const { renameSync } = process.getBuiltinModule('node:fs')
     const { basename, join } = process.getBuiltinModule('node:path')
     const g = globalThis as unknown as { trashed: string[] }
     g.trashed = []
-    shell.trashItem = async (path: string) => (g.trashed.push(path), renameSync(path, join(trash, basename(path))))
-  }, trash)
+    let fail = failOnce
+    shell.trashItem = async (path: string) => {
+      if (fail) throw ((fail = false), new Error('The trash is busy'))
+      g.trashed.push(path)
+      renameSync(path, join(trash as string, basename(path)))
+    }
+  }, [trash, failOnce] as const)
 const trashed = (app: ElectronApplication) => app.evaluate(() => (globalThis as unknown as { trashed: string[] }).trashed)
 
 // Every file event main forwards to the page, own ones marked: each unmarked one is Claude activity.
@@ -108,19 +114,38 @@ test('the trash icon deletes a Scene, its page goes to the trash, its Notes go, 
   }
 })
 
-test('the Delete key on the selected Scene opens the confirm; a Scene with no Notes says so', async () => {
-  const dir = project(['a.html', 'b.html'])
+test('Delete or Backspace on the selected Scene opens the confirm; a Scene with no Notes says so; a failed delete can be tried again', async () => {
+  const dir = project(['a.html', 'b.html', 'c.html'])
   const trash = mkdtempSync(join(tmpdir(), 'kapecut-trash-'))
-  const { app, page } = await launch({ project: dir, onLaunch: fakeTrash(trash) })
+  const { app, page } = await launch({ project: dir, onLaunch: fakeTrash(trash, true) })
   try {
+    const confirm = page.getByRole('dialog', { name: 'Delete Scene' })
+    // A focused row: Backspace, the Mac keyboard's delete key.
+    await seekButton(page, 1).click()
+    await page.keyboard.press('Backspace')
+    await expect(confirm).toContainText('Delete b.html?')
+    await page.keyboard.press('Escape')
+    await expect(confirm).toBeHidden()
+    // Nothing focused: the current Scene (b.html, clicked above).
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+    await page.keyboard.press('Delete')
+    await expect(confirm).toContainText('Delete b.html?')
+    await page.keyboard.press('Enter') // Delete has the focus
+    await expect(confirm).toContainText('The trash is busy')
+    expect(readJson(dir, 'project.json').scenes).toEqual(['a.html', 'b.html', 'c.html']) // a failed move changes nothing
+    expect(existsSync(join(dir, 'b.html'))).toBe(true)
+    await page.keyboard.press('Enter') // tried again
+    await expect(confirm).toBeHidden()
+    await expect(rows(page)).toHaveCount(2)
+    expect(await trashed(app)).toEqual([join(dir, 'b.html')])
+
     await seekButton(page, 0).click()
     await page.keyboard.press('Delete')
-    const confirm = page.getByRole('dialog', { name: 'Delete Scene' })
     await expect(confirm).toContainText('Delete a.html?')
-    await page.keyboard.press('Enter') // Delete has the focus
+    await page.keyboard.press('Enter')
     await expect(rows(page)).toHaveCount(1)
-    expect(readJson(dir, 'project.json').scenes).toEqual(['b.html'])
-    expect(await trashed(app)).toEqual([join(dir, 'a.html')])
+    expect(readJson(dir, 'project.json').scenes).toEqual(['c.html'])
+    expect(await trashed(app)).toEqual([join(dir, 'b.html'), join(dir, 'a.html')])
   } finally {
     await app.close()
   }

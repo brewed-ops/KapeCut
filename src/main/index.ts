@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { APP_URL, handle, isAppPage, on } from './app-sender'
 import { fileUnder } from './file-under'
 import { watchProject } from './watch-project'
-import { handleExport } from './export'
+import { exporting, handleExport } from './export'
 import { addRecent } from './recent-projects'
 import { ownNotesWrite, writeNoteImage, writeNotes } from './notes-files'
 import { ownLanded, ownTemp, ownWrite } from './owned-writes'
@@ -126,8 +126,11 @@ function handleProjectFiles() {
   handle('notes:image', async (_e, n: unknown, png: unknown) => writeNoteImage(await dir(), n, png))
   handle('files:list', async () => listFiles(await dir()))
   handle('project:audio', async (_e, list: unknown) => writeAudio(await dir(), list))
-  // The page re-reads project.json after it, so the stale flag is not passed on.
-  handle('project:delete-scene', async (_e, index: unknown, file: unknown) => void (await deleteScene(await dir(), index, file, (p) => shell.trashItem(p))))
+  // Never under an Export: its Scene pages and list were read when it began (the page turns the trash off too).
+  handle('project:delete-scene', async (_e, index: unknown, file: unknown) => {
+    if (exporting()) throw new Error('Delete Scenes once the Export is done')
+    return deleteScene(await dir(), index, file, (p) => shell.trashItem(p))
+  })
 }
 
 /** Copies files into the open Project; says what was added and what was refused. */

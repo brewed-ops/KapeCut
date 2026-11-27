@@ -3,6 +3,9 @@ export type Size = { w: number; h: number }
 export type Audio = { file: string; start: number; volume: number }
 export type Project = { name?: string; size: Size; fps: 30 | 60; scenes: string[]; audio: Audio[] }
 
+/** Why the last Scene of a Project stays: main's refusal and the Scene list's tooltip (#17). */
+export const LAST_SCENE = 'The last Scene of a Project cannot be deleted'
+
 /** The Design size at ?scale=k: each side rounded to an even number, as H.264 needs (ADR 0001). */
 export const scaleSize = (size: Size, k: number): Size => ({ w: 2 * Math.round((size.w * k) / 2), h: 2 * Math.round((size.h * k) / 2) })
 

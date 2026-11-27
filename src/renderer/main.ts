@@ -1,4 +1,4 @@
-import { parseProject, type Audio, type Project, type Size } from './viewer/project'
+import { LAST_SCENE, parseProject, type Audio, type Project, type Size } from './viewer/project'
 import { openScene, type SceneWindow } from './viewer/scene'
 import { createTransport } from './viewer/transport'
 import { frameAt, frameCount } from './viewer/project-time'
@@ -343,11 +343,10 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
         // Shown on the row's hover or focus (app.css). Off for the last Scene and while an Export runs (pauseViewer).
         const del = item.appendChild(Object.assign(document.createElement('button'), { className: 'del', innerHTML: icon('delete') }))
         del.setAttribute('aria-label', `Delete Scene ${file}`)
-        del.setAttribute('aria-keyshortcuts', 'Delete')
-        del.title = rows.length < 2 ? 'The last Scene of a Project cannot be deleted' : 'Delete Scene (Delete)'
-        del.disabled = viewerPaused || rows.length < 2
+        del.setAttribute('aria-keyshortcuts', 'Delete Backspace')
+        del.title = rows.length < 2 ? LAST_SCENE : 'Delete Scene (Delete)'
+        del.disabled = trashOff(rows.length)
         del.addEventListener('click', () => askDelete(i))
-        button.addEventListener('keydown', (e) => (e.key === 'Delete' || e.key === 'Backspace') && (e.preventDefault(), del.click())) // a disabled one does nothing
         return item
       }),
     )
@@ -360,10 +359,10 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
   // and drops the Scene's Notes. Both writes are the app's own, so neither is Claude activity.
   const confirmDelete = $('delete-scene') as HTMLDialogElement
   const deleteStatus = $('delete-scene-status')
-  let deleting: { index: number; file: string; order: string[] } | undefined
+  let deleting: { index: number; file: string } | undefined
   const askDelete = (index: number) => {
     const n = notes.onScene(index, project.scenes).length
-    deleting = { index, file: project.scenes[index], order: project.scenes }
+    deleting = { index, file: project.scenes[index] }
     $('delete-scene-text').textContent = `Delete ${deleting.file}${n ? ` and its ${n} Note${n === 1 ? '' : 's'}` : ''}?`
     deleteStatus.textContent = ''
     confirmDelete.showModal()
@@ -373,15 +372,26 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     const d = deleting
     deleting = undefined // a second click while main works deletes nothing more
     if (!d) return
+    let order: string[]
     try {
-      await kapecut.project.deleteScene(d.index, d.file)
+      order = await kapecut.project.deleteScene(d.index, d.file)
     } catch (e) {
       deleteStatus.textContent = errorText(e)
+      deleting = d // still open: Delete can be tried again
       return
     }
     confirmDelete.close()
     queueSave('project.json')
-    void notes.dropScene(d.index, d.order)
+    void notes.dropScene(d.index, order) // the order main checked, so a Claude re-order meanwhile picks no other Scene's Notes
+  })
+  // Delete (Backspace on a Mac keyboard) on a focused Scene row, or on the current Scene when nothing has focus. Its trash
+  // button opens the confirm, so a disabled one (the last Scene, an Export) does nothing.
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return
+    const row = e.target === document.body ? sceneList.querySelector('[aria-current]')?.parentElement : (e.target as Element).closest?.('#scene-list > li')
+    if (!row) return
+    e.preventDefault()
+    row.querySelector<HTMLButtonElement>('.del')?.click()
   })
 
   let queue = reload(sync())
@@ -518,8 +528,10 @@ let viewerPaused = false
 function pauseViewer(on: boolean) {
   viewerPaused = on
   for (const id of ['play', 'back', 'fwd', 'note', 'pen']) ($(id) as HTMLButtonElement).disabled = on
-  for (const b of sceneList.querySelectorAll<HTMLButtonElement>('.del')) b.disabled = on || sceneList.children.length < 2 // no Scene deleted mid-Export
+  for (const b of sceneList.querySelectorAll<HTMLButtonElement>('.del')) b.disabled = trashOff(sceneList.children.length)
 }
+/** A Scene row's trash is off for the last Scene and while an Export runs (main refuses both too). */
+const trashOff = (scenes: number) => viewerPaused || scenes < 2
 const refuse = (why: string) => void ((exportButton.disabled = false), (exportStatus.textContent = why))
 // Set while Frames encode. A save that lands then waits in the reload queue; the status says so, or it looks lost.
 let encoding: { done: number; savesWaiting: boolean } | null = null

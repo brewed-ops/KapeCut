@@ -1,7 +1,7 @@
-import { constants, existsSync, statSync } from 'node:fs'
+import { constants, statSync } from 'node:fs'
 import { copyFile, lstat, readdir, readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, join, relative, sep } from 'node:path'
-import { parseProject } from '../renderer/viewer/project'
+import { LAST_SCENE, parseProject } from '../renderer/viewer/project'
 import { staysUnder } from './file-under'
 import { lastOwnWrite, markLanded, ownLanded, writeOwned } from './owned-writes'
 import { MAX_LISTED } from '../renderer/files/kind'
@@ -87,31 +87,34 @@ export function writeAudio(dir: string, list: unknown): Promise<boolean> {
 }
 
 /**
- * Takes Scene `index` out of project.json's `scenes` (it must still be `file`: the page's list may be older), then moves
- * its page to the OS trash with `trash` (shell.trashItem), never erasing it. Refuses the last Scene of a Project. A page
- * another entry still lists, or one that is not there, stays. Moving the page is the app's own change, not Claude's.
- * Queued with writeAudio, and resolves like it.
+ * Moves Scene `index`'s page to the OS trash with `trash` (shell.trashItem), never erasing it, then takes the Scene out of
+ * project.json's `scenes`; a failed move changes nothing. The Scene must still be `file` at `index` (the page's list may
+ * be older). Refuses the last Scene of a Project. A page another entry still lists stays, and only a plain .html file is
+ * moved: a hand-edited list naming notes.json, a folder or a link only loses the entry. Moving the page is the app's own
+ * change, not Claude's. Queued with writeAudio. Resolves to the Scene list it took the Scene from, so the page matches
+ * the Scene's Notes against the order main checked.
  */
-export function deleteScene(dir: string, index: unknown, file: unknown, trash: (path: string) => Promise<void>): Promise<boolean> {
+export function deleteScene(dir: string, index: unknown, file: unknown, trash: (path: string) => Promise<void>): Promise<string[]> {
   return queued(async () => {
-    let page = ''
-    const stale = await editProject(dir, (json) => {
+    let order: string[] = []
+    await editProject(dir, async (json) => {
       const { scenes } = parseProject(json)
-      if (!Number.isInteger(index) || typeof file !== 'string' || scenes[index as number] !== file) throw new Error('The Scene list changed. Try again')
-      if (scenes.length < 2) throw new Error('The last Scene of a Project cannot be deleted')
+      if (!Number.isInteger(index) || typeof file !== 'string' || scenes[index as number] !== file) throw new Error('The Scene list changed. Close this, then try again')
+      if (scenes.length < 2) throw new Error(LAST_SCENE)
       const left = scenes.filter((_, i) => i !== index)
-      page = left.includes(file) ? '' : join(dir, file)
+      const page = left.includes(file) ? '' : join(dir, file)
       if (page && !staysUnder(dir, page)) throw new Error(`Scene ${file} is outside the Project`)
+      if (page && /\.html?$/i.test(page) && (await lstat(page).catch(() => null))?.isFile()) {
+        markLanded(page) // before the move: the watcher may report it first
+        await trash(page).catch((e) => {
+          ownLanded(page) // never moved: the next change to it is not the app's
+          throw e
+        })
+      }
+      order = scenes
       return { ...json, scenes: left }
     })
-    if (page && existsSync(page)) {
-      markLanded(page) // before the move: the watcher may report it first
-      await trash(page).catch((e) => {
-        ownLanded(page) // never moved: the next change to it is not the app's
-        throw e
-      })
-    }
-    return stale
+    return order
   })
 }
 
@@ -122,7 +125,7 @@ function queued<T>(job: () => Promise<T>) {
 }
 
 /** project.json as it is on disk now, changed by `change`, written whole once parseProject takes the result. */
-async function editProject(dir: string, change: (json: Record<string, unknown>) => Record<string, unknown>) {
+async function editProject(dir: string, change: (json: Record<string, unknown>) => Record<string, unknown> | Promise<Record<string, unknown>>) {
   const file = join(dir, 'project.json')
   if (!staysUnder(dir, file)) throw new Error('project.json links outside the Project')
   const before = await readFile(file, 'utf8').catch(() => '')
@@ -133,7 +136,7 @@ async function editProject(dir: string, change: (json: Record<string, unknown>) 
   } catch {
     throw new Error('project.json has an error. Fix it, save, then try again')
   }
-  const next = change(json)
+  const next = await change(json)
   parseProject(next)
   const text = JSON.stringify(next, null, 2) + '\n'
   if (Buffer.byteLength(text) > MAX_PROJECT_JSON) throw new Error('project.json would be too large')

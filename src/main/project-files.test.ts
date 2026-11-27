@@ -158,7 +158,7 @@ describe('deleteScene', () => {
   it('takes the Scene out of project.json, keeping every other key, and trashes its page as an app-owned change', async () => {
     const dir = three()
     trashed.length = 0
-    await deleteScene(dir, 1, 'b.html', trash)
+    expect(await deleteScene(dir, 1, 'b.html', trash)).toEqual(['a.html', 'b.html', 'c.html']) // the order it checked
     expect(read(dir)).toEqual({ ...PROJECT, scenes: ['a.html', 'c.html'] })
     expect(trashed).toEqual([join(dir, 'b.html')])
     expect(ownWrite(join(dir, 'project.json'))).toBe(true)
@@ -175,11 +175,24 @@ describe('deleteScene', () => {
     await expect(deleteScene(more, 0, 'b.html', trash)).rejects.toThrow('The Scene list changed')
     await expect(deleteScene(more, 7, 'b.html', trash)).rejects.toThrow('The Scene list changed')
     await expect(deleteScene(more, '1', 'b.html', trash)).rejects.toThrow('The Scene list changed')
+    expect(readFileSync(join(more, 'project.json'), 'utf8')).toBe(before)
     writeFileSync(join(more, 'project.json'), '{ nope')
     await expect(deleteScene(more, 1, 'b.html', trash)).rejects.toThrow('project.json has an error')
     expect(trashed).toEqual([])
     expect(readFileSync(join(dir, 'project.json'), 'utf8')).toBe(JSON.stringify(PROJECT))
-    expect(before).toContain('b.html')
+  })
+
+  it('moves only a plain .html page: an entry naming notes.json, a folder or a link loses only the entry', async () => {
+    const dir = project({ ...PROJECT, scenes: ['a.html', 'notes.json', 'img', 'link.html'] })
+    writeFileSync(join(dir, 'notes.json'), '{}')
+    mkdirSync(join(dir, 'img'))
+    writeFileSync(join(dir, 'a.html'), 'a')
+    symlinkSync(join(dir, 'img'), join(dir, 'link.html'), 'junction') // a file link needs admin on Windows
+    trashed.length = 0
+    for (const f of ['link.html', 'img', 'notes.json']) await deleteScene(dir, read(dir).scenes.indexOf(f), f, trash)
+    expect(read(dir).scenes).toEqual(['a.html'])
+    expect(trashed).toEqual([])
+    expect(readdirSync(dir).sort()).toEqual(['a.html', 'img', 'link.html', 'notes.json', 'project.json'])
   })
 
   it('keeps a page still listed elsewhere or missing, and refuses one that links outside the Project', async () => {
