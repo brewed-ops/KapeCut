@@ -33,6 +33,9 @@ jobs:
       - name: The update feed is there
         shell: bash
         run: ls release/latest*.yml
+      - name: The Mac update feed names the universal dmg
+        if: runner.os == 'macOS'
+        run: grep -q -- '-universal\.dmg' release/latest-mac.yml
       # The packaged app opens and gets to the editor. Export waits on ffmpeg, a Setup requirement neither runner image
       # has.
       - if: runner.os == 'Windows'

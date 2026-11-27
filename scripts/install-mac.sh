@@ -15,6 +15,8 @@ main() {
     # A Release holds one dmg: universal (Intel and Apple silicon) after v0.0.2, Apple silicon only up to it.
     url=$(curl -fsSL https://api.github.com/repos/brewed-ops/KapeCut/releases/latest | grep -o '"browser_download_url": *"[^"]*\.dmg"' | grep -o 'https://[^"]*' | head -1 || true)
     [ -n "$url" ] || fail "Could not find the latest KapeCut DMG on GitHub: https://github.com/brewed-ops/KapeCut/releases"
+    # hw.optional.arm64, not uname -m: a Terminal under Rosetta reports x86_64 on Apple silicon.
+    case "$url" in *-arm64.dmg) [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ] || fail "The latest KapeCut is for Apple silicon only. The Intel build comes with the next release." ;; esac
   fi
 
   work=$(mktemp -d)

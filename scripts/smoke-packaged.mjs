@@ -2,20 +2,22 @@
 // Install skill copies it out of the package -> the editor opens examples/hello, shot in each theme. Usage: npm run smoke:packaged
 // shortcut: Windows and macOS only; Linux CI would need a virtual display.
 import { _electron as electron } from '@playwright/test'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import readyEnv from './ready-env.mjs'
 
 delete process.env.ELECTRON_RUN_AS_NODE
 // electron-builder unpacks to win-unpacked, or mac-universal holding the .app
-const mac = readdirSync('release').find((d) => /^mac/.test(d))
-const exe = resolve(process.platform === 'darwin' ? `release/${mac}/KapeCut.app/Contents/MacOS/KapeCut` : 'release/win-unpacked/KapeCut.exe')
+const exe = resolve(process.platform === 'darwin' ? 'release/mac-universal/KapeCut.app/Contents/MacOS/KapeCut' : 'release/win-unpacked/KapeCut.exe')
 const done = readyEnv() // dummy claude on PATH, temp home WITH the skill
 const home = process.env.HOME // ready-env points HOME and USERPROFILE at the same temp home
 rmSync(join(home, '.claude'), { recursive: true, force: true }) // now the skill is missing
 const userData = mkdtempSync(join(tmpdir(), 'kapecut-pkg-'))
 const ok = (cond, what) => console.log(cond ? 'PASS' : 'FAIL', what) || cond || (process.exitCode = 1)
+// The runner is Apple silicon, so only the binary itself shows the Intel half is there (#16)
+if (process.platform === 'darwin') ok(execFileSync('lipo', ['-archs', exe], { encoding: 'utf8' }).trim().split(' ').sort().join(' ') === 'arm64 x86_64', 'the Mac app runs on Intel and Apple silicon')
 
 const app = await electron.launch({ executablePath: exe, args: [`--user-data-dir=${userData}`], env: { ...process.env, KAPECUT_PROJECT: resolve('examples/hello') } })
 try {
