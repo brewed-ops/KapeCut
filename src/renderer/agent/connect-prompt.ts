@@ -1,4 +1,4 @@
-// The two prompts KapeCut copies for Claude Code: the Connect prompt and the fix prompt (GLOSSARY).
+// The two prompts KapeCut copies for the Agent: the Connect prompt and the fix prompt (GLOSSARY).
 import { HANDSHAKE } from './status'
 
 const NEXT = {
@@ -11,8 +11,8 @@ const NEXT = {
 const oneLine = (path: string) => path.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, '?')
 
 /**
- * The Connect prompt (GLOSSARY): what "Connect Claude via Prompt" copies. It names the Project folder and the Session file
- * Claude checks first (ADR 0005), then what to do for the folder's state: set it up, work on the video, or fix project.json.
+ * The Connect prompt (GLOSSARY): what "Connect your agent" copies. It names the Project folder and the Session file
+ * the Agent checks first (ADR 0005), then what to do for the folder's state: set it up, work on the video, or fix project.json.
  */
 export const connectPrompt = ({ project, session, state }: { project: string; session: string; state: keyof typeof NEXT }) =>
   `I'm using KapeCut. Use the kapecut skill.

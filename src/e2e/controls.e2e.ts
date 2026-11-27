@@ -25,8 +25,8 @@ const CHECKS: [string, string, string][] = [
   ['#resolution', 'height', H],
   ['#resolution', 'paddingLeft', PAD],
   ['#resolution', 'fontSize', FONT],
-  ['#claude-status', 'height', H],
-  ['#claude-status', 'columnGap', GAP],
+  ['#agent-status', 'height', H],
+  ['#agent-status', 'columnGap', GAP],
   // The caption buttons: hidden on macOS, which shows its own traffic lights (window.e2e.ts).
   ...(process.platform === 'darwin' ? [] : ([['.win-buttons button', 'height', ICON_H], ['.win-buttons svg', 'width', ICON]] as [string, string, string][])),
   ['#projects summary', 'height', H],
@@ -101,10 +101,10 @@ const CHECKS: [string, string, string][] = [
   ['#idle-minutes', 'fontSize', FONT],
 ]
 
-// The smallest window: the Claude status is only its dot, Connect only its icon.
+// The smallest window: the Agent status is only its dot, Connect only its icon.
 const NARROW: [string, string, string][] = [
-  ['#claude-status', 'height', H],
-  ['#claude-status', 'width', H],
+  ['#agent-status', 'height', H],
+  ['#agent-status', 'width', H],
   ['#connect', 'height', H],
   ['#connect', 'paddingLeft', PAD_S],
 ]

@@ -3,12 +3,12 @@ import { launch } from './launch'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { HANDSHAKE } from '../renderer/claude/status'
+import { HANDSHAKE } from '../renderer/agent/status'
 
 // The editor grid of Kenneth's sketch (docs/design/sketch-2026-11-23.png, #66): left column header to bottom, Timeline
 // right of it, the viewer window filling the middle column with the picture centred in it.
 
-// A one-Scene Project at Design size w x h. No Claude handshake unless a test writes one (Connect shows its amber main face).
+// A one-Scene Project at Design size w x h. No Agent handshake unless a test writes one (Connect shows its amber main face).
 function project(w: number, h: number) {
   const dir = mkdtempSync(join(tmpdir(), 'kapecut-layout-'))
   writeFileSync(join(dir, 'project.json'), JSON.stringify({ name: 'Layout', size: { w, h }, fps: 30, scenes: ['a.html'] }))
@@ -83,7 +83,7 @@ for (const [label, w, h] of [['9:16', 108, 192], ['16:9', 192, 108]] as const) {
 
 // CI fonts render wider than local (#55), so this runs on every CI run at the smallest window the app allows.
 for (const connected of [false, true]) {
-  test(`smallest window, Claude ${connected ? 'connected' : 'not connected'}: no header, title-bar or panel-foot control overflows, wraps or leaves the window`, async () => {
+  test(`smallest window, Agent ${connected ? 'connected' : 'not connected'}: no header, title-bar or panel-foot control overflows, wraps or leaves the window`, async () => {
     const dir = project(108, 192)
     if (connected) {
       mkdirSync(dirname(join(dir, HANDSHAKE)), { recursive: true })
@@ -94,7 +94,8 @@ for (const connected of [false, true]) {
       // Asks for 1x1 and gets the window's minimum size: the narrowest a user can make it, not only its page.
       await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1, 1))
       await expect.poll(() => page.evaluate(() => innerWidth <= 1000 && innerHeight <= 700)).toBe(true)
-      await expect(page.locator('#connect')).toBeVisible() // the Claude check has reported: the widest header and title bar
+      await expect(page.locator('#connect')).toBeVisible() // the Agent check has reported: the widest header and title bar
+      if (connected) await expect(page.locator('#connect .label.on .via')).toBeHidden() // ", copy again" goes first
       const bars = ['header', '#files .titlebar', '.scenes .titlebar', '.settings', '#view .titlebar', '.notes .titlebar', '#notes-foot', '#timeline .titlebar']
       await expect(async () => {
         const bad = await page.evaluate((bars) => {
@@ -141,7 +142,7 @@ test('1280 wide, 9:16: Connect shows its full label; Settings is a card at the f
     expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getMinimumSize())).toEqual([1000, 700])
     await page.setViewportSize({ width: 1280, height: 800 })
     await expect(page.locator('#connect .label.off')).toBeVisible()
-    await expect(page.locator('#connect .off .via')).toBeVisible()
+    await expect(page.locator('#connect .label.off')).toHaveText('Connect your agent')
     const [connect, tools] = await Promise.all([box(page, '#connect'), box(page, '#note-tools')])
     expect(connect.x + connect.width).toBeLessThan(tools.x)
 

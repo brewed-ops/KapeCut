@@ -146,7 +146,7 @@ test('an empty folder opens in Set-up state: Files live, Scenes and Timeline wai
   mkdirSync(dir)
   const { app, page } = await launch({ project: dir, userData: join(root, 'user'), waitForExport: false })
   await expect(page.locator('.set-up')).toBeVisible()
-  await expect(page.locator('.set-up')).toContainText('Drop your files in.Claude builds the rest.')
+  await expect(page.locator('.set-up')).toContainText('Drop your files in.Your Agent builds the rest.')
   await expect(page.locator('.error')).toBeHidden()
   await expect(page.locator('#scenes-waiting')).toBeVisible()
   await expect(page.locator('#tl-waiting')).toBeVisible()

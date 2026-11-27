@@ -119,9 +119,9 @@ try {
   await mark(page, 'ugc:connect', '#connect', '#toast')
   await hold(page, 1800)
   mkdirSync(join(ugc, '.kapecut'), { recursive: true })
-  copyFileSync(join(stagedLumen, '.kapecut', 'claude.json'), join(ugc, '.kapecut', 'claude.json'))
+  copyFileSync(join(stagedLumen, '.kapecut', 'agent.json'), join(ugc, '.kapecut', 'agent.json'))
   await hold(page, 1500)
-  await mark(page, 'ugc:connected', '#connect', '#claude-status')
+  await mark(page, 'ugc:connected', '#connect', '#agent-status')
   await landScenes(page, ugc, stagedUgc, ['ugc.js'])
   await hold(page, 1200)
   await mark(page, 'ugc:ready', '#scene-list', '#view', '#timeline')
@@ -162,7 +162,7 @@ try {
   const before = readFileSync(cta, 'utf8'), fixed = before.replace('const CAP_Y = 1000', 'const CAP_Y = 1400')
   if (fixed === before) throw new Error('cta.html has no "const CAP_Y = 1000" to fix: keep scripts/ugc-demo.mjs and this script in step')
   writeFileSync(cta, fixed)
-  await mark(page, 'ugc:fixed', '#view', '#claude-status')
+  await mark(page, 'ugc:fixed', '#view', '#agent-status')
   // The Scene reloads and starts its video decoder again, black until then: wait for the new page to draw.
   await page.waitForFunction(() => {
     const doc = document.querySelector('iframe.current')?.contentDocument
@@ -180,9 +180,9 @@ try {
   await exportTo(page, join(root, 'ugc.mp4'), 'ugc')
   await hold(page, 2000)
 
-  // 2. The Lumen 3D ad: open its folder, Claude already connected there, the Scenes land, play, Export.
+  // 2. The Lumen 3D ad: open its folder, the Agent already connected there, the Scenes land, play, Export.
   mkdirSync(join(lumen, '.kapecut'), { recursive: true })
-  copyFileSync(join(stagedLumen, '.kapecut', 'claude.json'), join(lumen, '.kapecut', 'claude.json'))
+  copyFileSync(join(stagedLumen, '.kapecut', 'agent.json'), join(lumen, '.kapecut', 'agent.json'))
   await app.evaluate(({ dialog }, filePath) => void (dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [filePath] })), lumen)
   await page.locator('#projects summary').click()
   await mark(page, 'lumen:menu', '#projects')

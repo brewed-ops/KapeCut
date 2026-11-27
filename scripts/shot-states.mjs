@@ -14,7 +14,7 @@
 // waiting for its text), notes.png (a done point Note, a span across a cut, a stroke: Frame marks and Timeline markers),
 // span-flagged.png (Scenes re-ordered to b, c, a: the span moved with a.html and is flagged, its cut is gone),
 // setup.png and setup-files.png (Set-up state: an empty folder, then four files copied in), prompt-copied.png (Connect
-// Claude clicked: the "Prompt copied" toast), claude-active.png and claude-active-narrow.png (Claude's handshake lands:
+// your agent clicked: the "Prompt copied" toast), agent-active.png and agent-active-narrow.png (the Agent's handshake lands:
 // the pill turns active, Connect reads "copy again"; again at 1024 px wide), settings-narrow.png (Settings open at 1024 px,
 // one recent Project), settings-{general,appearance,setup,updates}-{dark,light}.png (each Settings section in each theme),
 // settings-update-{off,idle,checking,latest,available,downloading,ready,out,error}.png (each Update status, as main sends it;
@@ -39,10 +39,10 @@ const dir = mkdtempSync(join(tmpdir(), 'kapecut-states-'))
 const userData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
 const exportDir = mkdtempSync(join(tmpdir(), 'kapecut-shot-out-')) // the MP4 goes outside the Project
 cpSync(resolve('examples/three-scenes'), dir, { recursive: true })
-// Claude's handshake: the Claude status pill shows connected.
+// The Agent's handshake: the Agent status pill shows connected.
 const handshake = (folder) => {
   mkdirSync(join(folder, '.kapecut'), { recursive: true })
-  writeFileSync(join(folder, '.kapecut', 'claude.json'), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
+  writeFileSync(join(folder, '.kapecut', 'agent.json'), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
 }
 handshake(dir) // opened with it: idle
 // A copy button writes the system clipboard: give back what the user had on it.
@@ -119,18 +119,18 @@ try {
   await page.waitForTimeout(300)
   await shoot(page, 'setup-files')
   await keepClipboard(setUp, async () => {
-    await page.getByRole('button', { name: 'Connect Claude via Prompt' }).click()
+    await page.getByRole('button', { name: 'Connect your agent' }).click()
     await page.locator('#toast').waitFor()
   })
   await shoot(page, 'prompt-copied')
   handshake(empty)
-  await page.locator('#claude-status[data-s="active"]').waitFor({ timeout: 15_000 })
-  await settled(page, '#claude-status')
+  await page.locator('#agent-status[data-s="active"]').waitFor({ timeout: 15_000 })
+  await settled(page, '#agent-status')
   await page.locator('#toast').waitFor({ state: 'hidden' })
-  await shoot(page, 'claude-active')
+  await shoot(page, 'agent-active')
   await page.setViewportSize({ width: 1024, height: 768 })
   await page.waitForTimeout(300)
-  await shoot(page, 'claude-active-narrow')
+  await shoot(page, 'agent-active-narrow')
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.locator('#encoder b').first().waitFor({ state: 'attached' })
   await settled(page, '#settings-panel')

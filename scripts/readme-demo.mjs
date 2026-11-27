@@ -1,5 +1,5 @@
 // The demo Project behind the README screenshot: a 3-Scene three.js product ad for the Lumen desk lamp, a sound effect,
-// 3 Notes (one done) and the Claude handshake. scripts/readme-shot.mjs and scripts/demo-footage.mjs run it.
+// 3 Notes (one done) and the Agent handshake. scripts/readme-shot.mjs and scripts/demo-footage.mjs run it.
 // Usage: node scripts/readme-demo.mjs <outDir>
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -379,5 +379,5 @@ writeFileSync(join(dir, 'notes.json'), JSON.stringify({ version: 1, next: 4, not
   note(3, 'Hold the price tag half a second longer', 'cta.html', 1.2, 6.8, false, { x: 540, y: 1530 }),
 ] }, null, 2))
 mkdirSync(join(dir, '.kapecut'), { recursive: true })
-writeFileSync(join(dir, '.kapecut', 'claude.json'), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
+writeFileSync(join(dir, '.kapecut', 'agent.json'), JSON.stringify({ version: 1, connected: new Date().toISOString() }))
 console.log(dir)
