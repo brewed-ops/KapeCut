@@ -60,7 +60,7 @@
       "allowToChangeInstallationDirectory": true
     },
     "mac": {
-      "target": "dmg",
+      "target": [{ "target": "dmg", "arch": ["universal"] }],
       "icon": "resources/logo/kapecut-512.png",
       "identity": "-"
     },
