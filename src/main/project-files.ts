@@ -113,19 +113,25 @@ export function deleteScene(dir: string, index: unknown, file: unknown, trash: (
     })
     // Checked again right before the move: the page may have become a link since.
     if (page && /\.html?$/i.test(page) && (await lstat(page).catch(() => null))?.isFile() && staysUnder(dir, page)) {
-      // Marked by its name on disk (B.html in the list may be b.html), as the watcher reports it, before the move: the
-      // watcher may report it first. Forgotten after a while, so an event that never comes leaves no mark behind.
-      const landed = join(dir, relative(await realpath(dir), await realpath(page)))
-      markLanded(landed)
-      setTimeout(() => ownLanded(landed), 10_000).unref()
+      // Marked before the move (the watcher may report it first) by every name the watcher may use: as listed, and as it
+      // is on disk (B.html in the list may be b.html; a linked folder has a real path). Forgotten after a while, so an
+      // event that never comes leaves no mark behind.
+      const names = [...new Set([page, join(dir, relative(await realpath(dir), await realpath(page)))])]
+      for (const p of names) {
+        markLanded(p)
+        clearTimeout(expiry.get(p)) // an earlier delete's timer must not clear this mark
+        expiry.set(p, setTimeout(() => (ownLanded(p), expiry.delete(p)), 10_000).unref())
+      }
       try {
         await trash(page)
       } catch (e) {
-        ownLanded(landed) // never moved: the next change to it is not the app's
-        // The Scene comes back at its place, into project.json as it is now. If even that fails the page re-reads the file.
+        for (const p of names) ownLanded(p) // never moved: the next change to it is not the app's
+        // The Scene comes back after the Scene it followed (first when it led, or that one is gone too), into project.json
+        // as it is now. If even that fails the page re-reads the file.
         const back = (json: Record<string, unknown>) => {
           const { scenes } = parseProject(json)
-          return { ...json, scenes: [...scenes.slice(0, index as number), file as string, ...scenes.slice(index as number)] }
+          const at = index === 0 ? 0 : scenes.indexOf(order[(index as number) - 1]) + 1 || Math.min(index as number, scenes.length)
+          return { ...json, scenes: [...scenes.slice(0, at), file as string, ...scenes.slice(at)] }
         }
         await editProject(dir, back).catch((err) => console.error('[kapecut] could not put the Scene back in project.json:', err))
         throw e
@@ -134,6 +140,8 @@ export function deleteScene(dir: string, index: unknown, file: unknown, trash: (
     return order
   })
 }
+
+const expiry = new Map<string, NodeJS.Timeout>() // per trashed page: when its own-change mark is forgotten
 
 function queued<T>(job: () => Promise<T>) {
   const run = writing.then(job)

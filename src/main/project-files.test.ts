@@ -182,15 +182,16 @@ describe('deleteScene', () => {
     expect(readFileSync(join(dir, 'project.json'), 'utf8')).toBe(JSON.stringify(PROJECT))
   })
 
-  it('a failed move puts the Scene back at its place, keeping an edit Claude made meanwhile; a page another entry names as ./a.html or A.html stays', async () => {
+  it('a failed move puts the Scene back after the Scene it followed, keeping an edit Claude made meanwhile; a page another entry names as ./a.html or A.html stays', async () => {
     const dir = three()
-    const claudeAddsD = async () => {
-      writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...read(dir), scenes: [...read(dir).scenes, 'd.html'] }))
+    // While the trash works, Claude drops a.html and adds d.html: [a, b] is left of the delete, so [b, d] on disk.
+    const claudeEdits = async () => {
+      writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...read(dir), scenes: ['b.html', 'd.html'] }))
       throw new Error('The trash is busy')
     }
-    await expect(deleteScene(dir, 1, 'b.html', claudeAddsD)).rejects.toThrow('busy')
-    expect(read(dir)).toEqual({ ...PROJECT, scenes: ['a.html', 'b.html', 'c.html', 'd.html'] })
-    expect(ownLanded(join(dir, 'b.html'))).toBe(false)
+    await expect(deleteScene(dir, 2, 'c.html', claudeEdits)).rejects.toThrow('busy')
+    expect(read(dir)).toEqual({ ...PROJECT, scenes: ['b.html', 'c.html', 'd.html'] })
+    expect(ownLanded(join(dir, 'c.html'))).toBe(false)
     writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...PROJECT, scenes: ['a.html', './a.html', ...(process.platform === 'linux' ? [] : ['A.html'])] }))
     trashed.length = 0
     await deleteScene(dir, 1, './a.html', trash)

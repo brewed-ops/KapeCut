@@ -87,15 +87,16 @@ describe('notes.json', () => {
       expect(sceneIndex({ scene: 'a.html' }, ['b.html', 'a.html', 'a.html'])).toBe(1) // any other Note: the first copy
     })
 
-    it('deleting a Scene takes the Notes Marked on it and the spans that start in it, only on that copy', () => {
+    it('deleting a Scene takes the Notes Marked on it and the spans that start in it; a page listed again keeps its own', () => {
       const note = (n: number, scene: string, scenes?: string[]) => ({ n, scene, scenes })
       const order = ['a.html', 'b.html', 'a.html', 'c.html']
-      const notes = [note(1, 'a.html'), note(2, 'b.html'), note(3, 'a.html', ['a.html', 'b.html']), note(4, 'b.html', ['b.html', 'a.html']), note(5, 'a.html', ['a.html', 'c.html']), note(6, 'gone.html')]
+      const notes = [note(1, 'a.html'), note(2, 'b.html'), note(3, 'a.html', ['a.html', 'b.html']), note(4, 'b.html', ['b.html', 'a.html']), note(5, 'a.html', ['a.html', 'c.html']), note(6, 'gone.html'), note(7, 'c.html')]
       const ns = (i: number) => notesOnScene(notes, i, order).map((x) => x.n)
-      expect(ns(0)).toEqual([1, 3]) // a point on the first a.html, and a span from it into b.html
+      // a.html stays listed whichever copy goes: its point Note (1) stays, only the span over a cut from that copy goes.
+      expect(ns(0)).toEqual([3])
+      expect(ns(2)).toEqual([5])
       expect(ns(1)).toEqual([2, 4]) // a span that ends in b.html (3) stays with its start Scene
-      expect(ns(2)).toEqual([5]) // the second a.html: only the span drawn from that copy
-      expect(ns(3)).toEqual([])
+      expect(ns(3)).toEqual([7])
     })
 
     it('stores the Scenes it crossed, and a file without them still opens', () => {

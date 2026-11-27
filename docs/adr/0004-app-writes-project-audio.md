@@ -5,11 +5,13 @@
 **A second exception: deleting a Scene (#17).** The page sends main a Scene's index and file name, never a path. Main
 checks project.json still lists that file at that index, refuses the last Scene of a Project (and a delete while an
 Export writes its file; the page turns the trash off for the whole Export), writes `scenes` without it the same way as
-`audio`, then moves the Scene's page to the OS trash (`shell.trashItem`, never an erase). A failed move puts project.json
-back. Only a plain `.html` file inside the Project is moved, and only when no other entry still names it; a hand-edited
-entry naming anything else loses only the entry. The move is marked as the
-app's own (`markLanded`), so like the write it is not Claude activity (ADR 0005). The page then drops the Notes Marked on
-that Scene or whose span starts in it (ADR 0003), matched against the list main checked.
+`audio`, then moves the Scene's page to the OS trash (`shell.trashItem`, never an erase). A failed move puts the Scene
+back after the Scene it followed, into project.json as it is then. Only a plain `.html` file inside the Project is moved,
+and only when no other entry still names it; a hand-edited entry naming anything else loses only the entry. The move is
+marked as the app's own (`markLanded`), so like the write it is not Claude activity (ADR 0005). The page then drops the
+Notes Marked on that Scene or whose span starts in it (ADR 0003), matched against the list main checked. A page listed
+twice keeps its Notes when one entry goes, since the page stays: only a span over a cut drawn from that copy goes. The
+confirm refuses up front while notes.json or project.json cannot be read, so a Scene never goes without its Notes.
 
 **Only external writes reload.** As with notes.json, main drops a watcher event when project.json holds exactly what the app last wrote. If the file had changed since the app's own last write (Claude edited it, or this is the first write of the session), the write still merges into Claude's version and main tells the page to read the file again, so Claude's change is not lost on screen. Shortcut, as in ADR 0003: a Claude write landing between main's read and its rename is overwritten.
 

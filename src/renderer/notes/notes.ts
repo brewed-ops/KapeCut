@@ -27,9 +27,15 @@ export function sceneIndex(note: Pick<Note, 'scene' | 'scenes'>, order: string[]
   const run = note.scenes && !crossedApart(note, order) ? runAt(note.scenes, order) : -1
   return run >= 0 ? run : order.indexOf(note.scene)
 }
-/** The Notes that go with Scene `index` of `order` when it is deleted: Marked on it, or a span that starts in it. */
-export const notesOnScene = <N extends Pick<Note, 'scene' | 'scenes'>>(notes: N[], index: number, order: string[]) =>
-  notes.filter((n) => sceneIndex(n, order) === index)
+/**
+ * The Notes that go with Scene `index` of `order` when it is deleted: Marked on it, or a span that starts in it. When
+ * `order` lists that page again elsewhere, the page stays, and so do its Notes: only a span over a cut drawn from this
+ * copy goes.
+ */
+export const notesOnScene = <N extends Pick<Note, 'scene' | 'scenes'>>(notes: N[], index: number, order: string[]) => {
+  const listedAgain = order.filter((f) => f === order[index]).length > 1
+  return notes.filter((n) => sceneIndex(n, order) === index && (!listedAgain || (!!n.scenes && !crossedApart(n, order))))
+}
 export type Note = {
   n: number
   text: string

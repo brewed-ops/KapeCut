@@ -367,6 +367,7 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
   let deleting: { index: number; file: string } | undefined
   // file: the row's own, so a list about to redraw after Claude's re-order never names another Scene.
   const askDelete = (index: number, file: string) => {
+    if (confirmDelete.open) return // a Delete key pressed while one is open (focus on body as main works) retargets nothing
     if (project.scenes[index] !== file) return // the list redraws in a moment
     const n = notes.onScene(index, project.scenes).length
     deleting = { index, file }
