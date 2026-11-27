@@ -65,6 +65,8 @@ without focus. Why it stays shown and on screen: the comment above it in `src/ma
   fixed pixel drags fall short. Reproduce with `page.setViewportSize({ width: 1024, height: 768 })` on that test.
 - After `page.setViewportSize`, `BrowserWindow.setSize` no longer changes the page (emulation pins it). Test or shoot
   the minimum window first, or set the viewport to the minimum (1000 x 700, `minWidth` / `minHeight` in main).
+- After `page.setViewportSize`, wait for the Timeline to refit (the track fills the view) before measuring it, as
+  `withApp` does: a box read at once is off by the old width (#29, a third of 1280 - 1024 px on macOS CI).
 - CI fonts render wider than local: leave slack in the narrowest layout and hide labels before they touch.
 - Shots go through the shot scripts (`docs/agents/workflow.md` step 3), never a one-off: `playwright test` empties
   `test-results/`, and a script outside the repo cannot import `@playwright/test`.

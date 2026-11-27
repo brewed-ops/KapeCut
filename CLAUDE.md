@@ -25,7 +25,9 @@ Matt Pocock's loop (plugin `mattpocock-skills`, user-wide):
 
 1. `/setup-matt-pocock-skills` once in this repo.
 2. `/grill-with-docs` before any feature. It keeps `GLOSSARY.md` and `docs/adr/` current.
-3. Big job: `/to-spec`, then `/to-tickets`. Small job: straight to `/implement`.
+3. Big job: `/to-spec`, then `/to-tickets`. Small job: straight to `/implement`. `/to-tickets` publishes with
+   `node ~/.claude/scripts/gh-publish-tickets.mjs <plan.json>` (sub-issues + native blocked-by edges), never a new script.
+   A new ADR takes the next number on origin/main: `git fetch` first, parallel sessions add ADRs.
 4. `/implement` one ticket per fresh session. Before `/implement`, read `docs/agents/workflow.md`.
 
 ## Rules
