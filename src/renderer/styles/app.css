@@ -303,7 +303,7 @@ main { min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr)
 #scene-list .del .ico { width: var(--control-icon-small); height: var(--control-icon-small); }
 #scene-list li:is(:hover, :focus-within) .del { visibility: visible; }
 #scene-list .del:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
-#scene-list .del:disabled { opacity: 0.4; cursor: default; }
+#scene-list .del:disabled { background: var(--panel); opacity: 0.4; cursor: default; } /* no row hover fill: it does nothing */
 
 /* The confirm before a Scene is deleted: a small modal over the windows, like Settings. */
 #delete-scene { width: min(380px, calc(100vw - 96px)); padding: 20px; border: 1.5px solid var(--frame); border-radius: var(--radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); }

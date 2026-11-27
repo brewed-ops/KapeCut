@@ -182,6 +182,20 @@ describe('deleteScene', () => {
     expect(readFileSync(join(dir, 'project.json'), 'utf8')).toBe(JSON.stringify(PROJECT))
   })
 
+  it('a failed move puts project.json back; a page another entry names as ./a.html or A.html stays', async () => {
+    const dir = three()
+    const before = readFileSync(join(dir, 'project.json'), 'utf8')
+    await expect(deleteScene(dir, 1, 'b.html', async () => Promise.reject(new Error('The trash is busy')))).rejects.toThrow('busy')
+    expect(readFileSync(join(dir, 'project.json'), 'utf8')).toBe(before)
+    expect(ownLanded(join(dir, 'b.html'))).toBe(false)
+    writeFileSync(join(dir, 'project.json'), JSON.stringify({ ...PROJECT, scenes: ['a.html', './a.html', ...(process.platform === 'linux' ? [] : ['A.html'])] }))
+    trashed.length = 0
+    await deleteScene(dir, 1, './a.html', trash)
+    if (process.platform !== 'linux') await deleteScene(dir, 1, 'A.html', trash)
+    expect(read(dir).scenes).toEqual(['a.html'])
+    expect(trashed).toEqual([])
+  })
+
   it('moves only a plain .html page: an entry naming notes.json, a folder or a link loses only the entry', async () => {
     const dir = project({ ...PROJECT, scenes: ['a.html', 'notes.json', 'img', 'link.html'] })
     writeFileSync(join(dir, 'notes.json'), '{}')

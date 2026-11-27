@@ -126,7 +126,7 @@ function handleProjectFiles() {
   handle('notes:image', async (_e, n: unknown, png: unknown) => writeNoteImage(await dir(), n, png))
   handle('files:list', async () => listFiles(await dir()))
   handle('project:audio', async (_e, list: unknown) => writeAudio(await dir(), list))
-  // Never under an Export: its Scene pages and list were read when it began (the page turns the trash off too).
+  // Not while an Export writes its file. The page turns the trash off for the whole Export, from the click on.
   handle('project:delete-scene', async (_e, index: unknown, file: unknown) => {
     if (exporting()) throw new Error('Delete Scenes once the Export is done')
     return deleteScene(await dir(), index, file, (p) => shell.trashItem(p))

@@ -23,7 +23,7 @@ function project(scenes: string[]) {
 const readJson = (dir: string, file: string) => JSON.parse(readFileSync(join(dir, file), 'utf8'))
 
 // shell.trashItem moves the page into `trash` instead of the OS trash, and says what it was handed. failOnce: the first
-// call fails, as the OS trash can.
+// call fails after a second, as a busy OS trash can.
 const fakeTrash = (trash: string, failOnce = false) => (app: ElectronApplication) =>
   app.evaluate(({ shell }, [trash, failOnce]) => {
     const { renameSync } = process.getBuiltinModule('node:fs')
@@ -32,7 +32,7 @@ const fakeTrash = (trash: string, failOnce = false) => (app: ElectronApplication
     g.trashed = []
     let fail = failOnce
     shell.trashItem = async (path: string) => {
-      if (fail) throw ((fail = false), new Error('The trash is busy'))
+      if (fail) throw ((fail = false), await new Promise((r) => setTimeout(r, 1000)), new Error('The trash is busy'))
       g.trashed.push(path)
       renameSync(path, join(trash as string, basename(path)))
     }
@@ -130,19 +130,28 @@ test('Delete or Backspace on the selected Scene opens the confirm; a Scene with 
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
     await page.keyboard.press('Delete')
     await expect(confirm).toContainText('Delete b.html?')
-    await page.keyboard.press('Enter') // Delete has the focus
+    const ok = confirm.getByRole('button', { name: 'Delete', exact: true })
+    await expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused() // a stray Enter keeps the Scene
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Enter')
+    // While main works the confirm stays, locked: its answer is about the Scene it names.
+    await expect(ok).toBeDisabled()
+    await page.keyboard.press('Escape')
     await expect(confirm).toContainText('The trash is busy')
+    await expect(confirm).toBeVisible()
     expect(readJson(dir, 'project.json').scenes).toEqual(['a.html', 'b.html', 'c.html']) // a failed move changes nothing
     expect(existsSync(join(dir, 'b.html'))).toBe(true)
-    await page.keyboard.press('Enter') // tried again
+    await ok.click() // tried again
     await expect(confirm).toBeHidden()
     await expect(rows(page)).toHaveCount(2)
     expect(await trashed(app)).toEqual([join(dir, 'b.html')])
 
     await seekButton(page, 0).click()
+    await page.keyboard.press('Shift+Delete') // a modifier: not this shortcut
+    await expect(confirm).toBeHidden()
     await page.keyboard.press('Delete')
     await expect(confirm).toContainText('Delete a.html?')
-    await page.keyboard.press('Enter')
+    await ok.click()
     await expect(rows(page)).toHaveCount(1)
     expect(readJson(dir, 'project.json').scenes).toEqual(['c.html'])
     expect(await trashed(app)).toEqual([join(dir, 'b.html'), join(dir, 'a.html')])

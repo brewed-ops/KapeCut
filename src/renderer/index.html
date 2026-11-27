@@ -194,13 +194,13 @@
         </div>
       </section>
     </main>
-    <!-- The confirm before a Scene is deleted (#17): its trash icon or the Delete key on its row opens it. main.ts -->
+    <!-- The confirm before a Scene is deleted (#17): its trash icon or the Delete key opens it. Cancel comes first, so it takes the focus. main.ts -->
     <dialog id="delete-scene" aria-labelledby="delete-scene-title" closedby="any">
       <h2 class="eyebrow" id="delete-scene-title">Delete Scene</h2>
       <p id="delete-scene-text"></p>
       <p class="detail">Its page moves to the trash.</p>
       <p id="delete-scene-status" role="status"></p>
-      <div class="row"><button id="delete-scene-cancel">Cancel</button><button class="primary" id="delete-scene-ok" autofocus><svg data-icon="delete"></svg>Delete</button></div>
+      <div class="row"><button id="delete-scene-cancel">Cancel</button><button class="primary" id="delete-scene-ok"><svg data-icon="delete"></svg>Delete</button></div>
     </dialog>
     <!-- One toast for the app ("Prompt copied"); toast() in dom.ts shows it. -->
     <!-- The live region stays in the page; the pill inside it appears, so screen readers announce it. -->
