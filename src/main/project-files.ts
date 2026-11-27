@@ -1,9 +1,9 @@
 import { constants, statSync } from 'node:fs'
 import { copyFile, lstat, readdir, readFile, realpath, stat } from 'node:fs/promises'
-import { basename, extname, join, relative, sep } from 'node:path'
-import { parseProject } from '../renderer/viewer/project'
+import { basename, extname, join, relative, resolve, sep } from 'node:path'
+import { LAST_SCENE, parseProject } from '../renderer/viewer/project'
 import { staysUnder } from './file-under'
-import { lastOwnWrite, writeOwned } from './owned-writes'
+import { lastOwnWrite, markLanded, ownLanded, writeOwned } from './owned-writes'
 import { MAX_LISTED } from '../renderer/files/kind'
 
 const MAX_FILE = 2 ** 30 // a whole audio file is decoded in memory; an hour of 48 kHz stereo WAV is ~700 MB
@@ -76,12 +76,84 @@ let writing: Promise<unknown> = Promise.resolve()
  * the app's own last write: the page's copy is older, so it must read the file again.
  */
 export function writeAudio(dir: string, list: unknown): Promise<boolean> {
-  const run = writing.then(() => setAudio(dir, list))
+  return queued(() =>
+    editProject(dir, (json) => {
+      const { audio } = parseProject({ ...json, audio: list })
+      const away = audio.find((a) => !staysUnder(dir, join(dir, a.file)))
+      if (away) throw new Error(`Audio file ${away.file} is outside the Project`)
+      return { ...json, audio }
+    }),
+  )
+}
+
+/**
+ * Takes Scene `index` out of project.json's `scenes`, then moves its page to the OS trash with `trash`
+ * (shell.trashItem), never erasing it. A failed move puts the Scene back in its place, so the page stays listed. The Scene
+ * must still be `file` at `index` (the page's list may be older). Refuses the last Scene of a Project. A page another
+ * entry still names (also as ./a.html, or A.html where names ignore case) stays, and only a plain .html file is moved: a
+ * hand-edited list naming notes.json, a folder or a link only loses the entry. Moving the page is the app's own change,
+ * not Claude's. Queued with writeAudio. Resolves to the Scene list it took the Scene from, so the page matches the
+ * Scene's Notes against the order main checked.
+ */
+export function deleteScene(dir: string, index: unknown, file: unknown, trash: (path: string) => Promise<void>): Promise<string[]> {
+  return queued(async () => {
+    let order: string[] = []
+    let page = ''
+    await editProject(dir, (json) => {
+      const { scenes } = parseProject(json)
+      if (!Number.isInteger(index) || typeof file !== 'string' || scenes[index as number] !== file) throw new Error('The Scene list changed. Close this, then try again')
+      if (scenes.length < 2) throw new Error(LAST_SCENE)
+      const left = scenes.filter((_, i) => i !== index)
+      // shortcut: case is ignored on every OS but Linux, so a case-sensitive Mac volume keeps a page it could trash.
+      const key = (f: string) => (process.platform === 'linux' ? resolve(dir, f) : resolve(dir, f).toLowerCase())
+      page = left.some((f) => key(f) === key(file)) ? '' : join(dir, file)
+      if (page && !staysUnder(dir, page)) throw new Error(`Scene ${file} is outside the Project`)
+      order = scenes
+      return { ...json, scenes: left }
+    })
+    // Checked again right before the move: the page may have become a link since.
+    if (page && /\.html?$/i.test(page) && (await lstat(page).catch(() => null))?.isFile() && staysUnder(dir, page)) {
+      // Marked before the move (the watcher may report it first) by every name the watcher may use: as listed, and as it
+      // is on disk (B.html in the list may be b.html; a linked folder has a real path). Forgotten after a while, so an
+      // event that never comes leaves no mark behind.
+      const names = [...new Set([page, join(dir, relative(await realpath(dir), await realpath(page)))])]
+      for (const p of names) {
+        markLanded(p)
+        clearTimeout(expiry.get(p)) // an earlier delete's timer must not clear this mark
+        expiry.set(p, setTimeout(() => (ownLanded(p), expiry.delete(p)), 10_000).unref())
+      }
+      try {
+        await trash(page)
+      } catch (e) {
+        for (const p of names) ownLanded(p) // never moved: the next change to it is not the app's
+        // The Scene comes back after the Scene it followed (first when it led, or that one is gone too), into project.json
+        // as it is now. If even that fails the page re-reads the file.
+        const back = (json: Record<string, unknown>) => {
+          const { scenes } = parseProject(json)
+          const at = index === 0 ? 0 : scenes.indexOf(order[(index as number) - 1]) + 1 || Math.min(index as number, scenes.length)
+          return { ...json, scenes: [...scenes.slice(0, at), file as string, ...scenes.slice(at)] }
+        }
+        await editProject(dir, back).catch((err) => console.error('[kapecut] could not put the Scene back in project.json:', err))
+        throw e
+      }
+    }
+    return order
+  })
+}
+
+const expiry = new Map<string, NodeJS.Timeout>() // per trashed page: when its own-change mark is forgotten
+
+function queued<T>(job: () => Promise<T>) {
+  const run = writing.then(job)
   writing = run.catch(() => {})
   return run
 }
 
-async function setAudio(dir: string, list: unknown) {
+/**
+ * project.json as it is on disk now, changed by `change`, written whole once parseProject takes the result. Returns
+ * whether the file had changed since the app's own last write.
+ */
+async function editProject(dir: string, change: (json: Record<string, unknown>) => Record<string, unknown>) {
   const file = join(dir, 'project.json')
   if (!staysUnder(dir, file)) throw new Error('project.json links outside the Project')
   const before = await readFile(file, 'utf8').catch(() => '')
@@ -92,10 +164,9 @@ async function setAudio(dir: string, list: unknown) {
   } catch {
     throw new Error('project.json has an error. Fix it, save, then try again')
   }
-  const { audio } = parseProject({ ...json, audio: list })
-  const away = audio.find((a) => !staysUnder(dir, join(dir, a.file)))
-  if (away) throw new Error(`Audio file ${away.file} is outside the Project`)
-  const text = JSON.stringify({ ...json, audio }, null, 2) + '\n'
+  const next = change(json)
+  parseProject(next)
+  const text = JSON.stringify(next, null, 2) + '\n'
   if (Buffer.byteLength(text) > MAX_PROJECT_JSON) throw new Error('project.json would be too large')
   const stale = before !== lastOwnWrite(file)
   await writeOwned(file, text)

@@ -73,7 +73,7 @@ test('the current Scene highlight slides to the new row on the --dur-l spring, b
     await token(page, '--dur-l', '7s')
     const list = page.locator('#scene-list')
     expect(await list.evaluate((el) => getComputedStyle(el, '::before').transitionDuration)).toMatch(/^7s/)
-    await page.locator('#scene-list button').nth(2).click() // the rows never move, only the highlight
+    await page.locator('#scene-list li > button:first-child').nth(2).click() // the rows never move, only the highlight
     await expect.poll(() => running(page, '#scene-list', '::before')).toEqual(['translate'])
     await finish(page)
     const at = await list.evaluate((el) => ({

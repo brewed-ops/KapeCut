@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, nativeTheme, net, protocol } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, nativeTheme, net, protocol, shell } from 'electron'
 import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -6,11 +6,11 @@ import { pathToFileURL } from 'node:url'
 import { APP_URL, handle, isAppPage, on } from './app-sender'
 import { fileUnder } from './file-under'
 import { watchProject } from './watch-project'
-import { handleExport } from './export'
+import { exporting, handleExport } from './export'
 import { addRecent } from './recent-projects'
 import { ownNotesWrite, writeNoteImage, writeNotes } from './notes-files'
 import { ownLanded, ownTemp, ownWrite } from './owned-writes'
-import { copyIn, listFiles, readDrop, writeAudio } from './project-files'
+import { copyIn, deleteScene, listFiles, readDrop, writeAudio } from './project-files'
 import { writeSession } from './session-file'
 import { handleUpdates } from './updates'
 import { ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
@@ -119,13 +119,18 @@ async function checks() {
   return found
 }
 
-// No path from the page: notes.json, notes/note-<n>.png and project.json's audio list in the open Project, and its file list.
+// No path from the page: notes.json, notes/note-<n>.png, project.json's audio and Scene lists in the open Project, and its file list.
 function handleProjectFiles() {
   const dir = () => projectDir ?? Promise.reject(new Error('No Project open'))
   handle('notes:write', async (_e, json: unknown) => writeNotes(await dir(), json))
   handle('notes:image', async (_e, n: unknown, png: unknown) => writeNoteImage(await dir(), n, png))
   handle('files:list', async () => listFiles(await dir()))
   handle('project:audio', async (_e, list: unknown) => writeAudio(await dir(), list))
+  // Not while an Export writes its file. The page turns the trash off for the whole Export, from the click on.
+  handle('project:delete-scene', async (_e, index: unknown, file: unknown) => {
+    if (exporting()) throw new Error('Delete Scenes once the Export is done')
+    return deleteScene(await dir(), index, file, (p) => shell.trashItem(p))
+  })
 }
 
 /** Copies files into the open Project; says what was added and what was refused. */
