@@ -19,10 +19,17 @@ export function wireGuide(seen: boolean) {
   panel.addEventListener('keydown', (e) => e.stopPropagation())
   // Step 1 says to drop a folder on the window: the drop goes through, and the Guide steps aside to show it.
   window.addEventListener('drop', (e) => e.dataTransfer?.files.length && panel.open && panel.close(), true)
-  if (!seen) {
-    open()
+  const first = () => {
+    if (!panel.open) open() // the user may have opened it by hand while Setup showed
     // shortcut: a failed write opens it again next launch, which is the safe side.
     kapecut.settings.markGuideSeen().catch((e) => console.error('[kapecut] Guide seen could not be saved:', e))
+  }
+  // Setup can pass and still show (an outdated skill, All set): the first open waits for it to close, not over it.
+  const setup = $('setup')
+  if (!seen && setup.hidden) first()
+  else if (!seen) {
+    const watch = new MutationObserver(() => setup.hidden && (watch.disconnect(), first()))
+    watch.observe(setup, { attributes: true, attributeFilter: ['hidden'] })
   }
   button.disabled = false // disabled in index.html until here: a click before this listener was lost
 }
