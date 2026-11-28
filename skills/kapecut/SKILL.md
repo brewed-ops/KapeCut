@@ -46,7 +46,7 @@ Then, with no `project.json` in the folder, go on with the steps below. With one
 
 6. **Still check.** Check every Scene yourself before handing over (method below). Fix what is wrong and check again. Done when you have looked at a still at the start (`t=0`), the middle and the last Frame (`t = TOTAL - 1/fps`; Export never draws `t = TOTAL`) of every Scene, plus one at each beat you animated, and each one shows the Scene as planned: nothing clipped or off-canvas, text readable, nothing blank except a fade you planned, and with the safe zone on, every text, logo and face inside it. A still that is all background where the plan shows something means the drawing or `window.ready` failed; the starter writes a failed `ready` on the page.
 
-7. **Final check, one Scene at a time.** After your last edit to any file, a shared script or stylesheet included, run the final check (method below) on every Scene. Fix what fails and check that Scene again. Done when every Scene passes.
+7. **Final check.** After your last edit to any file, a shared script or stylesheet included, run the final check (method below) on the Project. Fix what fails and run it again. Done when every Scene passes.
 
 8. **Hand over.** Tell the user the Project folder path, the Scene plan with lengths, every Scene with its final check result, and to open the folder in KapeCut (the "Open folder" button, or drop the folder on the window).
 
@@ -113,43 +113,13 @@ chrome --headless --disable-gpu --hide-scrollbars --allow-file-access-from-files
 
 ## Final check
 
-A still hides JavaScript errors: a Scene that throws draws a blank canvas, and a headless `--screenshot` prints no message. KapeCut shows the same Scene as SCENE ERROR. So load each Scene page by itself and watch for errors, with Playwright:
+A still hides JavaScript errors: a Scene that throws draws a blank canvas, and a headless `--screenshot` prints no message. KapeCut shows the same Scene as SCENE ERROR. So run the checker in this skill's folder, which loads each Scene of `project.json` by itself, as KapeCut does:
 
-```js
-// browser = await chromium.launch({ channel: 'chrome', args: ['--allow-file-access-from-files'] }); 'msedge' without Chrome
-async function finalCheck(browser, url, project, out) {
-  const page = await browser.newPage()
-  const errors = []
-  // STAND_IN: kc-video-stand-in.js in this skill's folder. KapeCut's /kc-video.js is not there, so its load error is expected.
-  await page.addInitScript({ path: STAND_IN })
-  page.on('pageerror', (e) => errors.push(e.message))
-  page.on('console', (m) => m.type() === 'error' && !m.location().url.endsWith('/kc-video.js') && errors.push(m.text()))
-  try {
-    await page.goto(url)
-    // What KapeCut checks before the first Frame, with its 15 s limit.
-    const total = await page.evaluate(async ({ w, h }) => {
-      const late = new Promise((_, fail) => setTimeout(() => fail(new Error('window.ready never resolved (waited 15s)')), 15000))
-      await Promise.race([window.ready ?? document.fonts.ready, late])
-      const c = document.getElementById('c')
-      if (typeof window.renderAt !== 'function') throw new Error('no window.renderAt(t)')
-      if (!c || c.width !== w || c.height !== h) throw new Error(`no <canvas id="c"> of ${w}x${h}`)
-      const T = window.TOTAL
-      if (typeof T !== 'number' || !(T >= 0) || T === Infinity) throw new Error('no window.TOTAL length in seconds')
-      return T
-    }, project.size)
-    const end = Math.max(0, total - 1 / project.fps)
-    for (const [name, t] of [['start', 0], ['middle', total / 2], ['end', end]]) {
-      await page.evaluate((t) => window.renderAt(t), t)
-      await page.locator('#c').screenshot({ path: `${out}-${name}.png` })
-    }
-  } catch (e) {
-    errors.push(e.message) // a window.ready that rejects or never resolves, a contract check, a renderAt that throws
-  }
-  await page.close()
-  return errors // empty: the Scene passes
-}
+```sh
+node <this skill folder>/check-scenes.mjs <project folder> <stills folder>
 ```
 
-- Call it for each Scene with its `file:///` URL (no `?t=`, no `?scale=`), the parsed `project.json` and a still name outside the Project folder. The Scene fails on any error it returns: a page error, a console error, a `window.ready` that rejects or hangs, a broken Scene contract or a `renderAt` that throws. Then look at its three stills as in the still check.
-- Without Playwright, run the still check command with `--enable-logging=stderr` added and fail the Scene on any `Uncaught` in the output or a still that reads "window.ready failed". This catches less than the function above.
-- One Scene per page, a new page each time, so one Scene's globals never hide another's missing function.
+- It prints `PASS` or `FAIL` per Scene, with each error under a failing one: a page error, a console error, a `window.ready` that rejects or hangs past 15 s, a broken Scene contract, a `renderAt` that throws or never returns. It exits 1 when any Scene fails. Done when every Scene passes and it exits 0.
+- It needs Playwright (`npm install playwright` in the Project folder, or `npm install -g playwright`) and drives your Chrome or Edge, so no browser download. It writes a start, middle and end still of each Scene (`scene-1-start.png`, ...) to the stills folder, a folder outside the Project, or a new temp folder when you leave it out; look at them as in the still check.
+- Without Playwright it says how to install it and runs the still check with logging instead: it fails a Scene on an `Uncaught` error at `t=0` or a "window.ready failed", and catches less. Install Playwright and run it again when you can.
+- A Scene that draws a video (`kcVideo`) passes in the checker: it loads `kc-video-stand-in.js` from this skill's folder in place of KapeCut's helper.
