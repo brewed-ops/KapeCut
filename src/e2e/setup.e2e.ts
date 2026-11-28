@@ -291,7 +291,7 @@ test('a long status line wraps beside the buttons, never into them: Copy Prompt 
       const setup = page.getByRole('dialog', { name: /KapeCut needs/ })
       await expect(setup).toBeVisible()
       const prompt = setup.locator('#setup-prompt')
-      await prompt.evaluate((b) => (b.hidden = false)) // shown while an Agent is found: both buttons share the row
+      await prompt.evaluate((b: HTMLButtonElement) => (b.hidden = false)) // shown while an Agent is found: both buttons share the row
       const boxes = () => Promise.all(['#setup-prompt', '#setup-recheck'].map((s) => setup.locator(s).boundingBox()))
       const before = await boxes()
       // The longest status the row gets: a Mac Run that Automation refused (macOS check, #15).
