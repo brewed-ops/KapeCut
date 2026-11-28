@@ -107,6 +107,9 @@ function serve(req: Request) {
 }
 
 // The Setup window's skill check (#89): the repo's copy against Claude Code's, both fixed here, never from the page.
+// The prompts point every Agent at this copy: the repo's in dev, the install folder's when packaged (ADR 0008).
+// shortcut: a quarantined Mac app run outside Applications is translocated to a temp path that goes when it quits;
+// install-mac.sh puts it in /Applications unquarantined. Warn in Setup if users hit it.
 // out/main/ -> repo root: the installer keeps that layout, unpacked (package-files.test.ts), like the icon.
 const SKILL_FROM = join(__dirname, '../../skills/kapecut')
 const skillTo = () => join(homedir(), '.claude', 'skills', 'kapecut') // per call: USERPROFILE / HOME decide it
@@ -184,7 +187,7 @@ app.whenReady().then(() => {
   }
   handle('settings:idle-minutes', async (_e, n: unknown) => (await save(withIdleMinutes(settings, n))).idleMinutes) // refuses all but 1 to 120
   handle('settings:theme', async (_e, t: unknown) => {
-    const { theme } = await save(withTheme(settings, t)) // refuses all but dark, light, glass, system
+    const { theme } = await save(withTheme(settings, t)) // refuses a theme not in Theme
     paintGround()
     return theme
   })
@@ -253,7 +256,7 @@ app.whenReady().then(() => {
     return checks()
   })
   win.on('closed', () => (stopWatch(), nativeTheme.off('updated', paintGround)))
-  handle('project:state', () => ({ current: projectDir, recent: readRecent(), session: sessionFile(), opened: opens }))
+  handle('project:state', () => ({ current: projectDir, recent: readRecent(), session: sessionFile(), skill: join(SKILL_FROM, 'SKILL.md'), opened: opens }))
   // A drop on the window: one folder opens as a Project (unless an Export runs), files are copied into the open one. The
   // paths come from the preload, which takes them from a real OS drop only (ADR 0004).
   handle('project:drop', (_e, paths: unknown, mayOpen: unknown) => {

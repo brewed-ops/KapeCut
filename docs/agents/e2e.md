@@ -24,7 +24,7 @@ Every spec launches through `launch(opts)` in `src/e2e/launch.ts`, which returns
 - `readyEnv()` also holds `kapecut-e2e.lock` in the git dir every worktree shares, so runs from parallel agents
   queue ("Waiting for another KapeCut e2e or shot run") instead of starving each other into timeouts. A crashed run's
   lock is taken over once its pid is gone. Run the specs your change touches; CI runs the full suite. An edit to `skills/kapecut/SKILL.md` touches
-  `skill-final-check.e2e.ts`, which runs the skill's Final check snippet as written.
+  `skill-final-check.e2e.ts`, which runs the skill's checker (`skills/kapecut/check-scenes.mjs`) as the Final check names it.
 - A new launcher (script or config) spreads `process.env` (or calls `readyEnv()`) and deletes
   `ELECTRON_RUN_AS_NODE` at its top, as `scripts/shot.mjs` does. With it set, every test fails in 0.3 s with
   "Process failed to launch!".

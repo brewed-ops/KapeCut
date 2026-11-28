@@ -22,19 +22,29 @@ there as a variable before any UI uses it.
 A working page in this exact look, with the tokens and the grain tile embedded:
 `C:\Users\kvill\Downloads\matt-pocock-skills-map.html` (Kenneth's machine).
 
-## Light
+## Themes
 
-Settings > Appearance > Theme picks Dark (the default), Light or System (#114). Light is the same tokens again under
-`:root[data-theme='light']` in `tokens.css`: warm paper `--bg`, panels a step lighter (`--panel`) and darker
-(`--panel-2`), ink `--text`. The grain stays, lighter (`--grain-blend`: soft-light instead of overlay). Nothing else
-changes: same type, same single amber.
+Settings > Appearance > Theme picks Dark (the default), Light, Coffee or System (#114, #19). System is Dark or Light,
+whichever the OS uses, followed live (so on a light OS it moves from 0.0.1's warm paper to the cool Light). 0.0.1 saved Coffee as `light` and Light as `glass`: `readSettings` renames them
+in a version 1 settings file, and the next save writes version 2.
+
+The preload sets `data-theme` on `<html>` before the first paint, and main paints the window's ground the same `--bg`
+(`BACKGROUND` in `src/main/settings.ts`, held equal by its test), so no theme flashes another.
+
+### Coffee
+
+The same tokens again under `:root[data-theme='coffee']` in `tokens.css`: warm paper `--bg`, panels a step lighter
+(`--panel`) and darker (`--panel-2`), ink `--text`. The grain stays, lighter (`--grain-blend`: soft-light instead of
+overlay). Nothing else changes: same type, same single amber.
 
 - The amber darkens (`#965400`) so it reads as text at 5:1 on the paper and still carries `--bg` text on the main
   button.
-- `--scrim` (behind the Settings panel) and `--shadow` (under floating panels) are tokens too, lighter in Light.
-- The preload sets `data-theme` on `<html>` before the first paint, and main paints the window's ground the same `--bg`
-  (`BACKGROUND` in `src/main/settings.ts`, held equal by its test), so neither theme flashes the other. System follows
-  the OS live.
+- `--scrim` (behind the Settings panel) and `--shadow` (under floating panels) are tokens too, lighter in Coffee.
+
+### Light
+
+`:root[data-theme='light']`: cool grey-white, frosted panels over a white wash, no grain, kept exactly as 0.0.1 shipped
+it. The one exception to the single amber: its one accent is blue (`#0066cc`, 5:1 on its `--bg`).
 
 Settings itself: `docs/design/settings-reference.png` is the structure it follows (left nav, `Settings / <section>`
 header with Close, cards of rows: label and one line left, control right), drawn in these tokens. It is the one panel
