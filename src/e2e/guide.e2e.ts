@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { launch } from './launch'
 
 // Best effort: Electron's helper processes can hold the profile a moment past close on Windows (connect.e2e.ts).
@@ -64,6 +64,31 @@ test('the Guide opens by itself on the first launch only; the header button open
     })
     await expect(guide()).toBeHidden()
     await app.close()
+  } finally {
+    cleanUp(root)
+  }
+})
+
+test('on a first launch the Guide waits for the Setup window to close, not opening over it', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-guide-'))
+  try {
+    // An outdated skill lets the app in while the Setup window stays to say so, until Re-check (setup.e2e.ts).
+    const home = join(root, 'home')
+    cpSync(resolve('skills/kapecut'), join(home, '.claude', 'skills', 'kapecut'), { recursive: true })
+    writeFileSync(join(home, '.claude', 'skills', 'kapecut', 'SKILL.md'), 'my own edit')
+    const { app, page } = await launch({ userData: join(root, 'user'), env: { ...firstLaunch, USERPROFILE: home, HOME: home }, waitForExport: false })
+    try {
+      const setup = page.getByRole('dialog', { name: /KapeCut needs/ })
+      await expect(setup.locator('#setup-status')).toHaveText(/Update it, or Re-check to go on/)
+      // Enabled once the launch has decided about the Guide: it stays shut while Setup shows.
+      await expect(page.locator('#guide')).toBeEnabled({ timeout: 15_000 })
+      await expect(page.locator('#guide-panel')).toBeHidden()
+      await setup.getByRole('button', { name: 'Re-check' }).click()
+      await expect(setup).toBeHidden()
+      await expect(page.locator('#guide-panel')).toBeVisible()
+    } finally {
+      await app.close().catch(() => {})
+    }
   } finally {
     cleanUp(root)
   }
