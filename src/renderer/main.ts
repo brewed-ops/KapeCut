@@ -12,7 +12,7 @@ import { AUDIO_FILE_TYPE, wireFiles } from './files/files-ui'
 import { fileKind } from './files/kind'
 import { kapecut } from './bridge'
 import { $, errorText, toast } from './dom'
-import { connectPrompt, fixPrompt } from './agent/connect-prompt'
+import { connectPrompt, fixPrompt, sceneFixPrompt } from './agent/connect-prompt'
 import { wireAgentStatus } from './agent/status-ui'
 import { wireSettings } from './settings/settings-ui'
 import { fillIcons, icon } from './icons'
@@ -35,12 +35,22 @@ const placeHighlight = () => {
 // A row that changes size after (a thumbnail landing, fonts, zoom) moves the rows under it: renderSceneList observes each.
 const rowSizes = new ResizeObserver(placeHighlight)
 
-// An overlay, so the Scene frame survives and a later save can still reload it.
-function showError(message: string, label = 'Scene error') {
-  stage.querySelector('.error')?.remove()
+// An overlay, so the Scene frame survives and a later save can still reload it. fix: what its Copy fix prompt copies.
+// Rebuilt only when its text changes: the viewer redraws it on every Frame it plays, and a new button would drop a click.
+function showError(message: string, label = 'Scene error', fix?: string) {
+  const key = `${label}\n${message}`
+  const shown = stage.querySelector<HTMLElement>('.error')
+  if (shown?.dataset.key === key) return
+  shown?.remove()
   stage.insertAdjacentHTML('beforeend', '<div class="error"><span class="eyebrow"></span><p></p></div>')
-  stage.querySelector('.error .eyebrow')!.textContent = label
-  stage.querySelector('.error p')!.textContent = message
+  const error = stage.querySelector<HTMLElement>('.error')!
+  error.dataset.key = key
+  error.querySelector('.eyebrow')!.textContent = label
+  error.querySelector('p')!.textContent = message
+  if (!fix) return
+  const copy = Object.assign(document.createElement('button'), { className: 'primary', innerHTML: icon('copy') + 'Copy fix prompt' })
+  copy.addEventListener('click', () => copyPrompt(fix))
+  error.append(copy)
 }
 
 // Fit the Scene's Design size into the viewer without changing its aspect ratio.
@@ -205,8 +215,8 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     }
     $('scene-name').textContent = slot.file
     notes.draw()
-    const problem = projectError ?? slot.error
-    if (problem) showError(problem, projectError ? 'Project error' : 'Scene error')
+    if (projectError) showError(projectError, 'Project error')
+    else if (slot.error) showError(slot.error, 'Scene error', sceneFixPrompt({ project: dir, ...paths, scene: slot.file, error: slot.error }))
     else stage.querySelector('.error')?.remove()
     if (slot.error) return show(slot)
     if (exporting) return // an Export may be drawing the viewer's own pages, so only the labels move

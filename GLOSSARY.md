@@ -91,7 +91,7 @@ _Avoid_: onboarding, installer, wizard
 The text the "Connect your agent" button copies: where the KapeCut instructions are, the Project folder, the Session file to check, and what to ask the user first.
 
 **Fix prompt**:
-The text the Notes window's **Copy Prompt** copies: where the KapeCut instructions are, the Project folder, the Session file to check, fix-notes.md and the open Notes by number (never their text).
+The text the Notes window's **Copy Prompt** copies: where the KapeCut instructions are, the Project folder, the Session file to check, fix-notes.md and the open Notes by number (never their text). The SCENE ERROR overlay's **Copy fix prompt** copies one for that Scene: the same first lines, then the Scene file and its Scene error text.
 
 **Setup prompt**:
 The text the Setup window's **Copy Prompt** copies, while an Agent is found: each missing tool with its row's install command for this OS, for the Agent to run, then a Re-check. Each row also has its own **Run** button, which opens a terminal with the command typed in for the user to watch.

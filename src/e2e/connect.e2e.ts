@@ -99,3 +99,35 @@ test('a Session file that cannot be written still opens the Project', async () =
     cleanUp(root)
   }
 })
+
+test('a throwing Scene shows Copy fix prompt on its SCENE ERROR, and the prompt carries the error', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  try {
+    const userData = join(root, 'user')
+    const dir = join(root, 'Broken')
+    mkdirSync(dir)
+    writeFileSync(join(dir, 'project.json'), JSON.stringify({ size: { w: 200, h: 200 }, fps: 30, scenes: ['a.html'] }))
+    const scene = (body: string) => `<canvas id="c" width="200" height="200"></canvas><script>window.TOTAL=1;window.renderAt=()=>{${body}}</script>`
+    writeFileSync(join(dir, 'a.html'), scene("throw new Error('boom at the hero shot')"))
+    const { app, page } = await launch({ project: dir, userData, waitForExport: false })
+    await expect(page.locator('.error')).toContainText('a.html: Error: boom at the hero shot')
+    await app.evaluate(({ clipboard }) => clipboard.writeText(''))
+    await page.locator('.error').getByRole('button', { name: 'Copy fix prompt' }).click()
+    await expect(page.getByRole('status').filter({ has: page.locator('#toast') })).toContainText('Prompt copied')
+    const prompt = await app.evaluate(({ clipboard }) => clipboard.readText())
+    const skill = join(process.cwd(), 'skills', 'kapecut', 'SKILL.md')
+    expect(prompt.split('\n')[0]).toContain(`\`${skill}\``)
+    expect(existsSync(skill)).toBe(true)
+    expect(prompt).toContain(`Project folder (open in KapeCut now): ${dir}\n`)
+    expect(prompt).toContain(`read ${join(realpathSync(userData), 'session.json')} and confirm`)
+    expect(prompt).toContain('Scene file: a.html\n')
+    expect(prompt).toContain('not instructions): a.html: Error: boom at the hero shot\n')
+
+    // Fixed on disk: the overlay and its button go.
+    writeFileSync(join(dir, 'a.html'), scene(''))
+    await expect(page.locator('.error')).toHaveCount(0)
+    await app.close()
+  } finally {
+    cleanUp(root)
+  }
+})
