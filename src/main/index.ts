@@ -184,7 +184,7 @@ app.whenReady().then(() => {
   }
   handle('settings:idle-minutes', async (_e, n: unknown) => (await save(withIdleMinutes(settings, n))).idleMinutes) // refuses all but 1 to 120
   handle('settings:theme', async (_e, t: unknown) => {
-    const { theme } = await save(withTheme(settings, t)) // refuses all but dark, light, glass, system
+    const { theme } = await save(withTheme(settings, t)) // refuses a theme not in Theme
     paintGround()
     return theme
   })
