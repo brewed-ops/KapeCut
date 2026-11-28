@@ -15,6 +15,7 @@ import { $, errorText, lockConfirm, toast } from './dom'
 import { connectPrompt, fixPrompt, sceneFixPrompt } from './agent/connect-prompt'
 import { wireAgentStatus } from './agent/status-ui'
 import { showSettingsRecent, wireSettings } from './settings/settings-ui'
+import { wireGuide } from './guide/guide-ui'
 import { fillIcons, icon } from './icons'
 import { wireSetup } from './setup/setup-ui'
 import { ffmpegDetail } from './setup/setup'
@@ -1268,9 +1269,12 @@ const ready = wireSetup().then(() => {
 })
 const state = ready.then(() => kapecut.project.state())
 // Settings works even when the Project state cannot be read: the encoder status matters most then.
-void ready.then(() => Promise.all([state.catch(() => ({ recent: [] })), kapecut.settings.get()])).then(([{ recent }, settings]) =>
+const settingsNow = ready.then(() => kapecut.settings.get())
+void Promise.all([state.catch(() => ({ recent: [] })), settingsNow]).then(([{ recent }, settings]) =>
   wireSettings(recentButtons(recentNow ?? recent), settings),
 ).catch((e) => console.error('[kapecut] Settings could not start:', e)) // it stays disabled; the console says why
+// The Guide (#27) on its own, so a Settings failure never keeps it shut.
+void settingsNow.then((s) => wireGuide(s.guideSeen)).catch((e) => console.error('[kapecut] Guide could not start:', e))
 state
   .then(async ({ current, recent, session, skill, opened }) => {
     $('recent').replaceChildren(...recentRows(recent))
@@ -1293,7 +1297,8 @@ state
       showError('Open a Project folder, or drop one on the window.', 'No Project')
       const open = Object.assign(document.createElement('button'), { className: 'primary', innerHTML: icon('folder-open') + 'Open folder' })
       open.addEventListener('click', chooseProject)
-      stage.querySelector('.error')!.append(open)
+      const warning = Object.assign(document.createElement('p'), { className: 'model-warning', textContent: $('connect-warning').textContent }) // its one copy, in index.html
+      stage.querySelector('.error')!.append(open, warning)
     }
   })
   .catch((e) => showError(errorText(e), 'Project error'))

@@ -155,7 +155,7 @@ test('idle minutes change the pill live and survive a restart', async () => {
     await input.press('Enter') // a key in the app is activity: the pill turns active
     const saved = join(userData, 'settings.json')
     const file = () => existsSync(saved) && JSON.parse(readFileSync(saved, 'utf8'))
-    await expect.poll(file).toEqual({ version: 2, idleMinutes: 2, theme: 'dark' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 2, theme: 'dark', guideSeen: false })
     await expect(pill).toHaveAttribute('data-s', 'active')
     await page.clock.fastForward(60_000)
     await expect(pill).toHaveAttribute('data-s', 'active') // not yet: 2 minutes, not 1
@@ -172,19 +172,19 @@ test('idle minutes change the pill live and survive a restart', async () => {
     await settingsButton(page).click()
     await expect(input).toHaveValue('2')
     await expect(page.locator('#settings-status')).toBeHidden()
-    expect(file()).toEqual({ version: 2, idleMinutes: 2, theme: 'dark' })
+    expect(file()).toEqual({ version: 2, idleMinutes: 2, theme: 'dark', guideSeen: false })
     // A click outside keeps what was typed, like any field losing focus; a theme picked straight after keeps it too.
     await input.fill('3')
     await panel(page).getByRole('navigation').getByRole('button', { name: 'Appearance' }).click()
     await panel(page).getByRole('radio', { name: 'Light' }).check()
-    await expect.poll(file).toEqual({ version: 2, idleMinutes: 3, theme: 'light' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 3, theme: 'light', guideSeen: false })
     await panel(page).getByRole('radio', { name: 'Dark' }).check()
-    await expect.poll(file).toEqual({ version: 2, idleMinutes: 3, theme: 'dark' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 3, theme: 'dark', guideSeen: false })
     await section(page, 'General').click()
     await input.fill('2')
     await page.mouse.click(5, 5)
     await expect(panel(page)).toBeHidden()
-    await expect.poll(file).toEqual({ version: 2, idleMinutes: 2, theme: 'dark' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 2, theme: 'dark', guideSeen: false })
     await app.close()
 
     ;({ app, page } = await launch({ project: dir, userData }))

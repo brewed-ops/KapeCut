@@ -174,7 +174,9 @@ app.whenReady().then(() => {
   handle('tools:recheck', async () => (await refreshPath(), checks()))
   handleExport(() => projectDir)
   let settings = readSettings(settingsFile())
-  handle('settings:get', () => settings)
+  // e2e and shots set KAPECUT_GUIDE_SEEN=1 (scripts/ready-env.mjs): every launch has a fresh profile, so the Guide
+  // would open over the editor in each; guide.e2e.ts clears it to test the first launch.
+  handle('settings:get', () => ({ ...settings, guideSeen: settings.guideSeen || process.env.KAPECUT_GUIDE_SEEN === '1' }))
   // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change. Glass (#20)
   // blurs the desktop behind a clear ground, switched live: Windows acrylic, Mac vibrancy, none on Linux.
   // Off where the OS cannot blur or the user asked for less transparency: there Glass is solid ink. Set on a change only.
@@ -206,6 +208,8 @@ app.whenReady().then(() => {
     paintGround()
     return theme
   })
+  // The Guide opened by itself once (#27): never again.
+  handle('settings:guide-seen', async () => (await save({ ...settings, guideSeen: true })).guideSeen)
   // Read in step by the preload, so the page has its theme before it first paints (#114).
   on('settings:theme-now', (e) => (e.returnValue = settings.theme))
 
