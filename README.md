@@ -67,8 +67,9 @@ To update, open **Settings > Updates** in KapeCut and click **Check for updates*
 ### First launch (both)
 
 The **Setup** window checks for the tools KapeCut works with: ffmpeg, an Agent (Claude Code, Codex, OpenCode, Gemini
-CLI, Grok CLI or Cursor Agent) and Chrome or Edge. For anything missing it shows the install command with a **Copy**
-button. Install it, then click **Re-check**. The optional KapeCut skill for Claude Code installs with the **Install
+CLI, Grok CLI or Cursor Agent) and Chrome or Edge. For anything missing it shows the install command with **Copy**
+and **Run** (opens a terminal running it, for you to watch and answer). Once it is installed, click **Re-check**. A Mac
+without Homebrew gets a **Homebrew** row first. The optional KapeCut skill for Claude Code installs with the **Install
 skill** button. With an Agent already installed, **Copy Prompt** copies one prompt that has it install the rest for you.
 
 ## Run from source
@@ -88,8 +89,8 @@ npm run dev
 ```
 
 KapeCut checks all of these on every launch. While one is missing, the Setup window stands in for the editor and
-nothing opens. It shows the install command for your OS with a Copy button (KapeCut never runs an installer) and an
-**Install skill** button. With an Agent found, **Copy Prompt** copies one prompt that has it run the other install
+nothing opens. It shows the install command for your OS with Copy and Run buttons (Run opens a visible terminal
+running that row's fixed command, never anything typed in the page) and an **Install skill** button. With an Agent found, **Copy Prompt** copies one prompt that has it run the other install
 commands. Install what is missing, then press **Re-check**. Settings lists the same checks.
 
 Open a Project folder with the "Open folder" button, or drop the folder on the window. `examples/` holds two. Drop any other file on the window to copy it into the open Project: it shows in the Files panel, and audio files drag from there onto the Timeline.

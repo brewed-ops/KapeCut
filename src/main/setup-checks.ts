@@ -14,6 +14,8 @@ export type Checks = {
   agent: Agent | null
   skill: 'current' | 'missing' | 'outdated'
   browser: boolean
+  /** Homebrew on the merged PATH: a Mac's brew rows need it. */
+  brew: boolean
 }
 
 /** The Agent commands Setup looks for (ADR 0008), the suggested one first. */
@@ -150,6 +152,7 @@ export async function runChecks(skillFrom: string, skillTo: string): Promise<Che
     agent: findAgent(),
     skill: skillState(skillFrom, skillTo),
     browser: findBrowser(),
+    brew: !!findOnPath('brew'),
   }
 }
 

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { findAgent, findOnPath, withInstallDirs } from '../main/setup-checks'
+import { terminalArgv } from '../main/terminal'
 import { launch } from './launch'
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -103,6 +104,40 @@ test('with an Agent found and ffmpeg missing, Copy Prompt copies the ffmpeg comm
       expect(prompt).toContain('tell me to press Re-check')
     } finally {
       await app.evaluate(({ clipboard }, text) => clipboard.writeText(text), had).catch(() => {})
+      await app.close().catch(() => {})
+    }
+  } finally {
+    cleanUp(root)
+  }
+})
+
+test("Run on a missing row opens a terminal running that row's command (spawn stubbed: nothing installs)", async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  try {
+    const { app, page } = await launch({ userData: join(root, 'user'), env: { [PATH_KEY]: '' }, waitForExport: false })
+    try {
+      // Main's spawn records instead of running, and SystemRoot points nowhere: a real spawn would find no PowerShell.
+      const nowhere = join(root, 'no-windows')
+      await app.evaluate((_e, nowhere) => {
+        const g = globalThis as { runs?: unknown[] }
+        const { EventEmitter } = process.getBuiltinModule('node:events')
+        g.runs = []
+        process.env.SystemRoot = nowhere
+        process.getBuiltinModule('node:child_process').spawn = ((...args: unknown[]) => {
+          g.runs!.push(args)
+          const child = Object.assign(new EventEmitter(), { unref: () => {} })
+          setTimeout(() => child.emit('spawn'))
+          return child
+        }) as never
+      }, nowhere)
+      const row = page.getByRole('dialog', { name: /KapeCut needs/ }).locator('li[data-check="agent"]')
+      const command = await row.locator('code').textContent()
+      await row.getByRole('button', { name: 'Run the Claude Code command' }).click()
+      await expect(page.locator('#setup-status')).toHaveText('Running in a terminal. Re-check when it is done')
+      const runs = await app.evaluate(() => (globalThis as { runs?: unknown[] }).runs)
+      const os = process.platform === 'win32' ? 'win' : process.platform === 'darwin' ? 'mac' : 'linux'
+      expect(runs).toEqual([[...terminalArgv(os, command!, { SystemRoot: nowhere }), { detached: true, stdio: 'ignore' }]])
+    } finally {
       await app.close().catch(() => {})
     }
   } finally {

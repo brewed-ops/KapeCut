@@ -68,7 +68,11 @@ export function wireSetup(): Promise<void> {
         const copy = el('button', { innerHTML: icon('copy') + 'Copy', title: 'Copy the command, then run it in a terminal' })
         copy.setAttribute('aria-label', `Copy the ${r.name} command`)
         copy.addEventListener('click', () => kapecut.clipboard.write(r.command!).then(() => toast('Command copied'), (e) => say(errorText(e))))
-        li.append(el('code', { textContent: r.command }), copy)
+        // The terminal shows the command running, for the user to answer a password or licence prompt.
+        const run = el('button', { className: 'run', innerHTML: icon('play') + 'Run', title: 'Open a terminal running this command' })
+        run.setAttribute('aria-label', `Run the ${r.name} command`)
+        run.addEventListener('click', () => kapecut.runInstall(r.id).then(() => say('Running in a terminal. Re-check when it is done'), (e) => say(errorText(e))))
+        li.append(el('code', { textContent: r.command }), copy, run)
       }
       if (r.skill) {
         // Update asks before it replaces the user's copy; main does the asking.

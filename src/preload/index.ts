@@ -61,6 +61,8 @@ const bridge = {
   recheckTools: (): Promise<Checks> => ipcRenderer.invoke('tools:recheck'),
   // Copies the repo's skills/kapecut over ~/.claude/skills/kapecut. Main fixes both paths.
   installSkill: (): Promise<Checks> => ipcRenderer.invoke('tools:install-skill'),
+  // Only the row id: main picks the command from its fixed table.
+  runInstall: (id: string): Promise<void> => ipcRenderer.invoke('tools:run', id),
   settings: {
     get: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
     setIdleMinutes: (n: number): Promise<number> => ipcRenderer.invoke('settings:idle-minutes', n),

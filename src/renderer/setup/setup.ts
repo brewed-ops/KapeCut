@@ -11,6 +11,14 @@ const FFMPEG = { win: 'winget install Gyan.FFmpeg', mac: 'brew install ffmpeg', 
 const BROWSER = { win: 'winget install Google.Chrome', mac: 'brew install --cask google-chrome', linux: 'sudo snap install chromium' }
 // The native installer: needs no Node, updates itself. Wrapped in powershell so cmd runs it too.
 const CLAUDE = { win: 'powershell -c "irm https://claude.ai/install.ps1 | iex"', mac: 'curl -fsSL https://claude.ai/install.sh | bash', linux: 'curl -fsSL https://claude.ai/install.sh | bash' }
+// Homebrew's own one-line installer (brew.sh): the Mac's brew rows need it first.
+export const BREW = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+
+/** Every row's install command by OS: the one table the rows show and main's Run runs. */
+const COMMANDS: Record<string, Partial<Record<Os, string>>> = { ffmpeg: FFMPEG, agent: CLAUDE, browser: BROWSER, brew: { mac: BREW } }
+
+/** The command for a row id from the page, or null: Run never takes the command itself, only the id. */
+export const installCommand = (id: unknown, os: Os) => (typeof id === 'string' && Object.hasOwn(COMMANDS, id) && COMMANDS[id][os]) || null
 
 // A row fixed by running a command: the command shows only while it fails.
 const tool = (id: string, name: string, ok: boolean, detail: string, command: string): Row => ({ id, name, ok, detail, command: ok ? undefined : command })
@@ -30,7 +38,7 @@ const OTHERS = (Object.keys(AGENT_NAMES) as Agent[]).filter((a) => a !== 'claude
 export const passes = (rows: Row[]) => rows.every((r) => r.ok || r.optional)
 
 export function setupRows(c: Checks, os: Os): Row[] {
-  return [
+  const rows: Row[] = [
     tool('ffmpeg', 'ffmpeg 4.4+', c.ffmpeg && c.ffprobe, ffmpegDetail(c), FFMPEG[os]),
     // With none found, Claude Code is the suggested install (ADR 0008).
     tool('agent', c.agent ? 'Agent' : AGENT_NAMES.claude, !!c.agent, c.agent ? `${AGENT_NAMES[c.agent]} on PATH` : `No Agent on PATH. Also works: ${OTHERS}`, CLAUDE[os]),
@@ -44,6 +52,10 @@ export function setupRows(c: Checks, os: Os): Row[] {
     },
     tool('browser', 'Chrome or Edge', c.browser, c.browser ? 'Installed' : 'Not found. The Agent checks each Scene with a still from it', BROWSER[os]),
   ]
+  // A Mac with a brew command to run but no brew: Homebrew first.
+  if (os === 'mac' && !c.brew && rows.some((r) => r.command?.startsWith('brew ')))
+    rows.unshift(tool('brew', 'Homebrew', false, 'Not found. The brew commands below need it first', BREW))
+  return rows
 }
 
 const OS_NAME = { win: 'Windows', mac: 'macOS', linux: 'Linux' }
