@@ -21,8 +21,8 @@
 // out is the Mac's),
 // default-light.png (the editor in the light theme). default.png opens with a handshake: idle pill.
 // scene-delete-hover.png (a Scene row's trash on hover) and scene-delete-confirm.png (its confirm, then cancelled).
-// setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, Claude Code and the skill missing, then all set),
-// setup-window-prompt.png and setup-window-prompt-copied.png (Claude Code found, ffmpeg missing: Copy Prompt beside
+// setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, an Agent and the skill missing, then all set),
+// setup-window-prompt.png and setup-window-prompt-copied.png (an Agent found, ffmpeg missing: Copy Prompt beside
 // Re-check, then clicked: its toast).
 import { _electron as electron } from '@playwright/test'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -58,7 +58,8 @@ const shoot = async (page, name) => (await page.screenshot({ path: join(out, `${
 // Mid-animation is not a state: wait until the element's transitions (and its children's) have run out.
 const settled = (page, selector) => page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => {})))) // a cancelled one rejects
 
-// The Setup window: an empty PATH and a home without the skill (setup-window.png: commands to copy, Install skill),
+// The Setup window: an empty PATH and a home without the skill (setup-window.png: commands to copy, no Agent, the optional
+// skill),
 // then PATH back and Install skill pressed (setup-window-pass.png).
 const bare = mkdtempSync(join(tmpdir(), 'kapecut-home-bare-'))
 const pathKey = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH' // Windows spells it Path
@@ -69,7 +70,7 @@ const gate = await electron.launch({
 try {
   const page = await gate.firstWindow()
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.locator('#setup li[data-check="skill"].no').waitFor({ timeout: 30_000 })
+  await page.locator('#setup li[data-check="skill"].opt').waitFor({ timeout: 30_000 })
   await page.waitForTimeout(1000) // fonts settle
   await shoot(page, 'setup-window')
   await gate.evaluate((_e, path) => void (process.env.PATH = path), process.env.PATH)
@@ -80,29 +81,29 @@ try {
   await gate.close()
   rmSync(bare, { recursive: true, force: true })
 }
-// Only ready-env's dummy claude on PATH: ffmpeg missing, so Copy Prompt shows (setup-window-prompt.png), then its click
+// Only ready-env's dummy Agent on PATH: ffmpeg missing, so Copy Prompt shows (setup-window-prompt.png), then its click
 // (setup-window-prompt-copied.png).
 // shortcut: off Windows main appends Homebrew's dirs to PATH, so a brew ffmpeg hides this state (and setup-window.png's
 // ffmpeg row); shoot it on Windows, or point those dirs elsewhere when a Mac shoots it.
-const claudeOnlyData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
-const claudeOnly = await electron.launch({
-  args: ['.', `--user-data-dir=${claudeOnlyData}`],
+const agentOnlyData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
+const agentOnly = await electron.launch({
+  args: ['.', `--user-data-dir=${agentOnlyData}`],
   env: { ...process.env, KAPECUT_PROJECT: '', [pathKey]: process.env.KAPECUT_DUMMY_BIN },
 })
 try {
-  const page = await claudeOnly.firstWindow()
+  const page = await agentOnly.firstWindow()
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.locator('#setup-prompt:not([hidden])').waitFor({ timeout: 30_000 })
   await page.waitForTimeout(1000) // fonts settle
   await shoot(page, 'setup-window-prompt') // also warms capture: a window's first shot took 3 s, past the toast's HOLD
-  await keepClipboard(claudeOnly, async () => {
+  await keepClipboard(agentOnly, async () => {
     await page.locator('#setup-prompt').click()
     await page.locator('#toast', { hasText: 'Prompt copied' }).waitFor()
     await shoot(page, 'setup-window-prompt-copied')
   })
 } finally {
-  await claudeOnly.close()
-  rmSync(claudeOnlyData, { recursive: true, force: true, maxRetries: 10 })
+  await agentOnly.close()
+  rmSync(agentOnlyData, { recursive: true, force: true, maxRetries: 10 })
 }
 
 // Set-up state: an empty folder (setup.png), then files copied in from outside (setup-files.png).

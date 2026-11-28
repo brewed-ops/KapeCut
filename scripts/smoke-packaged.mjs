@@ -11,7 +11,7 @@ import readyEnv from './ready-env.mjs'
 delete process.env.ELECTRON_RUN_AS_NODE
 // electron-builder unpacks to win-unpacked, or mac-universal holding the .app
 const exe = resolve(process.platform === 'darwin' ? 'release/mac-universal/KapeCut.app/Contents/MacOS/KapeCut' : 'release/win-unpacked/KapeCut.exe')
-const done = readyEnv() // dummy claude on PATH, temp home WITH the skill
+const done = readyEnv() // dummy Agent on PATH, temp home WITH the skill
 const home = process.env.HOME // ready-env points HOME and USERPROFILE at the same temp home
 rmSync(join(home, '.claude'), { recursive: true, force: true }) // now the skill is missing
 const userData = mkdtempSync(join(tmpdir(), 'kapecut-pkg-'))

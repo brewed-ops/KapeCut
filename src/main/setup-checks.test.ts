@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
-import { ffmpegNewEnough, ffmpegVersion, findOnPath, hashFolder, installSkill, mergePath, skillState, withInstallDirs } from './setup-checks'
+import { AGENTS, ffmpegNewEnough, ffmpegVersion, findAgent, findOnPath, hashFolder, installSkill, mergePath, skillState, withInstallDirs } from './setup-checks'
 
 const made: string[] = []
 afterEach(() => made.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
@@ -38,6 +38,20 @@ it('finds a program on PATH without running it, a .cmd shim included on Windows'
   expect(findOnPath('ffmpeg', env)).toBeNull()
   expect(findOnPath('claude', { PATH: empty })).toBeNull()
   expect(findOnPath('claude', {})).toBeNull()
+})
+
+it('finds the first known Agent on PATH, any of them, Claude Code first', () => {
+  const bin = folder()
+  const shim = (name: string) => writeFileSync(join(bin, process.platform === 'win32' ? `${name}.cmd` : name), '', { mode: 0o755 })
+  const env = { PATH: bin, PATHEXT: '.COM;.EXE;.BAT;.CMD' }
+  expect(AGENTS).toEqual(['claude', 'codex', 'opencode', 'gemini', 'grok', 'cursor-agent'])
+  expect(findAgent(env)).toBeNull()
+  shim('cursor-agent')
+  expect(findAgent(env)).toBe('cursor-agent')
+  shim('codex')
+  expect(findAgent(env)).toBe('codex')
+  shim('claude')
+  expect(findAgent(env)).toBe('claude')
 })
 
 it('hashes every file in a folder: any change, added or removed file changes it', () => {

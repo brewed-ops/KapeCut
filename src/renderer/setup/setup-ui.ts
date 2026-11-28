@@ -36,21 +36,23 @@ export function wireSetup(): Promise<void> {
     }
     const show = (c: Checks) => {
       const rows = setupRows(c, os)
-      if (rows.every((r) => r.ok) && box.hidden) return done()
+      const pass = rows.every((r) => r.ok || r.optional)
+      if (pass && box.hidden) return done()
       list.replaceChildren(...rows.map(row))
       prompt = setupPrompt(rows, os)
       copyPrompt.hidden = !prompt
       open()
-      if (!rows.every((r) => r.ok)) return say('')
+      if (!pass) return say('')
       say('All set')
       recheck.hidden = true
       done() // in at once (a drop now opens); the window stays a moment to show it
       setTimeout(() => (box.hidden = true), HOLD)
     }
     const row = (r: Row) => {
-      const li = el('li', { className: r.ok ? 'ok' : 'no' })
+      const [cls, mark, label] = r.ok ? ['ok', 'checkmark-circle', 'OK'] as const : r.optional ? ['opt', 'add', 'Optional'] as const : ['no', 'dismiss-circle', 'Missing'] as const
+      const li = el('li', { className: cls })
       li.dataset.check = r.id
-      li.append(el('span', { className: 'eyebrow state', innerHTML: icon(r.ok ? 'checkmark-circle' : 'dismiss-circle') + (r.ok ? 'OK' : 'Missing') }), el('b', { textContent: r.name }), el('p', { textContent: r.detail }))
+      li.append(el('span', { className: 'eyebrow state', innerHTML: icon(mark) + label }), el('b', { textContent: r.name }), el('p', { textContent: r.detail }))
       if (r.command) {
         const copy = el('button', { innerHTML: icon('copy') + 'Copy', title: 'Copy the command, then run it in a terminal' })
         copy.setAttribute('aria-label', `Copy the ${r.name} command`)

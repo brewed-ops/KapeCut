@@ -9,7 +9,7 @@ export interface LaunchOptions {
   project?: string
   /** --user-data-dir. Left out: a temp one, removed when the app closes. Pass one to keep it across launches. */
   userData?: string
-  /** Extra env over process.env, which carries scripts/ready-env.mjs (fake home, dummy claude, KAPECUT_HIDDEN). */
+  /** Extra env over process.env, which carries scripts/ready-env.mjs (fake home, dummy Agent, KAPECUT_HIDDEN). */
   env?: Record<string, string>
   /** Wait until Export is enabled, that is every Scene has opened. Off for a launch with no Scenes to open. */
   waitForExport?: boolean
