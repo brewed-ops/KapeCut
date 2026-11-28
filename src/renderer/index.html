@@ -37,7 +37,7 @@
           <h2 id="setup-title">KapeCut needs <b>a few tools.</b></h2>
           <p>Install what is missing, then Re-check. KapeCut checks them on every launch.</p>
           <ul id="setup-list" aria-label="Checks"></ul>
-          <div class="row"><p id="setup-status" role="status"></p><button id="setup-prompt" title="Copy a prompt that has Claude Code install what is missing" hidden><svg data-icon="copy"></svg>Copy Prompt</button><button class="primary" id="setup-recheck"><svg data-icon="arrow-clockwise"></svg>Re-check</button></div>
+          <div class="row"><p id="setup-status" role="status"></p><button id="setup-prompt" title="Copy a prompt that has your Agent install what is missing" hidden><svg data-icon="copy"></svg>Copy Prompt</button><button class="primary" id="setup-recheck"><svg data-icon="arrow-clockwise"></svg>Re-check</button></div>
         </div>
       </section>
     </div>
@@ -94,11 +94,12 @@
                   <h2>Look</h2>
                   <div class="card">
                     <div class="row">
-                      <div><span id="theme-label">Theme</span><p>Dark, cool light, warm coffee, or the same as the system (Dark or Light).</p></div>
+                      <div><span id="theme-label">Theme</span><p>Dark, cool light, warm coffee, see-through glass, or the same as the system (Dark or Light).</p></div>
                       <div class="segmented" role="radiogroup" aria-labelledby="theme-label">
                         <label><input type="radio" name="theme" value="dark" />Dark</label>
                         <label><input type="radio" name="theme" value="light" />Light</label>
                         <label><input type="radio" name="theme" value="coffee" />Coffee</label>
+                        <label><input type="radio" name="theme" value="glass" />Glass</label>
                         <label><input type="radio" name="theme" value="system" />System</label>
                       </div>
                     </div>
@@ -195,12 +196,20 @@
       </section>
     </main>
     <!-- The confirm before a Scene is deleted (#17): its trash icon or the Delete key opens it. Cancel comes first, so it takes the focus. main.ts -->
-    <dialog id="delete-scene" aria-labelledby="delete-scene-title" closedby="any">
+    <dialog class="confirm" id="delete-scene" aria-labelledby="delete-scene-title" closedby="any">
       <h2 class="eyebrow" id="delete-scene-title">Delete Scene</h2>
       <p id="delete-scene-text"></p>
       <p class="detail">Its page moves to the trash.</p>
       <p id="delete-scene-status" role="status"></p>
       <div class="row"><button id="delete-scene-cancel">Cancel</button><button class="primary" id="delete-scene-ok"><svg data-icon="delete"></svg>Delete</button></div>
+    </dialog>
+    <!-- The warning before a Project leaves Recent Projects (#18): the X on its row in the Projects menu opens it. main.ts -->
+    <dialog class="confirm" id="remove-recent" aria-labelledby="remove-recent-title" closedby="any">
+      <h2 class="eyebrow" id="remove-recent-title">Remove from Recent Projects</h2>
+      <p id="remove-recent-text"></p>
+      <p class="detail">The folder and its files stay on disk.</p>
+      <p id="remove-recent-status" role="status"></p>
+      <div class="row"><button id="remove-recent-cancel">Cancel</button><button class="primary" id="remove-recent-ok"><svg data-icon="dismiss"></svg>Remove</button></div>
     </dialog>
     <!-- One toast for the app ("Prompt copied"); toast() in dom.ts shows it. -->
     <!-- The live region stays in the page; the pill inside it appears, so screen readers announce it. -->

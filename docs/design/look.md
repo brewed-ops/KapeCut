@@ -24,9 +24,10 @@ A working page in this exact look, with the tokens and the grain tile embedded:
 
 ## Themes
 
-Settings > Appearance > Theme picks Dark (the default), Light, Coffee or System (#114, #19). System is Dark or Light,
-whichever the OS uses, followed live (so on a light OS it moves from 0.0.1's warm paper to the cool Light). 0.0.1 saved Coffee as `light` and Light as `glass`: `readSettings` renames them
-in a version 1 settings file, and the next save writes version 2.
+Settings > Appearance > Theme picks Dark (the default), Light, Coffee, Glass or System (#114, #19, #20). System is
+Dark or Light, whichever the OS uses, followed live (so on a light OS it moves from 0.0.1's warm paper to the cool
+Light). 0.0.1 saved Coffee as `light` and Light as `glass`: `readSettings` renames them in a version 1 settings file,
+and the next save writes version 2.
 
 The preload sets `data-theme` on `<html>` before the first paint, and main paints the window's ground the same `--bg`
 (`BACKGROUND` in `src/main/settings.ts`, held equal by its test), so no theme flashes another.
@@ -45,6 +46,15 @@ overlay). Nothing else changes: same type, same single amber.
 
 `:root[data-theme='light']`: cool grey-white, frosted panels over a white wash, no grain, kept exactly as 0.0.1 shipped
 it. The one exception to the single amber: its one accent is blue (`#0066cc`, 5:1 on its `--bg`).
+
+### Glass
+
+`:root[data-theme='glass']` (#20): Dark's ink, cream and amber, see-through to the desktop. Main gives the window
+Windows acrylic (`setBackgroundMaterial`) or Mac vibrancy (`setVibrancy`) and a clear ground, switched live with no
+reload. `--tint` (dark ink at 80%) lies over the blur so cream text reads on any wallpaper, `--dim` is a step lighter
+than Dark's (4.5:1 on a panel over a white wallpaper), and the panels frost what is under them like Light's. No grain.
+Where the OS cannot blur (Linux, Windows before 11 22H2: `blurs` in `src/main/settings.ts`) or the user asked for
+reduced transparency, the window paints `--bg` under the same tint: solid ink, panels slightly see-through on it.
 
 Settings itself: `docs/design/settings-reference.png` is the structure it follows (left nav, `Settings / <section>`
 header with Close, cards of rows: label and one line left, control right), drawn in these tokens. It is the one panel

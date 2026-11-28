@@ -4,7 +4,7 @@
 // files.png (the Files panel, one file of each kind), files-copied.png (a row's path copied: its check), drop-overlay.png (files from disk over the window), export-progress.png
 // (the stage paused: "Exporting", play and step off)
 // and exported.png (Export filling its button, then done: the amber status), timeline-drop.png (an audio file dragged over the Timeline), notes-done.png (a done Note: check, dimmed; Copy Prompt amber, 2 open),
-// notes-done-{light,coffee}.png (the same in Light and in Coffee: its marks on that theme's accent, #125),
+// notes-done-{light,coffee,glass}.png (the same in Light, Coffee and Glass: its marks on that theme's accent, #125),
 // notes-copied.png (Copy Prompt clicked: the toast, the button reads Copied with a check), notes-hidden.png
 // (Hide done on), notes-flagged.png (a Note past its shortened Scene), zoomed.png (Timeline zoomed in, mid Scene 2),
 // playing.png (Pause showing), muted.png (mute on), broken.png (Scene 2 fails to open, largest usable resolution picked, Export refused,
@@ -17,14 +17,14 @@
 // setup.png and setup-files.png (Set-up state: an empty folder, then four files copied in), prompt-copied.png (Connect
 // your agent clicked: the "Prompt copied" toast), agent-active.png and agent-active-narrow.png (the Agent's handshake lands:
 // the pill turns active, Connect reads "copy again"; again at 1024 px wide), settings-narrow.png (Settings open at 1024 px,
-// one recent Project), settings-{general,appearance,setup,updates}-{dark,light,coffee}.png (each Settings section in each theme),
+// one recent Project), settings-{general,appearance,setup,updates}-{dark,light,coffee,glass}.png (each Settings section in each theme),
 // settings-update-{off,idle,checking,latest,available,downloading,ready,out,error}.png (each Update status, as main sends it;
 // out is the Mac's),
-// default-{light,coffee}.png (the editor in Light and in Coffee). default.png opens with a handshake: idle pill.
+// default-{light,coffee,glass}.png (the editor in Light, Coffee and Glass; Glass shot hidden shows no desktop behind it). default.png opens with a handshake: idle pill.
 // scene-delete-hover.png (a Scene row's trash on hover) and scene-delete-confirm.png (its confirm, then cancelled).
-// setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, Claude Code and the skill missing, then all set),
-// setup-window-prompt.png and setup-window-prompt-copied.png (Claude Code found, ffmpeg missing: Copy Prompt beside
-// Re-check, then clicked: its toast).
+// setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, an Agent and the skill missing, then all set),
+// setup-window-prompt.png and setup-window-prompt-copied.png (an Agent found, ffmpeg missing: Copy Prompt beside
+// Re-check, then clicked: its toast), setup-window-stale.png (all pass, the skill copy edited: the notice).
 import { _electron as electron } from '@playwright/test'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -59,7 +59,8 @@ const shoot = async (page, name) => (await page.screenshot({ path: join(out, `${
 // Mid-animation is not a state: wait until the element's transitions (and its children's) have run out.
 const settled = (page, selector) => page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => {})))) // a cancelled one rejects
 
-// The Setup window: an empty PATH and a home without the skill (setup-window.png: commands to copy, Install skill),
+// The Setup window: an empty PATH and a home without the skill (setup-window.png: commands to copy, no Agent, the optional
+// skill),
 // then PATH back and Install skill pressed (setup-window-pass.png).
 const bare = mkdtempSync(join(tmpdir(), 'kapecut-home-bare-'))
 const pathKey = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH' // Windows spells it Path
@@ -70,7 +71,7 @@ const gate = await electron.launch({
 try {
   const page = await gate.firstWindow()
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.locator('#setup li[data-check="skill"].no').waitFor({ timeout: 30_000 })
+  await page.locator('#setup li[data-check="skill"].opt').waitFor({ timeout: 30_000 })
   await page.waitForTimeout(1000) // fonts settle
   await shoot(page, 'setup-window')
   await gate.evaluate((_e, path) => void (process.env.PATH = path), process.env.PATH)
@@ -81,29 +82,50 @@ try {
   await gate.close()
   rmSync(bare, { recursive: true, force: true })
 }
-// Only ready-env's dummy claude on PATH: ffmpeg missing, so Copy Prompt shows (setup-window-prompt.png), then its click
+// Only ready-env's dummy Agent on PATH: ffmpeg missing, so Copy Prompt shows (setup-window-prompt.png), then its click
 // (setup-window-prompt-copied.png).
 // shortcut: off Windows main appends Homebrew's dirs to PATH, so a brew ffmpeg hides this state (and setup-window.png's
 // ffmpeg row); shoot it on Windows, or point those dirs elsewhere when a Mac shoots it.
-const claudeOnlyData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
-const claudeOnly = await electron.launch({
-  args: ['.', `--user-data-dir=${claudeOnlyData}`],
+const agentOnlyData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
+const agentOnly = await electron.launch({
+  args: ['.', `--user-data-dir=${agentOnlyData}`],
   env: { ...process.env, KAPECUT_PROJECT: '', [pathKey]: process.env.KAPECUT_DUMMY_BIN },
 })
 try {
-  const page = await claudeOnly.firstWindow()
+  const page = await agentOnly.firstWindow()
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.locator('#setup-prompt:not([hidden])').waitFor({ timeout: 30_000 })
   await page.waitForTimeout(1000) // fonts settle
   await shoot(page, 'setup-window-prompt') // also warms capture: a window's first shot took 3 s, past the toast's HOLD
-  await keepClipboard(claudeOnly, async () => {
+  await keepClipboard(agentOnly, async () => {
     await page.locator('#setup-prompt').click()
     await page.locator('#toast', { hasText: 'Prompt copied' }).waitFor()
     await shoot(page, 'setup-window-prompt-copied')
   })
 } finally {
-  await claudeOnly.close()
-  rmSync(claudeOnlyData, { recursive: true, force: true, maxRetries: 10 })
+  await agentOnly.close()
+  rmSync(agentOnlyData, { recursive: true, force: true, maxRetries: 10 })
+}
+
+// Every check passing but the skill copy edited: the once-a-launch notice over the editor (setup-window-stale.png).
+const staleHome = mkdtempSync(join(tmpdir(), 'kapecut-home-stale-'))
+cpSync(resolve('skills/kapecut'), join(staleHome, '.claude', 'skills', 'kapecut'), { recursive: true })
+writeFileSync(join(staleHome, '.claude', 'skills', 'kapecut', 'SKILL.md'), 'my own edit')
+const staleData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
+const stale = await electron.launch({
+  args: ['.', `--user-data-dir=${staleData}`],
+  env: { ...process.env, KAPECUT_PROJECT: '', USERPROFILE: staleHome, HOME: staleHome },
+})
+try {
+  const page = await stale.firstWindow()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.locator('#setup li[data-check="skill"].opt').waitFor({ timeout: 30_000 })
+  await page.waitForTimeout(1000) // fonts settle
+  await shoot(page, 'setup-window-stale')
+} finally {
+  await stale.close()
+  rmSync(staleData, { recursive: true, force: true, maxRetries: 10 })
+  rmSync(staleHome, { recursive: true, force: true })
 }
 
 // Set-up state: an empty folder (setup.png), then files copied in from outside (setup-files.png).
@@ -159,7 +181,7 @@ try {
   await shot('sketch-1903')
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.waitForTimeout(300)
-  // Settings (#114): each section, in Dark, Light and Coffee, and the editor in Light and Coffee.
+  // Settings (#114): each section, in Dark, Light, Coffee and Glass, and the editor in each but Dark.
   const settingsShots = async (theme) => {
     for (const section of ['General', 'Setup', 'Updates', 'Appearance']) { // ends on Appearance: its radios pick the theme, and it reopens there
       await page.getByRole('dialog', { name: 'Settings' }).getByRole('navigation').getByRole('button', { name: section }).click()
@@ -188,7 +210,7 @@ try {
     await page.waitForTimeout(100)
     await shot(`settings-update-${status.state}`)
   }
-  for (const theme of ['Light', 'Coffee']) {
+  for (const theme of ['Light', 'Coffee', 'Glass']) {
     const name = theme.toLowerCase()
     await page.getByRole('dialog', { name: 'Settings' }).getByRole('navigation').getByRole('button', { name: 'Appearance' }).click()
     await page.getByRole('radio', { name: theme }).check()
@@ -213,6 +235,18 @@ try {
   await settled(page, '#delete-scene')
   await shot('scene-delete-confirm')
   await page.getByRole('button', { name: 'Cancel' }).click()
+  await page.mouse.move(0, 0)
+
+  // Removing a recent Project (#18): the row's X on hover, then the warning; cancelled, so the list stays.
+  await page.locator('#projects summary').click()
+  await page.locator('#recent > div').first().hover()
+  await page.waitForTimeout(200)
+  await shot('recent-remove-hover')
+  await page.locator('#recent .del').first().click()
+  await settled(page, '#remove-recent')
+  await shot('recent-remove-warn')
+  await page.locator('#remove-recent-cancel').click()
+  await page.locator('#projects summary').click()
   await page.mouse.move(0, 0)
 
   // Files: one of each kind beside click.wav, then an audio file dragged over the Timeline (the drop line at 3 s).
@@ -272,7 +306,7 @@ try {
   await page.locator('#note-list .jump').first().click()
   await page.waitForTimeout(300)
   await shot('notes-done')
-  // The same Notes in Light and in Coffee, then back to Dark with Settings on General, so the later shots stay as they were.
+  // The same Notes in Light, Coffee and Glass, then back to Dark with Settings on General, so the later shots stay as they were.
   const nav = (section) => page.getByRole('dialog', { name: 'Settings' }).getByRole('navigation').getByRole('button', { name: section }).click()
   const pickTheme = async (name) => {
     await page.getByRole('button', { name: 'Settings' }).click()
@@ -285,7 +319,7 @@ try {
     await settled(page, '#settings-panel')
     await page.locator('#settings-panel').waitFor({ state: 'hidden' })
   }
-  for (const theme of ['Light', 'Coffee']) {
+  for (const theme of ['Light', 'Coffee', 'Glass']) {
     await pickTheme(theme)
     await closeSettings()
     await shot(`notes-done-${theme.toLowerCase()}`)

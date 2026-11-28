@@ -10,10 +10,15 @@ export type Checks = {
   ffmpeg: boolean
   ffmpegVersion: string | null
   ffprobe: boolean
-  claude: boolean
+  /** The first of AGENTS on PATH, or null. */
+  agent: Agent | null
   skill: 'current' | 'missing' | 'outdated'
   browser: boolean
 }
+
+/** The Agent commands Setup looks for (ADR 0008), the suggested one first. */
+export const AGENTS = ['claude', 'codex', 'opencode', 'gemini', 'grok', 'cursor-agent'] as const
+export type Agent = (typeof AGENTS)[number]
 
 type Env = Record<string, string | undefined>
 
@@ -47,6 +52,8 @@ export function findOnPath(name: string, env: Env = process.env) {
   }
   return null
 }
+
+export const findAgent = (env: Env = process.env) => AGENTS.find((a) => findOnPath(a, env)) ?? null
 
 // Off Windows a program must carry the execute bit: a 0644 file left by a broken install is not one.
 const canRun = (path: string) => {
@@ -120,8 +127,8 @@ export function findBrowser(env: Env = process.env) {
   return BROWSERS_LINUX.some((b) => findOnPath(b, env))
 }
 
-/** Every check passed: the Setup window lets the user in. */
-export const allPass = (c: Checks) => c.ffmpeg && c.ffprobe && c.claude && c.skill === 'current' && c.browser
+/** Every check passed: the Setup window lets the user in. The skill is an optional extra for Claude Code (ADR 0008). */
+export const allPass = (c: Checks) => c.ffmpeg && c.ffprobe && !!c.agent && c.browser
 
 // No shell, the same way Export spawns ffmpeg, so a found ffmpeg is one Export can run (an ffmpeg.cmd would not be).
 // 30 s: a first run after boot can wait on the virus scanner, and a timeout would lock the editor as "not on PATH".
@@ -140,7 +147,7 @@ export async function mediaChecks(): Promise<Media> {
 export async function runChecks(skillFrom: string, skillTo: string): Promise<Checks> {
   return {
     ...(await mediaChecks()),
-    claude: !!findOnPath('claude'),
+    agent: findAgent(),
     skill: skillState(skillFrom, skillTo),
     browser: findBrowser(),
   }

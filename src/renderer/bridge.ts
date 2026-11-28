@@ -13,6 +13,8 @@ export type Bridge = {
     /** A drop on the window: one folder opens as a Project, files are copied into the open one. Resolves to a message. */
     drop(files: File[], mayOpen: boolean): Promise<string | undefined>
     openRecent(dir: string): Promise<string | undefined>
+    /** Takes `dir` off Recent Projects, never touching the folder. Throws when it is not on the list. Resolves to the list. */
+    removeRecent(dir: string): Promise<string[]>
     /** Writes project.json's audio list. True: the file had changed on disk, read it again. */
     setAudio(list: Audio[]): Promise<boolean>
     /** Takes Scene `index` (named `file`) out of project.json and moves its page to the OS trash. Throws on the last Scene,

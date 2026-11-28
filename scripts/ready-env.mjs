@@ -1,7 +1,8 @@
 // Every e2e and shot launch gets past the Setup window (#89) without touching the real home: this points USERPROFILE /
-// HOME at a temp home holding a copy of skills/kapecut, and puts a dummy claude on PATH (CI has no Claude Code; the
-// app only looks for it). ffmpeg and Chrome or Edge come from the machine. Launches spread process.env, so they all
-// inherit it. Playwright runs it as globalSetup (its return is the teardown); the shot scripts call it themselves.
+// HOME at a temp home holding a copy of skills/kapecut, and puts a dummy codex on PATH (CI has no Agent; the app only
+// looks for one, and any Agent passes, ADR 0008). ffmpeg and Chrome or Edge come from the machine. Launches spread
+// process.env, so they all inherit it. Playwright runs it as globalSetup (its return is the teardown); the shot
+// scripts call it themselves.
 // It also holds one lock per repo (in the git dir every worktree shares), so parallel agents' Electron runs queue
 // instead of starving the machine into false timeouts.
 import { execFileSync } from 'node:child_process'
@@ -52,10 +53,10 @@ export default function readyEnv() {
   cpSync(fileURLToPath(new URL('../skills/kapecut', import.meta.url)), join(home, '.claude', 'skills', 'kapecut'), { recursive: true })
   const bin = join(home, 'bin')
   mkdirSync(bin)
-  writeFileSync(join(bin, process.platform === 'win32' ? 'claude.cmd' : 'claude'), '', { mode: 0o755 })
+  writeFileSync(join(bin, process.platform === 'win32' ? 'codex.cmd' : 'codex'), '', { mode: 0o755 })
   process.env.USERPROFILE = process.env.HOME = home
   process.env.PATH = bin + delimiter + (process.env.PATH ?? '')
-  process.env.KAPECUT_DUMMY_BIN = bin // a PATH of only this: Claude Code found, ffmpeg missing (the Setup prompt)
+  process.env.KAPECUT_DUMMY_BIN = bin // a PATH of only this: an Agent found, ffmpeg missing (the Setup prompt)
   process.env.KAPECUT_HIDDEN ||= '1' // no window on screen, no focus steal (#91); KAPECUT_HIDDEN=0 shows them for debugging
   return () => {
     try {

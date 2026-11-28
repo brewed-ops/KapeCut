@@ -7,13 +7,13 @@ import { APP_URL, handle, isAppPage, on } from './app-sender'
 import { fileUnder } from './file-under'
 import { watchProject } from './watch-project'
 import { exporting, handleExport } from './export'
-import { addRecent } from './recent-projects'
+import { addRecent, removeRecent } from './recent-projects'
 import { ownNotesWrite, writeNoteImage, writeNotes } from './notes-files'
 import { ownLanded, ownTemp, ownWrite } from './owned-writes'
 import { copyIn, deleteScene, listFiles, readDrop, writeAudio } from './project-files'
 import { writeSession } from './session-file'
 import { handleUpdates } from './updates'
-import { ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
+import { blurs, ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
 import { allPass, installSkill, mediaChecks, refreshPath, runChecks, skillState, withInstallDirs, type Checks } from './setup-checks'
 
 if (process.platform !== 'win32') process.env.PATH = withInstallDirs(process.env.PATH ?? '', homedir())
@@ -40,13 +40,16 @@ const isFolder = (dir: unknown) => {
   }
 }
 
-function readRecent(): string[] {
+// The list as saved, folders that are gone included: a drive plugged back in brings them back.
+function savedRecent(): string[] {
   try {
-    return (JSON.parse(readFileSync(recentFile(), 'utf8')) as string[]).filter(isFolder)
+    const list: unknown = JSON.parse(readFileSync(recentFile(), 'utf8'))
+    return Array.isArray(list) ? list.filter((d) => typeof d === 'string') : []
   } catch {
     return [] // first launch, or an unreadable list: start without recents
   }
 }
+const readRecent = () => savedRecent().filter(isFolder)
 
 // File-based hand-off: an agent saves a Scene, the viewer reloads it. The old Project's watch stops first.
 function useProject(win: BrowserWindow, dir: string) {
@@ -73,7 +76,7 @@ function openProject(win: BrowserWindow, dir: string) {
   if (!isFolder(dir)) return `${dir} is not a folder KapeCut can open`
   useProject(win, dir)
   try {
-    writeFileSync(recentFile(), JSON.stringify(addRecent(readRecent(), projectDir!)))
+    writeFileSync(recentFile(), JSON.stringify(addRecent(savedRecent(), projectDir!)))
   } catch (e) {
     console.error('[kapecut] could not save recent Projects:', e) // the Project still opens
   }
@@ -172,8 +175,20 @@ app.whenReady().then(() => {
   handleExport(() => projectDir)
   let settings = readSettings(settingsFile())
   handle('settings:get', () => settings)
-  // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change.
-  const paintGround = () => !win.isDestroyed() && win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors))
+  // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change. Glass (#20)
+  // blurs the desktop behind a clear ground, switched live: Windows acrylic, Mac vibrancy, none on Linux.
+  // Off where the OS cannot blur or the user asked for less transparency: there Glass is solid ink. Set on a change only.
+  let blurring = false
+  const paintGround = () => {
+    if (win.isDestroyed()) return
+    const blur = settings.theme === 'glass' && blurs() && !nativeTheme.prefersReducedTransparency
+    if (blur !== blurring) {
+      blurring = blur
+      if (process.platform === 'win32') win.setBackgroundMaterial(blur ? 'acrylic' : 'none')
+      if (process.platform === 'darwin') win.setVibrancy(blur ? 'under-window' : null)
+    }
+    win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors, blur)) // after the material, which sets its own
+  }
   nativeTheme.on('updated', paintGround)
   // In memory first, so a second change made while the first is still writing builds on it (idle minutes then theme).
   // A failed write puts the old value back, unless a later change has already replaced it.
@@ -212,13 +227,16 @@ app.whenReady().then(() => {
     titleBarStyle: 'hidden',
     // macOS keeps its traffic lights on a hidden title bar: on the gutter (24 px, tokens.css) and centred on the
     // header's controls, while the app hides its own buttons (app.css, data-platform from the preload).
-    ...(process.platform === 'darwin' && { trafficLightPosition: { x: 24, y: 27 } }),
+    // active: Glass's vibrancy stays blurred while another app has focus.
+    ...(process.platform === 'darwin' && { trafficLightPosition: { x: 24, y: 27 }, visualEffectState: 'active' }),
     title: 'KapeCut',
     // Window and taskbar icon (docs/design/logo.md). The .ico carries the hand-checked 16-48 px sizes, a PNG would be
     // shrunk from 256. out/main/ -> repo root, in dev and in the build.
     icon: join(__dirname, '../../resources/logo', process.platform === 'win32' ? 'kapecut.ico' : 'kapecut-256.png'),
     webPreferences: { preload: join(__dirname, '../preload/index.js') },
   })
+  paintGround() // Glass blurs from the first frame
+  win.on('focus', paintGround) // nativeTheme sends no event when the OS's reduce transparency setting changes
   // Scenes share the app page's origin: none may send the window off it or open another one with a fresh bridge (#126).
   win.webContents.on('will-navigate', (e) => !isAppPage(e.url) && e.preventDefault())
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
@@ -272,6 +290,12 @@ app.whenReady().then(() => {
   handle('project:open-recent', (_e, dir: string) =>
     readRecent().includes(dir) ? openProject(win, dir) : `${dir} is not a recent Project`,
   )
+  // Off the list only: the folder is never touched, and an open Project stays open (#18). Resolves to the new list.
+  handle('project:remove-recent', (_e, dir: unknown) => {
+    const recent = removeRecent(savedRecent(), dir) // the saved list, so no other entry goes with it
+    writeFileSync(recentFile(), JSON.stringify(recent))
+    return recent.filter(isFolder)
+  })
   handle('project:choose', async () => {
     const pick = await dialog.showOpenDialog(win, { title: 'Open a Project folder', properties: ['openDirectory'] })
     if (!pick.canceled && pick.filePaths[0]) return openProject(win, pick.filePaths[0])

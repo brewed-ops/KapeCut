@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { HANDSHAKE } from '../renderer/agent/status'
+import { BACKGROUND, blurs } from '../main/settings'
 
 // Best effort: Electron's helper processes can hold the profile a moment past close on Windows.
 const cleanUp = (root: string) => {
@@ -58,10 +59,10 @@ test('Settings opens as a modal panel: a section nav, a header naming the sectio
 
     // Setup: the tool checks.
     await section(page, 'Setup').click()
-    for (const label of ['H.264 hardware', 'H.264 software', 'ffmpeg 4.4+', 'ffprobe', 'Claude Code', 'KapeCut skill', 'Chrome or Edge'])
+    for (const label of ['H.264 hardware', 'H.264 software', 'ffmpeg 4.4+', 'ffprobe', 'Agent', 'KapeCut skill', 'Chrome or Edge'])
       await expect(panel(page).locator('#encoder > span', { hasText: label })).toHaveText(new RegExp(`^${label.replace(/[.+]/g, '\\$&')} (yes|no)$`))
     // The Setup window let the editor open, so its checks all passed (scripts/ready-env.mjs).
-    for (const label of ['Claude Code', 'KapeCut skill', 'Chrome or Edge'])
+    for (const label of ['Agent', 'KapeCut skill', 'Chrome or Edge'])
       await expect(panel(page).locator('#encoder > span', { hasText: label })).toHaveText(`${label} yes`)
     // The same fact the app finds: ffmpeg on the PATH it inherits from this process.
     const ffmpeg = (() => {
@@ -215,13 +216,30 @@ test('the theme repaints the app at once, survives a restart, and System follows
     await section(page, 'Appearance').click()
     const radio = (name: string) => panel(page).getByRole('radio', { name })
     await expect(radio('Dark')).toBeChecked()
-    // Each option repaints the page and the window's own ground, so a reload never flashes the other one.
-    for (const [name, bg, hex] of [['Light', 'rgb(238, 241, 246)', '#eef1f6'], ['Coffee', 'rgb(244, 239, 230)', '#f4efe6']]) {
+    // Each option repaints the page and the window's own ground, so a reload never flashes the other one. Glass clears the
+    // ground where the OS blurs the desktop behind it (Windows, Mac), and Coffee after it makes it solid again.
+    // getBackgroundColor drops the alpha: a clear ground reads #000000. The blur itself is read off main's calls.
+    // Main's own condition: an OS that blurs, and no reduce transparency (which also makes the tint solid).
+    const reduced = await app.evaluate(({ nativeTheme }) => nativeTheme.prefersReducedTransparency)
+    const blurring = blurs() && !reduced
+    const glassGround = blurring ? '#000000' : BACKGROUND.glass
+    await app.evaluate(({ BrowserWindow }) => {
+      const win = BrowserWindow.getAllWindows()[0]
+      const calls: unknown[] = ((globalThis as { blurCalls?: unknown[] }).blurCalls = [])
+      for (const k of ['setBackgroundMaterial', 'setVibrancy'] as const) {
+        const real = win[k].bind(win) as (v: unknown) => void
+        ;(win as unknown as Record<string, unknown>)[k] = (v: unknown) => (calls.push(v), real(v))
+      }
+    })
+    for (const [name, bg, hex] of [['Light', 'rgb(238, 241, 246)', '#eef1f6'], ['Glass', reduced ? 'rgb(13, 11, 10)' : 'rgba(13, 11, 10, 0.8)', glassGround], ['Coffee', 'rgb(244, 239, 230)', '#f4efe6']]) {
       await radio(name).check()
       await expect.poll(look).toEqual({ theme: name.toLowerCase(), bg })
       await expect.poll(saved).toBe(name.toLowerCase())
       expect(await ground()).toBe(hex)
     }
+    // Windows acrylic, Mac vibrancy, on for Glass and off after it; nothing where the OS cannot blur (Linux, Windows before 11 22H2).
+    const blur = blurring ? { win32: ['acrylic', 'none'], darwin: ['under-window', null] }[process.platform as string] : []
+    expect(await app.evaluate(() => (globalThis as { blurCalls?: unknown[] }).blurCalls)).toEqual(blur)
     await app.close()
 
     ;({ app, page } = await launch({ project: dir, userData }))
@@ -245,16 +263,19 @@ test('the theme repaints the app at once, survives a restart, and System follows
   }
 })
 
-test('a 0.0.1 settings file keeps its look: its light opens as Coffee, its glass as Light', async () => {
+test('a 0.0.1 settings file keeps its look (its light opens as Coffee, its glass as Light), and a saved Glass opens clear', async () => {
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
     const dir = project(root, 'Alpha')
     const userData = join(root, 'user')
     mkdirSync(userData)
-    for (const [old, now] of [['light', 'Coffee'], ['glass', 'Light']]) {
-      writeFileSync(join(userData, 'settings.json'), JSON.stringify({ version: 1, idleMinutes: 15, theme: old }))
+    for (const [version, old, now] of [[1, 'light', 'Coffee'], [1, 'glass', 'Light'], [2, 'glass', 'Glass']] as const) {
+      writeFileSync(join(userData, 'settings.json'), JSON.stringify({ version, idleMinutes: 15, theme: old }))
       const { app, page } = await launch({ project: dir, userData })
       expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(now.toLowerCase())
+      // Glass blurs from the first frame: a clear ground (getBackgroundColor drops the alpha) where the OS blurs.
+      const clear = now === 'Glass' && blurs() && !(await app.evaluate(({ nativeTheme }) => nativeTheme.prefersReducedTransparency))
+      expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBackgroundColor()) === '#000000').toBe(clear)
       await settingsButton(page).click()
       await section(page, 'Appearance').click()
       await expect(panel(page).getByRole('radio', { name: now })).toBeChecked()

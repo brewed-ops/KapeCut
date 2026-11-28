@@ -33,7 +33,9 @@ const CHECKS: [string, string, string][] = [
   ['#projects summary', 'paddingLeft', PAD],
   ['#projects summary svg', 'width', ICON],
   ['#projects .menu button', 'height', H],
-  ['#projects .menu button', 'paddingLeft', PAD_S],
+  ['#projects .menu button:not(.del)', 'paddingLeft', PAD_S],
+  ['#recent .del', 'width', H], // a recent row's X (#18): square, its icon centred
+  ['#recent .del svg', 'width', 'var(--control-icon-small)'],
   // viewer title bar and transport
   ['#connect', 'height', H],
   ['#connect', 'paddingLeft', PAD],

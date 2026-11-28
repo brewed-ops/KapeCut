@@ -19,3 +19,9 @@ export function toast(text: string) {
 
 // A throw in main reaches the page as "Error invoking remote method 'x': Error: <message>"; the user needs the message.
 export const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']*': (Error: )?/, '')
+
+/** A confirm modal while main works on its answer: its buttons are off and it cannot close, so the answer lands in it. */
+export function lockConfirm(dialog: HTMLDialogElement, on: boolean) {
+  for (const b of dialog.querySelectorAll('button')) b.disabled = on
+  dialog.setAttribute('closedby', on ? 'none' : 'any')
+}

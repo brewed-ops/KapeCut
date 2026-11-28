@@ -2,7 +2,10 @@ import type { Checks } from '../../main/setup-checks'
 import { kapecut } from '../bridge'
 import { $, errorText, HOLD, toast } from '../dom'
 import { icon } from '../icons'
-import { osOf, setupPrompt, setupRows, type Row } from './setup'
+import { osOf, passes, setupPrompt, setupRows, type Row } from './setup'
+
+// A row's icon and label by its class: passing, failing but optional (never blocks), or failing.
+const STATES = { ok: ['checkmark-circle', 'OK'], opt: ['add', 'Optional'], no: ['dismiss-circle', 'Missing'] } as const
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}) => Object.assign(document.createElement(tag), props)
 
@@ -17,6 +20,10 @@ export function wireSetup(): Promise<void> {
   const recheck = $('setup-recheck') as HTMLButtonElement
   const copyPrompt = $('setup-prompt') as HTMLButtonElement
   let prompt: string | null = null
+  // This window's first page has checked: a reload (Project switch) never checks again. Survives reloads, not restarts.
+  const seen = !!sessionStorage.getItem('kapecut-setup-seen')
+  sessionStorage.setItem('kapecut-setup-seen', '1')
+  let toldStale = seen
   const say = (text: string) => (status.textContent = text)
   const os = osOf(navigator.platform)
 
@@ -36,21 +43,27 @@ export function wireSetup(): Promise<void> {
     }
     const show = (c: Checks) => {
       const rows = setupRows(c, os)
-      if (rows.every((r) => r.ok) && box.hidden) return done()
+      const pass = passes(rows)
+      // An outdated skill never blocks, but Claude Code would load old instructions: said once per launch.
+      const stale = rows.some((r) => r.skill === 'outdated') && !toldStale
+      if (pass && box.hidden && !stale) return done()
       list.replaceChildren(...rows.map(row))
       prompt = setupPrompt(rows, os)
       copyPrompt.hidden = !prompt
       open()
-      if (!rows.every((r) => r.ok)) return say('')
+      if (!pass) return say('')
+      if (stale) return (toldStale = true), done(), say('Your KapeCut skill differs from this KapeCut. Update it, or Re-check to go on')
       say('All set')
       recheck.hidden = true
       done() // in at once (a drop now opens); the window stays a moment to show it
       setTimeout(() => (box.hidden = true), HOLD)
     }
     const row = (r: Row) => {
-      const li = el('li', { className: r.ok ? 'ok' : 'no' })
+      const cls = r.ok ? 'ok' : r.optional ? 'opt' : 'no'
+      const [mark, label] = STATES[cls]
+      const li = el('li', { className: cls })
       li.dataset.check = r.id
-      li.append(el('span', { className: 'eyebrow state', innerHTML: icon(r.ok ? 'checkmark-circle' : 'dismiss-circle') + (r.ok ? 'OK' : 'Missing') }), el('b', { textContent: r.name }), el('p', { textContent: r.detail }))
+      li.append(el('span', { className: 'eyebrow state', innerHTML: icon(mark) + label }), el('b', { textContent: r.name }), el('p', { textContent: r.detail }))
       if (r.command) {
         const copy = el('button', { innerHTML: icon('copy') + 'Copy', title: 'Copy the command, then run it in a terminal' })
         copy.setAttribute('aria-label', `Copy the ${r.name} command`)
@@ -70,7 +83,7 @@ export function wireSetup(): Promise<void> {
     // Once in, in for this run: a reload (Project switch, project.json saved) never shuts the open Project again.
     kapecut
       .setupPassed()
-      .then((passed) => (passed ? done() : kapecut.tools().then(show)))
+      .then((passed) => (passed && seen ? done() : kapecut.tools().then(show)))
       .catch((e) => (say(`Could not check: ${errorText(e)}`), open()))
   })
 }
