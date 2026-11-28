@@ -112,8 +112,8 @@ function thumbOf(c: HTMLCanvasElement) {
 }
 const projectUrl = (file: string) => `/project/${file.split('/').map(encodeURIComponent).join('/')}`
 
-/** session: the Session file's path, which the fix prompt names. */
-async function openProject(dir: string, opened: Project & { name: string }, session: string) {
+/** at: the Session file's path and the shipped SKILL.md's, which the fix prompt names. */
+async function openProject(dir: string, opened: Project & { name: string }, at: { session: string; skill: string }) {
   let project = opened
   let projectError: string | undefined // project.json broke after opening; the last good Scene order keeps playing
   // shortcut: every Scene page stays loaded, so the next one is always preloaded; keep only current + next if long Projects use too much memory.
@@ -242,7 +242,7 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     paused: () => viewerPaused,
     seek: (t) => (tr.pause(), tr.seek(t)),
     changed: tl.layoutNotes,
-    copyPrompt: (open) => copyPrompt(fixPrompt({ project: dir, session, open })),
+    copyPrompt: (open) => copyPrompt(fixPrompt({ project: dir, ...at, open })),
   })
   tl.showNotes(notes)
   const mute = $('mute')
@@ -1194,7 +1194,7 @@ void ready.then(() => Promise.all([state.catch(() => ({ recent: [] })), kapecut.
   wireSettings(recentButtons(recent), settings),
 ).catch((e) => console.error('[kapecut] Settings could not start:', e)) // it stays disabled; the console says why
 state
-  .then(async ({ current, recent, session, opened }) => {
+  .then(async ({ current, recent, session, skill, opened }) => {
     $('recent').replaceChildren(...recentButtons(recent))
     const project = await readProject(current).catch((e) => {
       showError(errorText(e), 'Project error')
@@ -1206,11 +1206,11 @@ state
       void wireAgentStatus(opened) // shows Connect once it knows which face it has
       projectState = project === SET_UP ? 'set-up' : project ? 'ready' : 'error'
       $('connect').addEventListener('click', () =>
-        copyPrompt(connectPrompt({ project: current, session, state: projectState })),
+        copyPrompt(connectPrompt({ project: current, session, skill, state: projectState })),
       )
     }
     if (project === SET_UP) return showSetUp(current!)
-    if (project) return openProject(current!, project, session).catch((e) => showError(errorText(e)))
+    if (project) return openProject(current!, project, { session, skill }).catch((e) => showError(errorText(e)))
     if (project === null) {
       showError('Open a Project folder, or drop one on the window.', 'No Project')
       const open = Object.assign(document.createElement('button'), { className: 'primary', innerHTML: icon('folder-open') + 'Open folder' })

@@ -31,6 +31,10 @@ try {
   ok(existsSync(join(home, '.claude', 'skills', 'kapecut', 'SKILL.md')), 'Install skill copied SKILL.md from the package')
   await page.locator('#export:not([disabled])').waitFor({ timeout: 15_000 })
   ok(true, 'editor opened examples/hello, Export enabled')
+  await page.getByRole('button', { name: 'Connect your agent' }).click()
+  await page.locator('#toast').waitFor({ timeout: 5_000 })
+  const skill = (await app.evaluate(({ clipboard }) => clipboard.readText())).match(/^I'm using KapeCut\. Read the KapeCut instructions at (.+) first\.$/m)?.[1]
+  ok(skill && skill.startsWith(resolve(exe, '..')) && existsSync(skill), `the Connect prompt points at the packaged SKILL.md (${skill})`)
   mkdirSync('.scratch', { recursive: true })
   for (const theme of ['dark', 'light', 'glass']) {
     // Through Settings, as a user picks it (the page's bridge is taken once, by the app)

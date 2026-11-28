@@ -544,7 +544,9 @@ test('Copy Prompt copies the fix prompt for the open Notes only, counts them liv
   await expect(page.getByRole('status').filter({ has: page.locator('#toast') })).toContainText('Prompt copied')
   await expect(status).toHaveText('')
   const prompt = await clipboard()
-  expect(prompt).toContain('follow fix-notes.md')
+  const skill = prompt.match(/^I'm using KapeCut\. Read the KapeCut instructions at (.+) first, then follow fix-notes\.md next to it\.$/m)?.[1]
+  expect(skill).toBe(join(process.cwd(), 'skills', 'kapecut', 'SKILL.md'))
+  expect(existsSync(skill!)).toBe(true) // the shipped instructions, real in this build (ADR 0008)
   expect(prompt).toContain(`Project folder (open in KapeCut now): ${dir}\n`)
   expect(prompt).toContain(`read ${join(realpathSync(userData), 'session.json')} and confirm`)
   expect(prompt).toContain('Fix these open Notes in notes.json: 2, 3.') // not done Note 1
