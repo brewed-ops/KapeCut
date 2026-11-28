@@ -66,9 +66,9 @@
   --pop-scale: 0.94; /* the Settings panel grows in from this scale and shrinks back to it as it fades out (#80, #114) */
 }
 
-/* Light (#114, docs/design/look.md): the same tokens on warm paper. Set by data-theme on <html> (src/preload/index.ts, before
+/* Coffee (#114, #19, docs/design/look.md): the same tokens on warm paper. Set by data-theme on <html> (src/preload/index.ts, before
    the first paint). The amber darkens to 5:1 on --bg, so it still reads as text and carries --bg text on it. */
-:root[data-theme='light'] {
+:root[data-theme='coffee'] {
   --bg: #f4efe6;
   --panel: #fbf8f2;
   --panel-2: #ece4d6;
@@ -85,9 +85,9 @@
   --grain-blend: soft-light; /* the grain, lighter on paper */
 }
 
-/* Glass (apple-design section 12): frosted white panels over a cool white wash, Apple blue as the one accent. No grain:
+/* Light (apple-design section 12; 0.0.1 saved it as theme "glass", #19): frosted white panels over a cool white wash, Apple blue as the one accent. No grain:
    app.css lays --wash on body and blurs what sits under each panel (--glass). The blue is 5:1 on --bg. */
-:root[data-theme='glass'] {
+:root[data-theme='light'] {
   --bg: #eef1f6;
   --wash: radial-gradient(120% 80% at 0% 0%, #ffffff 0%, transparent 60%), radial-gradient(90% 70% at 100% 100%, #dfe6f2 0%, transparent 70%),
     linear-gradient(160deg, #fbfcfe 0%, #eef1f6 50%, #e4e9f2 100%);
@@ -108,5 +108,5 @@
 }
 /* Reduced transparency: the same glass, solid. */
 @media (prefers-reduced-transparency: reduce) {
-  :root[data-theme='glass'] { --panel: #fbfcfe; --panel-2: #f1f4f9; --glass: none; }
+  :root[data-theme='light'] { --panel: #fbfcfe; --panel-2: #f1f4f9; --glass: none; }
 }

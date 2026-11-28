@@ -32,10 +32,10 @@ body {
   display: grid;
   grid-template-rows: auto 1fr;
 }
-/* Glass (tokens.css): the wash in place of grain, and every floating surface frosts what is under it. */
-:root[data-theme='glass'] body { background: var(--wash), var(--bg); background-blend-mode: normal; }
-:root[data-theme='glass'] :is(.window, #settings, #agent-status, .pop, .toast) { backdrop-filter: var(--glass); box-shadow: inset 0 1px 0 var(--edge), var(--shadow); }
-:root[data-theme='glass'] #settings-panel { background: var(--panel-2); backdrop-filter: var(--glass); }
+/* Light (tokens.css): the wash in place of grain, and every floating surface frosts what is under it. */
+:root[data-theme='light'] body { background: var(--wash), var(--bg); background-blend-mode: normal; }
+:root[data-theme='light'] :is(.window, #settings, #agent-status, .pop, .toast) { backdrop-filter: var(--glass); box-shadow: inset 0 1px 0 var(--edge), var(--shadow); }
+:root[data-theme='light'] #settings-panel { background: var(--panel-2); backdrop-filter: var(--glass); }
 
 .eyebrow {
   font: 500 11px/var(--lead-label) var(--mono);
