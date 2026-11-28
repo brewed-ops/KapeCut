@@ -69,6 +69,7 @@ const bridge = {
     get: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
     setIdleMinutes: (n: number): Promise<number> => ipcRenderer.invoke('settings:idle-minutes', n),
     setTheme: async (t: Theme): Promise<Theme> => ((theme = await ipcRenderer.invoke('settings:theme', t)), paint(), theme),
+    markGuideSeen: (): Promise<boolean> => ipcRenderer.invoke('settings:guide-seen'),
   },
   // Nothing takes a URL or a version: main acts on the status it holds (src/main/updates.ts).
   updates: {

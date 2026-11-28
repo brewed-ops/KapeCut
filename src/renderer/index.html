@@ -16,6 +16,7 @@
           <div id="recent" aria-label="Recent Projects"></div>
         </div>
       </details>
+      <button id="guide" aria-haspopup="dialog" aria-controls="guide-panel" disabled><svg data-icon="question-circle"></svg>Guide</button>
       <span id="project">No Project open</span>
       <span class="eyebrow" id="export-status" role="status"></span>
       <span id="agent-status" role="status" hidden><i></i><span class="name" data-label="Agent" aria-hidden="true"></span><span class="faces" id="agent-status-faces" aria-hidden="true"></span><span id="agent-status-text"></span></span>
@@ -41,6 +42,21 @@
         </div>
       </section>
     </div>
+    <!-- Guide (#27): the first steps, each naming its real button. Opens by itself once, after Setup passes. guide/guide-ui.ts -->
+    <dialog id="guide-panel" class="window" aria-labelledby="guide-title" closedby="any" tabindex="-1">
+      <div class="titlebar"><span class="title">Guide</span><button id="guide-close" aria-label="Close Guide"><svg data-icon="dismiss"></svg></button></div>
+      <div class="body">
+        <h2 id="guide-title">Six steps to <b>your first video.</b></h2>
+        <ol>
+          <li><span class="eyebrow">01</span><p><b>Open a folder</b> with your brief and references: <span class="button-name"><svg data-icon="folder-open"></svg>Open folder</span> in the Projects menu, or drop the folder on the window.</p></li>
+          <li><span class="eyebrow">02</span><p><b>Connect your Agent:</b> <span class="button-name"><svg data-icon="plug-disconnected"></svg>Connect your agent</span> above the viewer copies the Connect prompt. Paste it into your Agent.</p></li>
+          <li><span class="eyebrow">03</span><p><b>Watch the Scenes arrive</b> in <span class="button-name">Scenes</span> as your Agent writes them, and play them in the viewer.</p></li>
+          <li><span class="eyebrow">04</span><p><b>Drag Scenes to reorder them.</b> Pause on a Frame, press <span class="button-name"><svg data-icon="location"></svg>Note</span> and click the picture.</p></li>
+          <li><span class="eyebrow">05</span><p><b>Copy the Fix prompt:</b> <span class="button-name"><svg data-icon="copy"></svg>Copy Prompt</span> under Notes. Paste it into your Agent to fix them.</p></li>
+          <li><span class="eyebrow">06</span><p><b>Export</b> the MP4 with <span class="button-name">Export<svg data-icon="export"></svg></span> at the top right.</p></li>
+        </ol>
+      </div>
+    </dialog>
     <main id="main">
       <div class="side">
         <!-- Files dropped anywhere on the window are copied into the Project and listed here; audio drags onto the Timeline. -->
@@ -137,6 +153,7 @@
             <svg data-icon="plug-disconnected" class="off"></svg><span class="label off">Connect your agent</span>
             <svg data-icon="plug-connected" class="on"></svg><span class="label on">Agent connected<span class="via">, copy again</span></span>
           </button>
+          <span class="model-warning" id="connect-warning" hidden>Results depend on the AI model you use</span>
           <span class="eyebrow" id="scene-name">Scene</span>
           <!-- In the title bar, not the transport: a 9:16 viewer leaves the transport no room for them -->
           <span class="tools" id="note-tools" hidden>

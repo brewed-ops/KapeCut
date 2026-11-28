@@ -75,5 +75,5 @@ export async function wireAgentStatus(opened: number) {
   setInterval(show, 60_000) // also catches a timer the OS held back while asleep
   redraw = show
   show()
-  pill.hidden = connect.hidden = false // only now: never a flash of the wrong state before the check
+  pill.hidden = connect.hidden = $('connect-warning').hidden = false // only now: never a flash of the wrong state before the check
 }

@@ -57,6 +57,7 @@ export default function readyEnv() {
   process.env.USERPROFILE = process.env.HOME = home
   process.env.PATH = bin + delimiter + (process.env.PATH ?? '')
   process.env.KAPECUT_DUMMY_BIN = bin // a PATH of only this: an Agent found, ffmpeg missing (the Setup prompt)
+  process.env.KAPECUT_GUIDE_SEEN ??= '1' // the Guide's first-launch open never covers a spec's window (guide.e2e.ts tests it)
   process.env.KAPECUT_HIDDEN ||= '1' // no window on screen, no focus steal (#91); KAPECUT_HIDDEN=0 shows them for debugging
   return () => {
     try {

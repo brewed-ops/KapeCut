@@ -7,7 +7,8 @@
 // notes-done-{light,coffee,glass}.png (the same in Light, Coffee and Glass: its marks on that theme's accent, #125),
 // notes-copied.png (Copy Prompt clicked: the toast, the button reads Copied with a check), notes-hidden.png
 // (Hide done on), notes-flagged.png (a Note past its shortened Scene), zoomed.png (Timeline zoomed in, mid Scene 2),
-// playing.png (Pause showing), muted.png (mute on), broken.png (Scene 2 fails to open, largest usable resolution picked, Export refused),
+// playing.png (Pause showing), muted.png (mute on), broken.png (Scene 2 fails to open, largest usable resolution picked, Export refused,
+// with SCENE ERROR and its Copy fix prompt on the stage), scene-error-copied.png (Copy fix prompt clicked: the toast),
 // audio-broken.png (a missing Audio file errors on its own lane),
 // narrow.png (15 Scenes: narrow strips, a Scene list that scrolls), notes-long.png (15 Notes: the list scrolls, Copy
 // Prompt stays at the foot), note-pop.png (a point Note's popover open at its Mark), stroke-draft.png (a pencil stroke
@@ -25,6 +26,8 @@
 // setup-window-prompt.png and setup-window-prompt-copied.png (an Agent found, ffmpeg missing: Copy Prompt beside
 // Re-check, then clicked: its toast), setup-window-stale.png (all pass, the skill copy edited: the notice),
 // setup-window-mac.png (a Mac with nothing installed: Homebrew first, Run on each row).
+// guide.png and guide-min.png (a first launch: the Guide opens by itself; again at the minimum window), empty-editor.png
+// (the Guide closed: the empty editor's model warning line), guide-{light,coffee,glass}.png (the Guide from its header button).
 import { _electron as electron } from '@playwright/test'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -180,6 +183,31 @@ try {
   rmSync(empty, { recursive: true, force: true })
 }
 
+// A first launch (#27): the Guide opens by itself over the empty editor (guide.png, guide-min.png at the minimum
+// window), then the empty editor with its model warning line (empty-editor.png).
+const firstData = mkdtempSync(join(tmpdir(), 'kapecut-shot-first-'))
+const first = await electron.launch({ args: ['.', `--user-data-dir=${firstData}`], env: { ...process.env, KAPECUT_PROJECT: '', KAPECUT_GUIDE_SEEN: '' } })
+try {
+  const page = await first.firstWindow()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.locator('#stage .error .model-warning').waitFor({ timeout: 30_000 })
+  await page.locator('#guide-panel[open]').waitFor({ timeout: 15_000 })
+  await page.waitForTimeout(1000) // fonts settle
+  await settled(page, '#guide-panel')
+  await shoot(page, 'guide')
+  await page.setViewportSize({ width: 1000, height: 700 })
+  await page.waitForTimeout(300)
+  await shoot(page, 'guide-min')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.locator('#guide-close').click()
+  await page.locator('#guide-panel').waitFor({ state: 'hidden' })
+  await page.locator('#guide').blur()
+  await shoot(page, 'empty-editor')
+} finally {
+  await first.close()
+  rmSync(firstData, { recursive: true, force: true, maxRetries: 10 })
+}
+
 writeFileSync(join(userData, 'recent-projects.json'), JSON.stringify([dir])) // Settings lists a recent Project
 const app = await electron.launch({
   args: ['.', `--user-data-dir=${userData}`], // never touches the real recent-Projects list
@@ -237,6 +265,11 @@ try {
     await settled(page, '#settings-panel')
     await page.locator('#settings-panel').waitFor({ state: 'hidden' })
     await shot(`default-${name}`)
+    await page.getByRole('button', { name: 'Guide' }).click() // guide-{light,coffee,glass}.png (#27)
+    await settled(page, '#guide-panel')
+    await shot(`guide-${name}`)
+    await page.keyboard.press('Escape')
+    await page.locator('#guide-panel').waitFor({ state: 'hidden' })
     await page.getByRole('button', { name: 'Settings' }).click()
   }
   await page.getByRole('radio', { name: 'Dark' }).check() // the later shots as before, Settings on General
@@ -451,6 +484,13 @@ try {
   await page.locator('#export').click() // refused before any save dialog: a long status beside the picker
   await page.waitForTimeout(300)
   await shot('broken')
+  // broken.png has that Scene on the stage: its SCENE ERROR's Copy fix prompt (#26) clicked.
+  await keepClipboard(app, async () => {
+    await page.getByRole('button', { name: 'Copy fix prompt' }).click()
+    await page.locator('#toast').waitFor()
+    await shot('scene-error-copied')
+  })
+  await page.locator('#toast').waitFor({ state: 'hidden' })
 
   const audio = [{ file: 'click.wav', start: 0, volume: 0.6 }, { file: 'gone.wav', start: 2 }]
   writeFileSync(join(dir, 'project.json'), JSON.stringify({ name: 'Three Scenes', size: { w: 1080, h: 1920 }, fps: 30, scenes: ['a.html', 'b.html', 'c.html'], audio }))
