@@ -119,6 +119,9 @@
   --edge: rgb(246 242 234 / 0.08); /* the faint top edge of a frosted panel */
   --frost: blur(28px) saturate(140%);
 }
+/* Mac: any backdrop-filter on the page paints the whole window opaque over the vibrancy, which already blurs the
+   desktop (#15). So no frost there: the panels' own alpha sits on the OS blur. */
+:root[data-theme='glass'][data-platform='darwin'] { --frost: none; }
 /* Reduced transparency: the same glass, solid. */
 @media (prefers-reduced-transparency: reduce) {
   :root[data-theme='light'] { --panel: #fbfcfe; --panel-2: #f1f4f9; --frost: none; }

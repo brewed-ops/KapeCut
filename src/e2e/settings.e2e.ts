@@ -236,6 +236,10 @@ test('the theme repaints the app at once, survives a restart, and System follows
       await expect.poll(look).toEqual({ theme: name.toLowerCase(), bg })
       await expect.poll(saved).toBe(name.toLowerCase())
       expect(await ground()).toBe(hex)
+      // On a Mac, any backdrop-filter on the page paints the whole window opaque over the vibrancy, which already blurs
+      // the desktop (#15): Glass frosts nothing there.
+      if (name === 'Glass' && process.platform === 'darwin')
+        expect(await page.evaluate(() => [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).backdropFilter !== 'none').map((el) => el.id || el.className))).toEqual([])
     }
     // Windows acrylic, Mac vibrancy, on for Glass and off after it; nothing where the OS cannot blur (Linux, Windows before 11 22H2).
     const blur = blurring ? { win32: ['acrylic', 'none'], darwin: ['under-window', null] }[process.platform as string] : []
