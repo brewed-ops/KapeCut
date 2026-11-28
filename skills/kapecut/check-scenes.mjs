@@ -1,14 +1,15 @@
 #!/usr/bin/env node
-// The skill's final check: node check-scenes.mjs <project folder> [<stills folder>]
+// The skill's final check: node check-scenes.mjs <project folder> [<stills folder>] [--at=<t>,<t>...]
 // Loads each Scene of project.json by itself in a headless Chrome or Edge, as KapeCut would, and prints PASS or FAIL
 // per Scene with its errors. Exits 1 when any Scene fails, 2 on a usage error, an unreadable Project or no browser.
 // With Playwright it also writes start, middle and end stills of each Scene to the stills folder (default: a new temp
-// folder). Without it, it prints how to install it and runs the still check fallback, which catches less.
+// folder), plus one at each --at Scene time. Without it, it prints how to install it and runs the still check
+// fallback, which catches less.
 import { execSync, spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { homedir, tmpdir } from 'node:os'
+import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -20,8 +21,13 @@ const quit = (message) => {
   process.exit(2)
 }
 
-const [dirArg, outArg] = process.argv.slice(2)
-if (!dirArg) quit('Usage: node check-scenes.mjs <project folder> [<stills folder>]')
+const USAGE = 'Usage: node check-scenes.mjs <project folder> [<stills folder>] [--at=<t>,<t>...]'
+const argv = process.argv.slice(2)
+const [dirArg, outArg] = argv.filter((a) => !a.startsWith('--'))
+const atArg = argv.find((a) => a.startsWith('--at='))
+// Extra still times (the beats a Scene animates), in Scene seconds.
+const at = atArg ? atArg.slice(5).split(',').map(Number) : []
+if (!dirArg || at.some((t) => !Number.isFinite(t) || t < 0)) quit(USAGE)
 const dir = resolve(dirArg)
 let project
 try {
@@ -31,6 +37,8 @@ try {
 }
 const { size, fps, scenes } = project ?? {}
 if (!size || !fps || !Array.isArray(scenes) || !scenes.length) quit('project.json needs size, fps and scenes')
+// KapeCut's rule (parseProject): every file project.json names stays inside the Project folder.
+const outside = (f) => typeof f !== 'string' || !f || f.startsWith('/') || f.includes('\\') || f.split('/').includes('..')
 
 // Playwright from the Project, the current folder, this skill's folder, then the global npm folder.
 function findPlaywright() {
@@ -77,7 +85,7 @@ async function checkScene(browser, url, out) {
       { ...size, limit: LIMIT },
     )
     const end = Math.max(0, total - 1 / fps)
-    for (const [name, t] of [['start', 0], ['middle', total / 2], ['end', end]]) {
+    for (const [name, t] of [['start', 0], ['middle', total / 2], ['end', end], ...at.map((t) => [`t${t}`, t])]) {
       const draw = ({ t, limit }) => {
         const late = new Promise((_, reject) => setTimeout(() => reject(new Error(`renderAt(${t}) never returned (waited ${limit / 1000}s)`)), limit))
         return Promise.race([window.renderAt(t), late])
@@ -93,30 +101,35 @@ async function checkScene(browser, url, out) {
   return errors
 }
 
+// The places KapeCut's Setup looks (src/main/setup-checks.ts findBrowser), so a browser Setup found is found here.
 function findBrowser() {
-  const local = process.env.LOCALAPPDATA ?? ''
-  return [
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    join(local, 'Google\\Chrome\\Application\\chrome.exe'),
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-  ].find((p) => existsSync(p))
+  const env = process.env
+  if (process.platform === 'win32')
+    return [env['ProgramFiles(x86)'], env.ProgramFiles, env.LOCALAPPDATA]
+      .filter(Boolean)
+      .flatMap((root) => ['Google\\Chrome\\Application\\chrome.exe', 'Microsoft\\Edge\\Application\\msedge.exe'].map((b) => join(root, b)))
+      .find((p) => existsSync(p))
+  if (process.platform === 'darwin')
+    return ['/Applications', join(homedir(), 'Applications')]
+      .flatMap((apps) => ['Google Chrome', 'Microsoft Edge', 'Chromium'].map((b) => `${apps}/${b}.app/Contents/MacOS/${b}`))
+      .find((p) => existsSync(p))
+  // Flatpak puts its launchers (named by app id) on PATH too.
+  const names = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge', 'com.google.Chrome', 'org.chromium.Chromium', 'com.microsoft.Edge']
+  return (env.PATH ?? '').split(delimiter).flatMap((d) => names.map((b) => join(d, b))).find((p) => existsSync(p))
 }
 
 // The still check with logging: a Scene fails on an uncaught error from its own files or a failed window.ready.
 function stillCheck(exe, url) {
   const profile = mkdtempSync(join(tmpdir(), 'kapecut-check-'))
   const args = ['--headless', '--disable-gpu', '--allow-file-access-from-files', `--user-data-dir=${profile}`, '--enable-logging=stderr', '--virtual-time-budget=3000', '--dump-dom', `${url}?t=0`]
-  const r = spawnSync(exe, args, { encoding: 'utf8', timeout: 60_000, maxBuffer: 64 << 20 })
+  const r = spawnSync(exe, args, { encoding: 'utf8', timeout: 2 * LIMIT, maxBuffer: 64 << 20 })
   try {
-    rmSync(profile, { recursive: true, force: true })
+    rmSync(profile, { recursive: true, force: true, maxRetries: 5 })
   } catch {}
+  // A browser killed by the timeout or failing to run never drew the Scene: not a pass.
+  if (r.error || r.signal) return [`the browser did not finish the Scene (${r.error?.message ?? r.signal}): it may hang`]
   // dump-dom on stdout, console lines on stderr: read both.
   const log = `${r.stdout ?? ''}${r.stderr ?? ''}`
-  if (r.error && !log) return [`browser did not run: ${r.error.message}`]
   const uncaught = log.split(/\r?\n/).filter((l) => /CONSOLE.*"Uncaught/.test(l) && l.includes('source: file:')).map((l) => /"(.*)", source/.exec(l)?.[1] ?? l)
   // The video stand-in needs Playwright's init script: such a Scene cannot run here, so it is not a pass.
   if (uncaught.some((e) => e.includes('kcVideo is not defined'))) return ['draws a video (kcVideo): install Playwright to check it']
@@ -144,14 +157,20 @@ if (pw) {
 
 let failed = 0
 for (const [i, file] of scenes.entries()) {
-  const path = join(dir, file)
+  const path = join(dir, String(file))
   // One Scene per page, a new page each time, so one Scene's globals never hide another's missing function.
-  const errors = !existsSync(path) ? [`${file} is missing`] : browser ? await checkScene(browser, pathToFileURL(path).href, join(out, `scene-${i + 1}`)) : stillCheck(exe, pathToFileURL(path).href)
+  const errors = outside(file) ? [`${file} must be a file inside the Project folder`] : !existsSync(path) ? [`${file} is missing`] : browser ? await checkScene(browser, pathToFileURL(path).href, join(out, `scene-${i + 1}`)) : stillCheck(exe, pathToFileURL(path).href)
   if (errors.length) failed++
   console.log(`${errors.length ? 'FAIL' : 'PASS'} ${file}`)
   for (const e of errors) console.log(`  ${e}`)
 }
 await browser?.close()
+// A listed Audio file that is missing stops the Export.
+for (const a of Array.isArray(project.audio) ? project.audio : []) {
+  const file = a?.file
+  const problem = outside(file) ? 'must be a file inside the Project folder' : !existsSync(join(dir, file)) ? 'is missing' : null
+  if (problem) failed++, console.log(`FAIL audio ${file}\n  ${file} ${problem}`)
+}
 if (browser) console.log(`Stills (start, middle, end of each Scene): ${out}`)
-console.log(failed ? `${failed} of ${scenes.length} Scenes failed` : `All ${scenes.length} Scenes pass`)
+console.log(failed ? `${failed} failed` : `All ${scenes.length} Scenes pass`)
 process.exitCode = failed ? 1 : 0

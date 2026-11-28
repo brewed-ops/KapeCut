@@ -107,8 +107,8 @@ chrome --headless --disable-gpu --hide-scrollbars --allow-file-access-from-files
 - `--window-size` is the Design size times the scale (0.25 gives 270x480 for 9:16, 480x270 for 16:9, 270x270 for 1:1).
 - On Windows neither is on PATH: `chrome.exe` is in `C:\Program Files\Google\Chrome\Application\`, `msedge.exe` in `C:\Program Files (x86)\Microsoft\Edge\Application\`; elsewhere use `google-chrome`, `chromium` or the Chrome app binary. A browser automation tool you already have (Playwright and the like) works the same way: load the URL, wait for `window.ready`, screenshot.
 - Write the PNGs outside the Project folder, so KapeCut does not see them as saves.
-- When the browser is already open, a headless `--screenshot` can exit at once and write the PNG late or never (seen with Edge on Windows). If the PNG is missing right after the command, take the stills with Playwright instead (below).
-- A Scene that draws a video (`kcVideo`) needs KapeCut's helper, which a plain browser lacks: take its stills with the final check below, which stands in for it.
+- When the browser is already open, a headless `--screenshot` can exit at once and write the PNG late or never (seen with Edge on Windows). If the PNG is missing right after the command, take the stills with the checker instead (final check below, `--at=` for the beats).
+- A Scene that draws a video (`kcVideo`) needs KapeCut's helper, which a plain browser lacks: take its stills with the checker in the final check below, which stands in for it, and pass its beats with `--at=`.
 - Open every PNG and look at it. A still you did not look at is unchecked. To look at many at once, tile them into one contact sheet with ffmpeg (KapeCut needs it for Export anyway): `ffmpeg -i "<temp dir>/still-%02d.png" -vf tile=6x3 -frames:v 1 sheet.png` for stills named `still-01.png`, `still-02.png`, ...
 
 ## Final check
@@ -116,10 +116,10 @@ chrome --headless --disable-gpu --hide-scrollbars --allow-file-access-from-files
 A still hides JavaScript errors: a Scene that throws draws a blank canvas, and a headless `--screenshot` prints no message. KapeCut shows the same Scene as SCENE ERROR. So run the checker in this skill's folder, which loads each Scene of `project.json` by itself, as KapeCut does:
 
 ```sh
-node <this skill folder>/check-scenes.mjs <project folder> [<stills folder>]
+node <this skill folder>/check-scenes.mjs <project folder> [<stills folder>] [--at=<t>,<t>...]
 ```
 
-- It prints `PASS` or `FAIL` per Scene, with each error under a failing one: a page error, a console error, a `window.ready` that rejects or hangs past 15 s, a broken Scene contract, a `renderAt` that throws or never returns. It exits 1 when any Scene fails. Done when every Scene passes and it exits 0.
-- It needs Playwright (`npm install playwright` in the Project folder, or `npm install -g playwright`) and drives your Chrome or Edge, so no browser download. It writes a start, middle and end still of each Scene (`scene-1-start.png`, ...) to the stills folder, a folder outside the Project, or a new temp folder when you leave it out (the checker prints which); look at them as in the still check.
+- It prints `PASS` or `FAIL` per Scene, with each error under a failing one: a page error, a console error, a `window.ready` that rejects or hangs past 15 s, a broken Scene contract, a `renderAt` that throws or never returns, a Scene or Audio file that is missing or outside the Project folder. It exits 1 when any Scene fails. Done when every Scene passes and it exits 0.
+- It needs Playwright (`npm install playwright` in the Project folder, or `npm install -g playwright`) and drives your Chrome or Edge, so no browser download. It writes a start, middle and end still of each Scene (`scene-1-start.png`, ...), and one at each `--at=` Scene time (`--at=1.2,2.4` writes `scene-1-t1.2.png`, ...), to the stills folder, a folder outside the Project, or a new temp folder when you leave it out (the checker prints which); look at them as in the still check.
 - Without Playwright it says how to install it and runs the still check with logging instead: it fails a Scene on an `Uncaught` error at `t=0` or a "window.ready failed", and catches less: a `window.ready` that hangs still passes, and a Scene that draws a video fails until Playwright is installed. Install Playwright and run it again when you can.
 - With Playwright, a Scene that draws a video (`kcVideo`) passes: the checker loads `kc-video-stand-in.js` from this skill's folder in place of KapeCut's helper.

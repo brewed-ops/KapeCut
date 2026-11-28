@@ -14,7 +14,7 @@ const home = userInfo().homedir
 const noGlobal = mkdtempSync(join(tmpdir(), 'kapecut-npm-'))
 
 function run(script: string, project: string, cwd = process.cwd(), extra: string[] = []) {
-  const r = spawnSync('node', [script, project, ...extra], { cwd, encoding: 'utf8', timeout: 110_000, env: { ...process.env, USERPROFILE: home, HOME: home, npm_config_prefix: noGlobal } })
+  const r = spawnSync('node', [script, project, ...extra], { cwd, encoding: 'utf8', timeout: 110_000, env: { ...process.env, USERPROFILE: home, HOME: home, npm_config_prefix: noGlobal, NODE_PATH: '' } })
   return { code: r.status, out: `${r.stdout}${r.stderr}` }
 }
 
@@ -33,13 +33,15 @@ test('SKILL.md makes the checker the Final check', () => {
 })
 
 test('the checker passes good Scenes and fails broken ones, with the error and exit 1', () => {
+  test.setTimeout(300_000) // two checker runs of up to 110 s each
   const script = resolve('skills/kapecut/check-scenes.mjs')
   const good = project({})
   const stills = mkdtempSync(join(tmpdir(), 'kapecut-stills-'))
-  const pass = run(script, good, process.cwd(), [stills])
+  const pass = run(script, good, process.cwd(), [stills, '--at=1.5'])
   expect(pass.out).toContain('PASS hello.html')
   expect(pass.code).toBe(0)
   expect(existsSync(join(stills, 'scene-1-end.png'))).toBe(true)
+  expect(existsSync(join(stills, 'scene-1-t1.5.png'))).toBe(true)
 
   // A Scene that draws a Video file: KapeCut's /kc-video.js is missing here, the stand-in draws it, no error.
   const broken = project({
@@ -48,17 +50,24 @@ test('the checker passes good Scenes and fails broken ones, with the error and e
     'bad-render.html': scene("window.TOTAL = 3; window.renderAt = () => { throw new Error('boom') }"),
     'video.html': scene("const g = document.getElementById('c').getContext('2d'); const s = kcVideo('speaker.mp4'); window.TOTAL = 1; window.ready = s.ready; window.renderAt = async (t) => g.drawImage(await s.frameAt(t), 0, 0, 1080, 1920)", '<script src="/kc-video.js"></script>'),
   })
+  const json = JSON.parse(readFileSync(join(broken, 'project.json'), 'utf8'))
+  json.scenes.push('../outside.html')
+  json.audio = [{ file: 'gone.mp3', start: 0 }]
+  writeFileSync(join(broken, 'project.json'), JSON.stringify(json))
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=red:s=64x64:r=30:d=1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', join(broken, 'speaker.mp4')], { timeout: 30_000 })
   const { code, out } = run(script, broken)
   expect(out).toMatch(/FAIL throws\.html\r?\n {2}.*kc/)
   expect(out).toMatch(/FAIL no-total\.html\r?\n {2}.*TOTAL/)
   expect(out).toMatch(/FAIL bad-render\.html\r?\n {2}.*boom/)
   expect(out).toContain('PASS video.html')
-  expect(out).toContain('3 of 5 Scenes failed')
+  expect(out).toMatch(/FAIL \.\.\/outside\.html\r?\n {2}.*inside the Project folder/)
+  expect(out).toMatch(/FAIL audio gone\.mp3\r?\n {2}.*is missing/)
+  expect(out).toContain('5 failed')
   expect(code).toBe(1)
 })
 
 test('without Playwright the checker says how to install it and runs the still check', () => {
+  test.setTimeout(300_000) // up to 30 s a Scene in the fallback
   // A copy of the skill outside the repo, run from outside it: no node_modules resolves Playwright.
   const root = mkdtempSync(join(tmpdir(), 'kapecut-skill-'))
   cpSync('skills/kapecut', join(root, 'kapecut'), { recursive: true })
@@ -73,9 +82,11 @@ test('without Playwright the checker says how to install it and runs the still c
     'throws.html': scene('window.TOTAL = 3; window.renderAt = () => {}; kc.missing()'),
     // The stand-in needs Playwright: a video Scene is never a pass here.
     'video.html': scene("kcVideo('speaker.mp4'); window.TOTAL = 1; window.renderAt = () => {}", '<script src="/kc-video.js"></script>'),
+    'hangs.html': scene('window.TOTAL = 1; window.renderAt = () => {}; while (true) {}'),
   })
   const { code, out } = run(script, broken, root)
   expect(out).toMatch(/FAIL throws\.html\r?\n {2}.*kc is not defined/)
   expect(out).toMatch(/FAIL video\.html\r?\n {2}.*install Playwright/)
+  expect(out).toMatch(/FAIL hangs\.html\r?\n {2}.*did not finish/)
   expect(code).toBe(1)
 })
