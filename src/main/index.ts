@@ -178,7 +178,7 @@ app.whenReady().then(() => {
     const blur = settings.theme === 'glass' && blurs() && !nativeTheme.prefersReducedTransparency
     if (blur !== blurring) {
       blurring = blur
-      if (process.platform === 'win32') win.setBackgroundMaterial(blur ? 'acrylic' : 'auto')
+      if (process.platform === 'win32') win.setBackgroundMaterial(blur ? 'acrylic' : 'none')
       if (process.platform === 'darwin') win.setVibrancy(blur ? 'under-window' : null)
     }
     win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors, blur)) // after the material, which sets its own
@@ -221,7 +221,8 @@ app.whenReady().then(() => {
     titleBarStyle: 'hidden',
     // macOS keeps its traffic lights on a hidden title bar: on the gutter (24 px, tokens.css) and centred on the
     // header's controls, while the app hides its own buttons (app.css, data-platform from the preload).
-    ...(process.platform === 'darwin' && { trafficLightPosition: { x: 24, y: 27 } }),
+    // active: Glass's vibrancy stays blurred while another app has focus.
+    ...(process.platform === 'darwin' && { trafficLightPosition: { x: 24, y: 27 }, visualEffectState: 'active' }),
     title: 'KapeCut',
     // Window and taskbar icon (docs/design/logo.md). The .ico carries the hand-checked 16-48 px sizes, a PNG would be
     // shrunk from 256. out/main/ -> repo root, in dev and in the build.
@@ -229,6 +230,7 @@ app.whenReady().then(() => {
     webPreferences: { preload: join(__dirname, '../preload/index.js') },
   })
   paintGround() // Glass blurs from the first frame
+  win.on('focus', paintGround) // nativeTheme sends no event when the OS's reduce transparency setting changes
   // Scenes share the app page's origin: none may send the window off it or open another one with a fresh bridge (#126).
   win.webContents.on('will-navigate', (e) => !isAppPage(e.url) && e.preventDefault())
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

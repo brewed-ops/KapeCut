@@ -35,6 +35,7 @@ body {
 /* Light and Glass (tokens.css): the wash or tint in place of grain, and every floating surface frosts what is under it. */
 :root[data-theme='light'] body { background: var(--wash), var(--bg); background-blend-mode: normal; }
 :root[data-theme='glass'] body { background: var(--tint); }
+:root[data-theme='glass'] .segmented { background: var(--tint); } /* a see-through well, not a solid hole in the card */
 :root:is([data-theme='light'], [data-theme='glass']) :is(.window, #settings, #agent-status, .pop, .toast) { backdrop-filter: var(--frost); box-shadow: inset 0 1px 0 var(--edge), var(--shadow); }
 :root:is([data-theme='light'], [data-theme='glass']) #settings-panel { background: var(--panel-2); backdrop-filter: var(--frost); }
 
