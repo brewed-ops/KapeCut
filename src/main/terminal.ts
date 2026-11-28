@@ -1,5 +1,5 @@
 import { spawn as nodeSpawn, type SpawnOptions } from 'node:child_process'
-import { join } from 'node:path'
+import { win32 } from 'node:path'
 import { installCommand, type Os } from '../renderer/setup/setup'
 
 /** This computer's OS, as the Setup rows name it. */
@@ -18,11 +18,11 @@ export function terminalArgv(os: Os, command: string, env: Record<string, string
     // broken one would stop the install.
     const script = `Write-Host '> ${command.replaceAll("'", "''")}'; ${command}`
     const root = env.SystemRoot ?? 'C:\\Windows' // by path: PATH may be what is broken
-    const powershell = join(root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+    const powershell = win32.join(root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
     // `start` opens the new console window; a detached spawn gets no console and never runs the script. Verbatim: the
     // line is all fixed text and base64, and cmd must see start's quoted title as written.
     const line = `/d /c start "KapeCut" "${powershell}" -NoProfile -NoExit -EncodedCommand ${Buffer.from(script, 'utf16le').toString('base64')}`
-    return [join(root, 'System32', 'cmd.exe'), [line], { stdio: 'ignore', windowsVerbatimArguments: true, windowsHide: true }]
+    return [win32.join(root, 'System32', 'cmd.exe'), [line], { stdio: 'ignore', windowsVerbatimArguments: true, windowsHide: true }]
   }
   if (os === 'mac') {
     // Terminal's shell lacks Homebrew's dir until its "Next steps" are done, so a brew row right after Homebrew would fail.
