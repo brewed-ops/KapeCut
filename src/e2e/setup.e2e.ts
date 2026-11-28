@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { withInstallDirs } from '../main/setup-checks'
+import { findAgent, findOnPath, withInstallDirs } from '../main/setup-checks'
 import { launch } from './launch'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, delimiter, dirname, join, resolve } from 'node:path'
 
 // The Setup window (#89). Every other e2e passes it through scripts/ready-env.mjs (a temp home holding the skill, a
-// dummy claude on PATH); these launch without that to prove the gate.
+// dummy codex on PATH); these launch without that to prove the gate.
 const SKILL = resolve('skills/kapecut')
 const PATH_KEY = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH' // Windows spells it Path
 // Off Windows main appends the usual install dirs to PATH: an ffmpeg there is found whatever PATH the launch gets.
@@ -22,7 +22,7 @@ const cleanUp = (root: string) => {
   }
 }
 
-test('with ffmpeg and Claude Code off PATH the Setup window blocks Open folder; Re-check after a fix lets the user in', async () => {
+test('with ffmpeg and every Agent off PATH the Setup window blocks Open folder; Re-check after a fix lets the user in', async () => {
   test.skip(ffmpegAppended, FFMPEG_APPENDED)
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
@@ -36,9 +36,13 @@ test('with ffmpeg and Claude Code off PATH the Setup window blocks Open folder; 
       await expect(setup).toBeVisible()
       await expect(setup.locator('li[data-check="ffmpeg"]')).toHaveClass(/\bno\b/)
       await expect(setup.locator('li[data-check="ffmpeg"] code')).toBeVisible()
-      await expect(setup.locator('li[data-check="claude"]')).toHaveClass(/\bno\b/)
+      const agent = setup.locator('li[data-check="agent"]')
+      await expect(agent).toHaveClass(/\bno\b/)
+      await expect(agent.locator('b')).toHaveText('Claude Code') // the suggested install, the others named
+      await expect(agent.locator('p')).toHaveText(/^No Agent on PATH\. Also works: Codex, OpenCode/)
+      await expect(agent.locator('code')).toBeVisible()
       await expect(setup.locator('li[data-check="skill"]')).toHaveClass(/\bok\b/) // the env's temp home has it
-      await expect(setup.locator('#setup-prompt')).toHaveAttribute('hidden', '') // no Claude Code to run it
+      await expect(setup.locator('#setup-prompt')).toHaveAttribute('hidden', '') // no Agent to run it
       await page.locator('#projects summary').click()
       await expect(page.locator('#open-folder')).toBeDisabled()
       // A drop says why nothing opened.
@@ -78,7 +82,7 @@ test('with ffmpeg and Claude Code off PATH the Setup window blocks Open folder; 
   }
 })
 
-test('with Claude Code found and ffmpeg missing, Copy Prompt copies the ffmpeg command for Claude to run', async () => {
+test('with an Agent found and ffmpeg missing, Copy Prompt copies the ffmpeg command for the Agent to run', async () => {
   test.skip(ffmpegAppended, FFMPEG_APPENDED)
   const bin = process.env.KAPECUT_DUMMY_BIN
   if (!bin) throw new Error('KAPECUT_DUMMY_BIN is unset: run through playwright.config.ts, whose globalSetup (scripts/ready-env.mjs) sets it')
@@ -89,7 +93,7 @@ test('with Claude Code found and ffmpeg missing, Copy Prompt copies the ffmpeg c
     try {
       const setup = page.getByRole('dialog', { name: /KapeCut needs/ })
       await expect(setup.locator('li[data-check="ffmpeg"]')).toHaveClass(/\bno\b/)
-      await expect(setup.locator('li[data-check="claude"]')).toHaveClass(/\bok\b/)
+      await expect(setup.locator('li[data-check="agent"]')).toHaveClass(/\bok\b/)
       await app.evaluate(({ clipboard }) => clipboard.writeText(''))
       await setup.getByRole('button', { name: 'Copy Prompt' }).click()
       await expect(page.locator('#toast-text')).toHaveText('Prompt copied')
@@ -106,23 +110,31 @@ test('with Claude Code found and ffmpeg missing, Copy Prompt copies the ffmpeg c
   }
 })
 
-test('with the skill missing, Install skill copies it; a changed copy asks before Update overwrites it', async () => {
+test('the optional skill: Install skill copies it while another check fails; a changed copy asks before Update overwrites it', async () => {
+  test.skip(ffmpegAppended, FFMPEG_APPENDED)
+  const bin = process.env.KAPECUT_DUMMY_BIN
+  if (!bin) throw new Error('KAPECUT_DUMMY_BIN is unset: run through playwright.config.ts')
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   const home = join(root, 'home')
   const installed = join(home, '.claude', 'skills', 'kapecut')
-  const asHome = { userData: join(root, 'user'), env: { USERPROFILE: home, HOME: home }, waitForExport: false } // both launches
+  // Both launches: ffmpeg missing keeps the window up, so the skill row and its button show.
+  const asHome = { userData: join(root, 'user'), env: { USERPROFILE: home, HOME: home, [PATH_KEY]: bin }, waitForExport: false }
   try {
     let { app, page } = await launch(asHome)
     try {
       const setup = page.getByRole('dialog', { name: /KapeCut needs/ })
       const row = setup.locator('li[data-check="skill"]')
-      await expect(row).toHaveClass(/\bno\b/)
+      await expect(row).toHaveClass(/\bopt\b/)
+      await expect(row.locator('.state')).toHaveText('Optional')
       await row.getByRole('button', { name: 'Install skill' }).click()
       await expect(row).toHaveClass(/\bok\b/)
-      await expect(setup).toBeHidden()
       expect(readFileSync(join(installed, 'SKILL.md'), 'utf8')).toBe(readFileSync(join(SKILL, 'SKILL.md'), 'utf8'))
+      await app.evaluate((_e, path) => void (process.env.PATH = path), process.env.PATH ?? '')
+      await setup.getByRole('button', { name: 'Re-check' }).click()
+      await expect(setup).toBeHidden()
       // Once in, in for this run: a reload (a Project switch does one) does not bring the window back, even when a check
       // would fail now.
+      await app.evaluate(() => void (process.env.PATH = ''))
       writeFileSync(join(installed, 'SKILL.md'), 'my own edit')
       await page.reload()
       await expect(page.locator('.error')).toBeVisible()
@@ -147,8 +159,66 @@ test('with the skill missing, Install skill copies it; a changed copy asks befor
       await answer(0)
       await update.click()
       await expect.poll(asked).toBe(2)
-      await expect(page.getByRole('dialog', { name: /KapeCut needs/ })).toBeHidden()
+      await expect(page.locator('li[data-check="skill"]')).toHaveClass(/\bok\b/)
       expect(readFileSync(join(installed, 'SKILL.md'), 'utf8')).toBe(readFileSync(join(SKILL, 'SKILL.md'), 'utf8'))
+    } finally {
+      await app.close().catch(() => {})
+    }
+  } finally {
+    cleanUp(root)
+  }
+})
+
+test('only a non-Claude Agent on PATH and no skill: Setup passes', async () => {
+  test.skip(process.platform === 'linux', 'Linux finds Chrome or Edge on PATH, which this test cuts down')
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  try {
+    // PATH: a fake codex and the machine's ffmpeg and ffprobe, so no Claude Code this machine has is found. A tool beside
+    // a real Agent (Claude Code shares ~/.local/bin with ffmpeg on a dev machine) is copied in instead of its folder.
+    // shortcut: off Windows main also appends the Homebrew and ~/.local/bin dirs, so a Mac with a real claude there
+    // passes on it, not codex; CI Macs have none.
+    const bin = join(root, 'bin')
+    mkdirSync(bin)
+    writeFileSync(join(bin, process.platform === 'win32' ? 'codex.cmd' : 'codex'), '', { mode: 0o755 })
+    const dirs = [bin]
+    for (const tool of ['ffmpeg', 'ffprobe'].map((t) => findOnPath(t))) {
+      if (!tool) throw new Error('ffmpeg and ffprobe must be on PATH for this test')
+      if (findAgent({ ...process.env, PATH: dirname(tool) })) copyFileSync(realpathSync(tool), join(bin, basename(tool)))
+      else dirs.push(dirname(tool))
+    }
+    const path = dirs.join(delimiter)
+    const home = join(root, 'home') // no skill in it
+    const { app, page } = await launch({ userData: join(root, 'user'), env: { USERPROFILE: home, HOME: home, [PATH_KEY]: path }, waitForExport: false })
+    try {
+      await expect(page.locator('.error')).toBeVisible() // the No Project state: past the gate
+      await expect(page.locator('#setup')).toBeHidden()
+    } finally {
+      await app.close().catch(() => {})
+    }
+  } finally {
+    cleanUp(root)
+  }
+})
+
+test('an outdated skill never blocks: Setup says so once, with Update skill, and Re-check goes on', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  try {
+    const home = join(root, 'home')
+    cpSync(SKILL, join(home, '.claude', 'skills', 'kapecut'), { recursive: true })
+    writeFileSync(join(home, '.claude', 'skills', 'kapecut', 'SKILL.md'), 'my own edit')
+    const { app, page } = await launch({ userData: join(root, 'user'), env: { USERPROFILE: home, HOME: home }, waitForExport: false })
+    try {
+      const setup = page.getByRole('dialog', { name: /KapeCut needs/ })
+      await expect(setup.locator('li[data-check="skill"]')).toHaveClass(/\bopt\b/)
+      await expect(setup.locator('li[data-check="skill"]').getByRole('button', { name: 'Update skill' })).toBeVisible()
+      await expect(setup.locator('#setup-status')).toHaveText('Your KapeCut skill differs from this KapeCut. Update it, or Re-check to go on')
+      await page.locator('#projects summary').click() // in, not blocked: a Project may open
+
+      await expect(page.locator('#open-folder')).toBeEnabled()
+      await page.keyboard.press('Escape')
+      await setup.getByRole('button', { name: 'Re-check' }).click()
+      await expect(setup).toBeHidden()
+      expect(readFileSync(join(home, '.claude', 'skills', 'kapecut', 'SKILL.md'), 'utf8')).toBe('my own edit')
     } finally {
       await app.close().catch(() => {})
     }
