@@ -6,8 +6,9 @@ import type { Audio } from './viewer/project'
 /** What main offers the app page (src/preload/index.ts). */
 export type Bridge = {
   project: {
-    /** session: the Session file's absolute path (ADR 0005). opened: which open of a Project this is (a reload keeps it). */
-    state(): Promise<{ current: string | null; recent: string[]; session: string; opened: number }>
+    /** session: the Session file's absolute path (ADR 0005). skill: the shipped SKILL.md's (ADR 0008). opened: which open
+     *  of a Project this is (a reload keeps it). */
+    state(): Promise<{ current: string | null; recent: string[]; session: string; skill: string; opened: number }>
     choose(): Promise<string | undefined>
     /** A drop on the window: one folder opens as a Project, files are copied into the open one. Resolves to a message. */
     drop(files: File[], mayOpen: boolean): Promise<string | undefined>
