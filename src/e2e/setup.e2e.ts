@@ -281,3 +281,27 @@ test('every check passing shows no Setup window', async () => {
     cleanUp(root)
   }
 })
+
+test('a long status line wraps beside the buttons, never into them: Copy Prompt and Re-check stay one line', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  try {
+    // No Agent anywhere main looks (the launch's temp home has none): the Setup window stays.
+    const { page, app } = await launch({ userData: join(root, 'user'), env: { [PATH_KEY]: '' }, waitForExport: false })
+    try {
+      const setup = page.getByRole('dialog', { name: /KapeCut needs/ })
+      await expect(setup).toBeVisible()
+      const prompt = setup.locator('#setup-prompt')
+      await prompt.evaluate((b) => (b.hidden = false)) // shown while an Agent is found: both buttons share the row
+      const boxes = () => Promise.all(['#setup-prompt', '#setup-recheck'].map((s) => setup.locator(s).boundingBox()))
+      const before = await boxes()
+      // The longest status the row gets: a Mac Run that Automation refused (macOS check, #15).
+      await setup.locator('#setup-status').evaluate((p) => (p.textContent = 'Could not open a terminal (exit code 1): 73:160: execution error: Not authorized to send Apple events to Terminal. (-1743). Allow KapeCut to control Terminal in System Settings > Privacy & Security > Automation'))
+      const after = await boxes()
+      for (const [i, box] of after.entries()) expect({ w: box!.width, h: box!.height }).toEqual({ w: before[i]!.width, h: before[i]!.height })
+    } finally {
+      await app.close().catch(() => {})
+    }
+  } finally {
+    cleanUp(root)
+  }
+})

@@ -450,6 +450,7 @@ body:has(> #setup:not([hidden])) > main { visibility: hidden; }
 #setup-list :is(.skill, .run) { grid-row: 1; } /* beside the name: Run above Copy, the skill has no command row */
 #setup .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: var(--control-h); }
 #setup-prompt { margin-left: auto; height: var(--control-h); } /* beside Re-check, the status keeps the left */
+#setup .row > button { flex: none; } /* a long status wraps beside them, never into their labels */
 #setup-status { margin: 0; color: var(--muted); font-size: 13px; line-height: var(--lead-dense); }
 .waiting { margin: 0; padding: 14px 16px; color: var(--dim); font-size: 13px; line-height: var(--lead-dense); }
 .tl-waiting { margin: 12px 14px 14px; height: 96px; border: 1.5px dashed var(--frame); border-radius: 10px; display: grid; place-items: center; color: var(--dim); font-size: 13px; line-height: var(--lead-dense); }
