@@ -4,8 +4,8 @@ import { IDLE_MS } from '../renderer/agent/status'
 import { writeAtomic } from './owned-writes'
 
 export type Theme = 'dark' | 'light' | 'coffee' | 'glass' | 'system'
-/** The app-wide Settings, from settings.json in app data: `{ version: 2, idleMinutes, theme }`. */
-export type Settings = { idleMinutes: number; theme: Theme }
+/** The app-wide Settings, from settings.json in app data: `{ version: 2, idleMinutes, theme, guideSeen }`. */
+export type Settings = { idleMinutes: number; theme: Theme; guideSeen: boolean }
 
 /** --bg of each palette in tokens.css (settings.test.ts holds them equal): the window paints it before CSS loads. */
 export const BACKGROUND = { dark: '#12100e', light: '#eef1f6', coffee: '#f4efe6', glass: '#0d0b0a' }
@@ -27,12 +27,12 @@ const validTheme = (t: unknown): t is Theme => THEMES.includes(t)
 
 /** The Settings in file; a missing or bad file gives the defaults, a bad value its own default. */
 export function readSettings(file: string): Settings {
-  const defaults: Settings = { idleMinutes: IDLE_MS / 60_000, theme: 'dark' }
+  const defaults: Settings = { idleMinutes: IDLE_MS / 60_000, theme: 'dark', guideSeen: false }
   try {
     const s = JSON.parse(readFileSync(file, 'utf8'))
     if (s?.version !== 1 && s?.version !== 2) return defaults
     const theme = s.version === 1 ? RENAMED.get(s.theme) : s.theme
-    return { idleMinutes: validIdle(s.idleMinutes) ? s.idleMinutes : defaults.idleMinutes, theme: validTheme(theme) ? theme : defaults.theme }
+    return { idleMinutes: validIdle(s.idleMinutes) ? s.idleMinutes : defaults.idleMinutes, theme: validTheme(theme) ? theme : defaults.theme, guideSeen: s.guideSeen === true }
   } catch {
     return defaults // first launch, or an unreadable file
   }

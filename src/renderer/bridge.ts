@@ -51,6 +51,8 @@ export type Bridge = {
     get(): Promise<Settings>
     setIdleMinutes(n: number): Promise<number>
     setTheme(t: Theme): Promise<Theme>
+    /** Keeps the Guide seen, so it never opens by itself again (#27). */
+    markGuideSeen(): Promise<boolean>
   }
   /** Updates from GitHub Releases (#138). Each step acts on the status main holds; none takes a URL or a version. */
   updates: {

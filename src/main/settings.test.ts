@@ -22,7 +22,7 @@ it("the window's ground is --bg of each palette in tokens.css", () => {
 const made: string[] = []
 afterEach(() => made.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))
 const folder = () => (made.push(mkdtempSync(join(tmpdir(), 'kapecut-settings-'))), made.at(-1)!)
-const DEFAULTS: Settings = { idleMinutes: 15, theme: 'dark' }
+const DEFAULTS: Settings = { idleMinutes: 15, theme: 'dark', guideSeen: false }
 
 it('gives the defaults for a missing file, bad JSON or a value out of range', () => {
   const file = join(folder(), 'settings.json')
@@ -45,11 +45,11 @@ it('reads the theme, dark by default; a bad theme does not lose the idle minutes
   const file = join(folder(), 'settings.json')
   for (const theme of ['dark', 'light', 'coffee', 'glass', 'system']) {
     writeFileSync(file, JSON.stringify({ version: 2, idleMinutes: 9, theme }))
-    expect(readSettings(file)).toEqual({ idleMinutes: 9, theme })
+    expect(readSettings(file)).toEqual({ idleMinutes: 9, theme, guideSeen: false })
   }
   for (const theme of ['Light', '', 'auto', 'Glass', 1, null]) {
     writeFileSync(file, JSON.stringify({ version: 2, idleMinutes: 9, theme }))
-    expect(readSettings(file), String(theme)).toEqual({ idleMinutes: 9, theme: 'dark' })
+    expect(readSettings(file), String(theme)).toEqual({ idleMinutes: 9, theme: 'dark', guideSeen: false })
   }
 })
 
@@ -57,23 +57,31 @@ it('a 0.0.1 file (version 1) keeps its look: light becomes coffee, glass becomes
   const file = join(folder(), 'settings.json')
   for (const [old, now] of [['dark', 'dark'], ['light', 'coffee'], ['glass', 'light'], ['system', 'system'], ['coffee', 'dark'], ['bad', 'dark'], [['light'], 'dark'], ['toString', 'dark']]) {
     writeFileSync(file, JSON.stringify({ version: 1, idleMinutes: 9, theme: old }))
-    expect(readSettings(file), String(old)).toEqual({ idleMinutes: 9, theme: now })
+    expect(readSettings(file), String(old)).toEqual({ idleMinutes: 9, theme: now, guideSeen: false })
   }
   // Once: the next write is version 2, so its light is read as light from then on.
   writeFileSync(file, JSON.stringify({ version: 1, idleMinutes: 9, theme: 'glass' }))
   await writeSettings(file, readSettings(file))
-  expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ version: 2, idleMinutes: 9, theme: 'light' })
-  expect(readSettings(file)).toEqual({ idleMinutes: 9, theme: 'light' })
+  expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ version: 2, idleMinutes: 9, theme: 'light', guideSeen: false })
+  expect(readSettings(file)).toEqual({ idleMinutes: 9, theme: 'light', guideSeen: false })
 })
 
 it('takes idle minutes 1 to 120 and a theme of dark, light, coffee, glass or system, keeping the rest; refuses anything else', () => {
-  expect(withIdleMinutes(DEFAULTS, 7)).toEqual({ idleMinutes: 7, theme: 'dark' })
+  expect(withIdleMinutes(DEFAULTS, 7)).toEqual({ idleMinutes: 7, theme: 'dark', guideSeen: false })
   for (const bad of [0, 121, 2.5, '30', null, NaN]) expect(() => withIdleMinutes(DEFAULTS, bad)).toThrow('1 to 120')
-  expect(withTheme({ ...DEFAULTS, idleMinutes: 7 }, 'light')).toEqual({ idleMinutes: 7, theme: 'light' })
-  expect(withTheme(DEFAULTS, 'coffee')).toEqual({ idleMinutes: 15, theme: 'coffee' })
-  expect(withTheme(DEFAULTS, 'glass')).toEqual({ idleMinutes: 15, theme: 'glass' })
-  expect(withTheme(DEFAULTS, 'system')).toEqual({ idleMinutes: 15, theme: 'system' })
+  expect(withTheme({ ...DEFAULTS, idleMinutes: 7 }, 'light')).toEqual({ idleMinutes: 7, theme: 'light', guideSeen: false })
+  expect(withTheme(DEFAULTS, 'coffee')).toEqual({ idleMinutes: 15, theme: 'coffee', guideSeen: false })
+  expect(withTheme(DEFAULTS, 'glass')).toEqual({ idleMinutes: 15, theme: 'glass', guideSeen: false })
+  expect(withTheme(DEFAULTS, 'system')).toEqual({ idleMinutes: 15, theme: 'system', guideSeen: false })
   for (const bad of ['Light', 'auto', '', 'Glass', 1, null, undefined, { toString: () => 'dark' }]) expect(() => withTheme(DEFAULTS, bad)).toThrow('Theme must be dark, light, coffee, glass or system')
+})
+
+it('keeps the Guide seen only as true; anything else is not seen yet', () => {
+  const file = join(folder(), 'settings.json')
+  for (const [guideSeen, seen] of [[true, true], [false, false], ['true', false], [1, false], [undefined, false]] as const) {
+    writeFileSync(file, JSON.stringify({ version: 2, idleMinutes: 9, theme: 'dark', guideSeen }))
+    expect(readSettings(file).guideSeen, String(guideSeen)).toBe(seen)
+  }
 })
 
 it('writes the Settings whole, with no temp file left', async () => {
@@ -81,7 +89,7 @@ it('writes the Settings whole, with no temp file left', async () => {
   const file = join(dir, 'settings.json')
   const next = withTheme(withIdleMinutes(DEFAULTS, 7), 'light')
   expect(await writeSettings(file, next)).toEqual(next)
-  expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ version: 2, idleMinutes: 7, theme: 'light' })
+  expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ version: 2, idleMinutes: 7, theme: 'light', guideSeen: false })
   expect(readSettings(file)).toEqual(next)
   expect(readdirSync(dir)).toEqual(['settings.json'])
 })
