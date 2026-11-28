@@ -95,11 +95,14 @@ Open a Project folder with the "Open folder" button, or drop the folder on the w
 
 ## The KapeCut skill
 
-`skills/kapecut/` is a [Claude Code](https://claude.com/claude-code) skill that turns a folder with a brief and
+`skills/kapecut/` holds the KapeCut instructions, written as a [Claude Code](https://claude.com/claude-code) skill, that turn a folder with a brief and
 references into a Project: it asks the format (9:16, 16:9 or 1:1), writes `project.json` and one page per Scene
 from the 2D canvas starter (`skills/kapecut/starter-2d.html`), and checks every Scene with a still before handing over.
 
-The Setup window installs it into `~/.claude/skills/kapecut` (**Install skill**), and offers **Update skill** whenever
+Any Agent that reads and writes files can follow them: KapeCut ships the folder, and **Connect your agent** and
+**Copy Prompt** copy prompts that open with its path ([ADR 0008](docs/adr/0008-any-agent-via-prompt-pointer.md)).
+
+For Claude Code, the Setup window also installs it into `~/.claude/skills/kapecut` (**Install skill**), and offers **Update skill** whenever
 your copy differs from this checkout's, by a hash of every file. Update asks first, since it replaces the whole folder.
 
 Then, in Claude Code, in a folder holding your `brief.md` and references: "make a KapeCut video from this brief".
