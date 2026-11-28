@@ -6,8 +6,9 @@ import type { Audio } from './viewer/project'
 /** What main offers the app page (src/preload/index.ts). */
 export type Bridge = {
   project: {
-    /** session: the Session file's absolute path (ADR 0005). opened: which open of a Project this is (a reload keeps it). */
-    state(): Promise<{ current: string | null; recent: string[]; session: string; opened: number }>
+    /** session: the Session file's absolute path (ADR 0005). skill: the shipped SKILL.md's (ADR 0008). opened: which open
+     *  of a Project this is (a reload keeps it). */
+    state(): Promise<{ current: string | null; recent: string[]; session: string; skill: string; opened: number }>
     choose(): Promise<string | undefined>
     /** A drop on the window: one folder opens as a Project, files are copied into the open one. Resolves to a message. */
     drop(files: File[], mayOpen: boolean): Promise<string | undefined>
@@ -45,7 +46,7 @@ export type Bridge = {
   /** Copies the repo's skill over the installed one (main fixes both paths), then checks again. */
   installSkill(): Promise<Checks>
   /** settings.json in app data. Each setter resolves to the value saved; main refuses idle minutes but 1 to 120 and a
-   *  theme but dark, light, glass or system. setTheme also repaints the page (the preload keeps data-theme on <html>). */
+   *  theme not in Theme. setTheme also repaints the page (the preload keeps data-theme on <html>). */
   settings: {
     get(): Promise<Settings>
     setIdleMinutes(n: number): Promise<number>

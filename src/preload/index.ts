@@ -23,7 +23,7 @@ else new MutationObserver((_, seen) => document.documentElement && (seen.disconn
 
 const bridge = {
   project: {
-    state: (): Promise<{ current: string | null; recent: string[]; session: string; opened: number }> => ipcRenderer.invoke('project:state'),
+    state: (): Promise<{ current: string | null; recent: string[]; session: string; skill: string; opened: number }> => ipcRenderer.invoke('project:state'),
     // Both resolve to an error message, or undefined once the window is reloading into the new Project.
     choose: (): Promise<string | undefined> => ipcRenderer.invoke('project:choose'),
     // No call takes a free path: Scenes share this page's origin and must not point the file server at any folder.
