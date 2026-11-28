@@ -203,9 +203,20 @@ test('removing a recent Project takes it off the list for good, leaves its folde
   await page.locator('#projects summary').click()
   const row = (name: string) => page.locator('#recent > div', { hasText: name })
   const x = (name: string) => row(name).getByRole('button', { name: `Remove ${name} from Recent Projects` })
-  await expect(x('Beta')).toBeHidden() // until its row is hovered
+  // Unseen until its row is hovered or the list has focus, but always in the Tab order.
+  const opacity = (name: string) => row(name).locator('.del').evaluate((el) => getComputedStyle(el).opacity)
+  await expect.poll(() => opacity('Beta')).toBe('0')
   await row('Beta').hover()
-  await expect(x('Beta')).toBeVisible()
+  await expect.poll(() => opacity('Beta')).toBe('1')
+  // Shift+Tab back into the menu from the next control reaches the last row's X first (#18). The pointer leaves the row.
+  await page.locator('#guide').hover()
+  await expect.poll(() => opacity('Beta')).toBe('0')
+  await page.locator('#guide').focus()
+  await page.keyboard.press('Shift+Tab')
+  await expect(x('Beta')).toBeFocused()
+  await expect.poll(() => opacity('Beta')).toBe('1')
+  await page.keyboard.press('Shift+Tab')
+  await expect(row('Beta').getByRole('button', { name: 'Beta', exact: true })).toBeFocused()
 
   // Cancel keeps it.
   await x('Beta').click()

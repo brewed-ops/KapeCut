@@ -53,6 +53,8 @@ it. The one exception to the single amber: its one accent is blue (`#0066cc`, 5:
 Windows acrylic (`setBackgroundMaterial`) or Mac vibrancy (`setVibrancy`) and a clear ground, switched live with no
 reload. `--tint` (dark ink at 80%) lies over the blur so cream text reads on any wallpaper, `--dim` is a step lighter
 than Dark's (4.5:1 on a panel over a white wallpaper), and the panels frost what is under them like Light's. No grain.
+On a Mac the panels do not frost: any CSS `backdrop-filter` there paints the whole window opaque over the vibrancy, so
+`--frost` is `none` under `data-platform='darwin'` and the vibrancy is the only blur.
 Where the OS cannot blur (Linux, Windows before 11 22H2: `blurs` in `src/main/settings.ts`) or the user asked for
 reduced transparency, the window paints `--bg` under the same tint: solid ink, panels slightly see-through on it.
 
