@@ -2,16 +2,19 @@ import { readFileSync } from 'node:fs'
 import { IDLE_MS } from '../renderer/agent/status'
 import { writeAtomic } from './owned-writes'
 
-export type Theme = 'dark' | 'light' | 'coffee' | 'system'
+export type Theme = 'dark' | 'light' | 'coffee' | 'glass' | 'system'
 /** The app-wide Settings, from settings.json in app data: `{ version: 2, idleMinutes, theme }`. */
 export type Settings = { idleMinutes: number; theme: Theme }
 
 /** --bg of each palette in tokens.css (settings.test.ts holds them equal): the window paints it before CSS loads. */
-export const BACKGROUND = { dark: '#12100e', light: '#eef1f6', coffee: '#f4efe6' }
-/** The window's ground for a theme; System takes the OS's. */
-export const ground = (theme: Theme, osDark: boolean) => BACKGROUND[theme === 'system' ? (osDark ? 'dark' : 'light') : theme]
+export const BACKGROUND = { dark: '#12100e', light: '#eef1f6', coffee: '#f4efe6', glass: '#0d0b0a' }
+/** The OSes that blur the desktop behind a window: Windows acrylic, Mac vibrancy (#20). */
+export const blurs = (platform: NodeJS.Platform) => platform === 'win32' || platform === 'darwin'
+/** The window's ground for a theme; System takes the OS's. Glass is see-through where the OS blurs, solid ink elsewhere. */
+export const ground = (theme: Theme, osDark: boolean, platform = process.platform) =>
+  theme === 'glass' && blurs(platform) ? '#00000000' : BACKGROUND[theme === 'system' ? (osDark ? 'dark' : 'light') : theme]
 
-const THEMES: unknown[] = ['dark', 'light', 'coffee', 'system'] satisfies Theme[]
+const THEMES: unknown[] = ['dark', 'light', 'coffee', 'glass', 'system'] satisfies Theme[]
 // 0.0.1 (version 1) called Coffee light and Light glass: renamed on read, and the next write is version 2.
 // Its four names only: the identity entries are what let dark and system through, anything else falls to the default.
 const RENAMED = new Map<unknown, Theme>([['light', 'coffee'], ['glass', 'light'], ['dark', 'dark'], ['system', 'system']])
@@ -38,7 +41,7 @@ export function withIdleMinutes(settings: Settings, n: unknown): Settings {
 }
 
 export function withTheme(settings: Settings, t: unknown): Settings {
-  if (!validTheme(t)) throw new Error('Theme must be dark, light, coffee or system')
+  if (!validTheme(t)) throw new Error('Theme must be dark, light, coffee, glass or system')
   return { ...settings, theme: t }
 }
 

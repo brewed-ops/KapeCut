@@ -106,7 +106,20 @@
   --scrim: rgb(20 26 38 / 0.22);
   --shadow: 0 24px 60px rgb(30 42 66 / 0.16), 0 2px 6px rgb(30 42 66 / 0.06);
 }
+/* Glass (#20): Dark's ink and amber, see-through to the desktop. Main gives the window Windows acrylic or Mac vibrancy
+   and a clear ground; --tint over it keeps text readable on any wallpaper. Where the OS has no blur (Linux) the window
+   paints --bg under the same tint: solid ink, the panels slightly see-through on it. No grain: app.css lays --tint. */
+:root[data-theme='glass'] {
+  --bg: #0d0b0a;
+  --tint: rgb(13 11 10 / 0.72);
+  --panel: rgb(27 24 21 / 0.62);
+  --panel-2: rgb(34 30 25 / 0.78);
+  --frame: rgb(246 242 234 / 0.14);
+  --edge: rgb(246 242 234 / 0.08); /* the faint top edge of a frosted panel */
+  --glass: blur(28px) saturate(140%);
+}
 /* Reduced transparency: the same glass, solid. */
 @media (prefers-reduced-transparency: reduce) {
   :root[data-theme='light'] { --panel: #fbfcfe; --panel-2: #f1f4f9; --glass: none; }
+  :root[data-theme='glass'] { --tint: #0d0b0a; --panel: #1b1815; --panel-2: #221e19; --glass: none; }
 }

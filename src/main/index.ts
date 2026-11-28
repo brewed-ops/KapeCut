@@ -169,8 +169,15 @@ app.whenReady().then(() => {
   handleExport(() => projectDir)
   let settings = readSettings(settingsFile())
   handle('settings:get', () => settings)
-  // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change.
-  const paintGround = () => !win.isDestroyed() && win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors))
+  // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change. Glass (#20)
+  // blurs the desktop behind a clear ground, switched live: Windows acrylic, Mac vibrancy, none on Linux.
+  const paintGround = () => {
+    if (win.isDestroyed()) return
+    const glass = settings.theme === 'glass'
+    if (process.platform === 'win32') win.setBackgroundMaterial(glass ? 'acrylic' : 'auto')
+    if (process.platform === 'darwin') win.setVibrancy(glass ? 'under-window' : null)
+    win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors)) // after the material, which sets its own
+  }
   nativeTheme.on('updated', paintGround)
   // In memory first, so a second change made while the first is still writing builds on it (idle minutes then theme).
   // A failed write puts the old value back, unless a later change has already replaced it.
@@ -216,6 +223,7 @@ app.whenReady().then(() => {
     icon: join(__dirname, '../../resources/logo', process.platform === 'win32' ? 'kapecut.ico' : 'kapecut-256.png'),
     webPreferences: { preload: join(__dirname, '../preload/index.js') },
   })
+  paintGround() // Glass blurs from the first frame
   // Scenes share the app page's origin: none may send the window off it or open another one with a fresh bridge (#126).
   win.webContents.on('will-navigate', (e) => !isAppPage(e.url) && e.preventDefault())
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

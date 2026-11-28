@@ -10,8 +10,11 @@ it("the window's ground is --bg of each palette in tokens.css", () => {
   expect(bg(/^:root\s*\{([^}]*)\}/m)).toBe(BACKGROUND.dark)
   expect(bg(/^:root\[data-theme='light'\]\s*\{([^}]*)\}/m)).toBe(BACKGROUND.light)
   expect(bg(/^:root\[data-theme='coffee'\]\s*\{([^}]*)\}/m)).toBe(BACKGROUND.coffee)
+  expect(bg(/^:root\[data-theme='glass'\]\s*\{([^}]*)\}/m)).toBe(BACKGROUND.glass)
   // System is Dark or Light (the cool grey one), never Coffee.
   expect([ground('coffee', true), ground('dark', false), ground('light', true), ground('system', true), ground('system', false)]).toEqual(['#f4efe6', '#12100e', '#eef1f6', '#12100e', '#eef1f6'])
+  // Glass: see-through where the OS blurs the desktop behind the window (Windows acrylic, Mac vibrancy), solid ink elsewhere.
+  expect([ground('glass', true, 'win32'), ground('glass', false, 'darwin'), ground('glass', true, 'linux'), ground('dark', true, 'win32')]).toEqual(['#00000000', '#00000000', BACKGROUND.glass, '#12100e'])
 })
 
 const made: string[] = []
@@ -38,11 +41,11 @@ it('reads the idle minutes, 1 to 120', () => {
 
 it('reads the theme, dark by default; a bad theme does not lose the idle minutes', () => {
   const file = join(folder(), 'settings.json')
-  for (const theme of ['dark', 'light', 'coffee', 'system']) {
+  for (const theme of ['dark', 'light', 'coffee', 'glass', 'system']) {
     writeFileSync(file, JSON.stringify({ version: 2, idleMinutes: 9, theme }))
     expect(readSettings(file)).toEqual({ idleMinutes: 9, theme })
   }
-  for (const theme of ['Light', '', 'auto', 'glass', 1, null]) {
+  for (const theme of ['Light', '', 'auto', 'Glass', 1, null]) {
     writeFileSync(file, JSON.stringify({ version: 2, idleMinutes: 9, theme }))
     expect(readSettings(file), String(theme)).toEqual({ idleMinutes: 9, theme: 'dark' })
   }
@@ -61,13 +64,14 @@ it('a 0.0.1 file (version 1) keeps its look: light becomes coffee, glass becomes
   expect(readSettings(file)).toEqual({ idleMinutes: 9, theme: 'light' })
 })
 
-it('takes idle minutes 1 to 120 and a theme of dark, light, coffee or system, keeping the rest; refuses anything else', () => {
+it('takes idle minutes 1 to 120 and a theme of dark, light, coffee, glass or system, keeping the rest; refuses anything else', () => {
   expect(withIdleMinutes(DEFAULTS, 7)).toEqual({ idleMinutes: 7, theme: 'dark' })
   for (const bad of [0, 121, 2.5, '30', null, NaN]) expect(() => withIdleMinutes(DEFAULTS, bad)).toThrow('1 to 120')
   expect(withTheme({ ...DEFAULTS, idleMinutes: 7 }, 'light')).toEqual({ idleMinutes: 7, theme: 'light' })
   expect(withTheme(DEFAULTS, 'coffee')).toEqual({ idleMinutes: 15, theme: 'coffee' })
+  expect(withTheme(DEFAULTS, 'glass')).toEqual({ idleMinutes: 15, theme: 'glass' })
   expect(withTheme(DEFAULTS, 'system')).toEqual({ idleMinutes: 15, theme: 'system' })
-  for (const bad of ['Light', 'auto', '', 'glass', 1, null, undefined, { toString: () => 'dark' }]) expect(() => withTheme(DEFAULTS, bad)).toThrow('Theme must be dark, light, coffee or system')
+  for (const bad of ['Light', 'auto', '', 'Glass', 1, null, undefined, { toString: () => 'dark' }]) expect(() => withTheme(DEFAULTS, bad)).toThrow('Theme must be dark, light, coffee, glass or system')
 })
 
 it('writes the Settings whole, with no temp file left', async () => {

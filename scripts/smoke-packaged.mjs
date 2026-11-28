@@ -32,7 +32,7 @@ try {
   await page.locator('#export:not([disabled])').waitFor({ timeout: 15_000 })
   ok(true, 'editor opened examples/hello, Export enabled')
   mkdirSync('.scratch', { recursive: true })
-  for (const theme of ['dark', 'light', 'coffee']) {
+  for (const theme of ['dark', 'light', 'coffee', 'glass']) {
     // Through Settings, as a user picks it (the page's bridge is taken once, by the app)
     await page.locator('#settings').click()
     await page.locator('#settings-panel nav button[data-section="appearance"]').click()
