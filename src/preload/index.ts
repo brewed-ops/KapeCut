@@ -32,6 +32,8 @@ const bridge = {
     drop: (files: File[], mayOpen: boolean): Promise<string | undefined> =>
       ipcRenderer.invoke('project:drop', files.map((f) => webUtils.getPathForFile(f)), mayOpen),
     openRecent: (dir: string): Promise<string | undefined> => ipcRenderer.invoke('project:open-recent', dir),
+    // Main takes dir off the list only if it is on it; the folder stays on disk. Resolves to the new list.
+    removeRecent: (dir: string): Promise<string[]> => ipcRenderer.invoke('project:remove-recent', dir),
     // Resolves true when project.json had changed on disk since the app last wrote it: read it again.
     setAudio: (list: unknown): Promise<boolean> => ipcRenderer.invoke('project:audio', list),
     // Main checks the Scene is still `file` at `index` in project.json, and refuses the last one. Resolves to the list it

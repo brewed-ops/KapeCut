@@ -135,6 +135,14 @@ iframe.export { position: fixed; top: 0; left: 0; border: 0; visibility: hidden;
 #projects:not([open]) .menu { display: none; } /* a closed <details> does not hide an absolutely positioned child */
 #recent { display: grid; }
 #recent:not(:empty) { border-top: 1.5px solid var(--frame); margin-top: 4px; padding-top: 4px; }
+/* A row's X (#18): shown on the row's hover or focus, like a Scene's trash. visibility, so it takes no Tab or click
+   while hidden. */
+#recent > div { display: flex; align-items: center; }
+#recent > div > button:first-child { flex: 1; }
+#recent .del { flex: none; justify-content: center; width: var(--control-h); padding: 0; color: var(--muted); visibility: hidden; }
+#recent .del .ico { width: var(--control-icon-small); height: var(--control-icon-small); }
+#recent > div:is(:hover, :focus-within) .del { visibility: visible; }
+#recent .del:hover { color: var(--text); }
 
 .error .primary { justify-self: center; margin-top: 8px; }
 
@@ -305,19 +313,20 @@ main { min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr)
 #scene-list .del:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
 #scene-list .del:disabled { background: var(--panel); opacity: 0.4; cursor: default; } /* no row hover fill: it does nothing */
 
-/* The confirm before a Scene is deleted: a small modal over the windows, like Settings. */
-#delete-scene { width: min(380px, calc(100vw - 96px)); padding: 20px; border: 1.5px solid var(--frame); border-radius: var(--radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
-#delete-scene::backdrop { background: var(--scrim); }
-#delete-scene h2 { margin: 0 0 10px; }
-#delete-scene p { margin: 4px 0 0; overflow-wrap: anywhere; }
-#delete-scene .detail { color: var(--muted); font-size: 13px; line-height: var(--lead-dense); }
-#delete-scene #delete-scene-status { margin-top: 10px; color: var(--accent); font-size: 13px; line-height: var(--lead-dense); }
-#delete-scene-status:empty { display: none; }
-#delete-scene .row { display: flex; justify-content: flex-end; gap: var(--control-gap); margin-top: 18px; }
-#delete-scene .primary { display: flex; align-items: center; gap: var(--control-gap); align-self: auto; }
-#delete-scene-cancel { height: var(--control-h); padding: 0 var(--control-pad-x); border: 1.5px solid var(--frame); border-radius: 999px; background: none; color: var(--muted); font: 600 var(--control-font)/var(--lead-label) var(--sans); cursor: pointer; }
-#delete-scene-cancel:hover { background: var(--panel-2); color: var(--text); }
-#delete-scene-cancel:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+/* The confirm before a Scene is deleted, and the warning before a Project leaves Recent Projects: a small modal over
+   the windows, like Settings. */
+:is(#delete-scene, #remove-recent) { width: min(380px, calc(100vw - 96px)); padding: 20px; border: 1.5px solid var(--frame); border-radius: var(--radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+:is(#delete-scene, #remove-recent)::backdrop { background: var(--scrim); }
+:is(#delete-scene, #remove-recent) h2 { margin: 0 0 10px; }
+:is(#delete-scene, #remove-recent) p { margin: 4px 0 0; overflow-wrap: anywhere; }
+:is(#delete-scene, #remove-recent) .detail { color: var(--muted); font-size: 13px; line-height: var(--lead-dense); }
+:is(#delete-scene, #remove-recent) [role='status'] { margin-top: 10px; color: var(--accent); font-size: 13px; line-height: var(--lead-dense); }
+:is(#delete-scene, #remove-recent) [role='status']:empty { display: none; }
+:is(#delete-scene, #remove-recent) .row { display: flex; justify-content: flex-end; gap: var(--control-gap); margin-top: 18px; }
+:is(#delete-scene, #remove-recent) .primary { display: flex; align-items: center; gap: var(--control-gap); align-self: auto; }
+:is(#delete-scene-cancel, #remove-recent-cancel) { height: var(--control-h); padding: 0 var(--control-pad-x); border: 1.5px solid var(--frame); border-radius: 999px; background: none; color: var(--muted); font: 600 var(--control-font)/var(--lead-label) var(--sans); cursor: pointer; }
+:is(#delete-scene-cancel, #remove-recent-cancel):hover { background: var(--panel-2); color: var(--text); }
+:is(#delete-scene-cancel, #remove-recent-cancel):focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
 
 .window {
   display: flex;

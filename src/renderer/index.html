@@ -202,6 +202,14 @@
       <p id="delete-scene-status" role="status"></p>
       <div class="row"><button id="delete-scene-cancel">Cancel</button><button class="primary" id="delete-scene-ok"><svg data-icon="delete"></svg>Delete</button></div>
     </dialog>
+    <!-- The warning before a Project leaves Recent Projects (#18): the X on its row in the Projects menu opens it. main.ts -->
+    <dialog id="remove-recent" aria-labelledby="remove-recent-title" closedby="any">
+      <h2 class="eyebrow" id="remove-recent-title">Remove from Recent Projects</h2>
+      <p id="remove-recent-text"></p>
+      <p class="detail">The folder and its files stay on disk.</p>
+      <p id="remove-recent-status" role="status"></p>
+      <div class="row"><button id="remove-recent-cancel">Cancel</button><button class="primary" id="remove-recent-ok"><svg data-icon="dismiss"></svg>Remove</button></div>
+    </dialog>
     <!-- One toast for the app ("Prompt copied"); toast() in dom.ts shows it. -->
     <!-- The live region stays in the page; the pill inside it appears, so screen readers announce it. -->
     <div role="status"><div class="toast" id="toast" hidden><svg data-icon="checkmark-circle"></svg><span id="toast-text"></span></div></div>

@@ -14,7 +14,7 @@ import { kapecut } from './bridge'
 import { $, errorText, toast } from './dom'
 import { connectPrompt, fixPrompt } from './agent/connect-prompt'
 import { wireAgentStatus } from './agent/status-ui'
-import { wireSettings } from './settings/settings-ui'
+import { showRecent, wireSettings } from './settings/settings-ui'
 import { fillIcons, icon } from './icons'
 import { wireSetup } from './setup/setup-ui'
 import { ffmpegDetail } from './setup/setup'
@@ -1182,6 +1182,48 @@ const recentButtons = (recent: string[]) =>
     item.addEventListener('click', () => switchProject(() => kapecut.project.openRecent(dir)))
     return item
   })
+// The Projects menu's rows: each with an X (#18) that asks before taking the Project off the list.
+const recentRows = (recent: string[]) =>
+  recentButtons(recent).map((item, i) => {
+    const name = folderName(recent[i])
+    const x = Object.assign(document.createElement('button'), { className: 'del', innerHTML: icon('dismiss'), title: 'Remove from Recent Projects' })
+    x.setAttribute('aria-label', `Remove ${name} from Recent Projects`)
+    x.addEventListener('click', () => askRemove(recent[i]))
+    const row = document.createElement('div')
+    row.append(item, x)
+    return row
+  })
+const showRecents = (recent: string[]) => {
+  $('recent').replaceChildren(...recentRows(recent))
+  showRecent(recentButtons(recent))
+}
+// The warning: the folder stays on disk, and an open Project stays open. Main checks dir is on the list.
+const confirmRemove = $('remove-recent') as HTMLDialogElement
+const [okRemove, cancelRemove] = ['remove-recent-ok', 'remove-recent-cancel'].map($) as HTMLButtonElement[]
+let removing = ''
+function askRemove(dir: string) {
+  removing = dir
+  $('remove-recent-text').textContent = `Remove ${folderName(dir)} from the list?`
+  $('remove-recent-status').textContent = ''
+  confirmRemove.showModal()
+}
+cancelRemove.addEventListener('click', () => confirmRemove.close())
+okRemove.addEventListener('click', async () => {
+  // While main works the warning cannot close or be sent again, as with Delete Scene.
+  const lock = (on: boolean) => {
+    okRemove.disabled = cancelRemove.disabled = on
+    confirmRemove.setAttribute('closedby', on ? 'none' : 'any')
+  }
+  lock(true)
+  try {
+    showRecents(await kapecut.project.removeRecent(removing))
+    confirmRemove.close()
+  } catch (e) {
+    $('remove-recent-status').textContent = errorText(e) // still open: Remove can be tried again
+  } finally {
+    lock(false)
+  }
+})
 // Nothing opens until the Setup window's checks pass (#89): Open folder, drops and recent Projects wait for it.
 let checked = false
 const ready = wireSetup().then(() => {
@@ -1195,7 +1237,7 @@ void ready.then(() => Promise.all([state.catch(() => ({ recent: [] })), kapecut.
 ).catch((e) => console.error('[kapecut] Settings could not start:', e)) // it stays disabled; the console says why
 state
   .then(async ({ current, recent, session, opened }) => {
-    $('recent').replaceChildren(...recentButtons(recent))
+    $('recent').replaceChildren(...recentRows(recent))
     const project = await readProject(current).catch((e) => {
       showError(errorText(e), 'Project error')
       kapecut.onFileSaved(reopenOn)

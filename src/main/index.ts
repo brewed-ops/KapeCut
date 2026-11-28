@@ -7,7 +7,7 @@ import { APP_URL, handle, isAppPage, on } from './app-sender'
 import { fileUnder } from './file-under'
 import { watchProject } from './watch-project'
 import { exporting, handleExport } from './export'
-import { addRecent } from './recent-projects'
+import { addRecent, removeRecent } from './recent-projects'
 import { ownNotesWrite, writeNoteImage, writeNotes } from './notes-files'
 import { ownLanded, ownTemp, ownWrite } from './owned-writes'
 import { copyIn, deleteScene, listFiles, readDrop, writeAudio } from './project-files'
@@ -269,6 +269,12 @@ app.whenReady().then(() => {
   handle('project:open-recent', (_e, dir: string) =>
     readRecent().includes(dir) ? openProject(win, dir) : `${dir} is not a recent Project`,
   )
+  // Off the list only: the folder is never touched, and an open Project stays open (#18). Resolves to the new list.
+  handle('project:remove-recent', (_e, dir: unknown) => {
+    const recent = removeRecent(readRecent(), dir)
+    writeFileSync(recentFile(), JSON.stringify(recent))
+    return recent
+  })
   handle('project:choose', async () => {
     const pick = await dialog.showOpenDialog(win, { title: 'Open a Project folder', properties: ['openDirectory'] })
     if (!pick.canceled && pick.filePaths[0]) return openProject(win, pick.filePaths[0])
