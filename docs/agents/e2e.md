@@ -84,7 +84,10 @@ without focus. Why it stays shown and on screen: the comment above it in `src/ma
 ## Assertions that hold
 
 - Reload-safe polls: anything that reloads the page (Project switch, a fixed `project.json`) ends its probe in
-  `.catch(() => null)` inside `expect.poll`, because poll does not retry "Execution context was destroyed".
+  `.catch(() => null)` inside `expect.poll`, because poll does not retry "Execution context was destroyed". The same
+  holds for any probe that throws (an element not there yet): poll fails at once instead of retrying.
+- Test a scroll with `page.mouse.wheel` over the box: script scrolling (`scrollIntoView`, `scrollTop`) moves even an
+  `overflow: hidden` box, so it passes on a box the user cannot scroll (`guide.e2e.ts`).
 - Proving something does NOT happen needs a signal from the code that defers it, never a fixed wait and never a race
   on the progress %. Model: the Export test in `export.e2e.ts` holds the Export on a gated Frame (`openGate`), saves
   `project.json`, waits for "saves apply after Export", then asserts the title is unchanged.
