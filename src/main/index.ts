@@ -13,7 +13,7 @@ import { ownLanded, ownTemp, ownWrite } from './owned-writes'
 import { copyIn, deleteScene, listFiles, readDrop, writeAudio } from './project-files'
 import { writeSession } from './session-file'
 import { handleUpdates } from './updates'
-import { ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
+import { blurs, ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
 import { allPass, installSkill, mediaChecks, refreshPath, runChecks, skillState, withInstallDirs, type Checks } from './setup-checks'
 
 if (process.platform !== 'win32') process.env.PATH = withInstallDirs(process.env.PATH ?? '', homedir())
@@ -175,8 +175,20 @@ app.whenReady().then(() => {
   handleExport(() => projectDir)
   let settings = readSettings(settingsFile())
   handle('settings:get', () => settings)
-  // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change.
-  const paintGround = () => !win.isDestroyed() && win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors))
+  // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change. Glass (#20)
+  // blurs the desktop behind a clear ground, switched live: Windows acrylic, Mac vibrancy, none on Linux.
+  // Off where the OS cannot blur or the user asked for less transparency: there Glass is solid ink. Set on a change only.
+  let blurring = false
+  const paintGround = () => {
+    if (win.isDestroyed()) return
+    const blur = settings.theme === 'glass' && blurs() && !nativeTheme.prefersReducedTransparency
+    if (blur !== blurring) {
+      blurring = blur
+      if (process.platform === 'win32') win.setBackgroundMaterial(blur ? 'acrylic' : 'none')
+      if (process.platform === 'darwin') win.setVibrancy(blur ? 'under-window' : null)
+    }
+    win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors, blur)) // after the material, which sets its own
+  }
   nativeTheme.on('updated', paintGround)
   // In memory first, so a second change made while the first is still writing builds on it (idle minutes then theme).
   // A failed write puts the old value back, unless a later change has already replaced it.
@@ -215,13 +227,16 @@ app.whenReady().then(() => {
     titleBarStyle: 'hidden',
     // macOS keeps its traffic lights on a hidden title bar: on the gutter (24 px, tokens.css) and centred on the
     // header's controls, while the app hides its own buttons (app.css, data-platform from the preload).
-    ...(process.platform === 'darwin' && { trafficLightPosition: { x: 24, y: 27 } }),
+    // active: Glass's vibrancy stays blurred while another app has focus.
+    ...(process.platform === 'darwin' && { trafficLightPosition: { x: 24, y: 27 }, visualEffectState: 'active' }),
     title: 'KapeCut',
     // Window and taskbar icon (docs/design/logo.md). The .ico carries the hand-checked 16-48 px sizes, a PNG would be
     // shrunk from 256. out/main/ -> repo root, in dev and in the build.
     icon: join(__dirname, '../../resources/logo', process.platform === 'win32' ? 'kapecut.ico' : 'kapecut-256.png'),
     webPreferences: { preload: join(__dirname, '../preload/index.js') },
   })
+  paintGround() // Glass blurs from the first frame
+  win.on('focus', paintGround) // nativeTheme sends no event when the OS's reduce transparency setting changes
   // Scenes share the app page's origin: none may send the window off it or open another one with a fresh bridge (#126).
   win.webContents.on('will-navigate', (e) => !isAppPage(e.url) && e.preventDefault())
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

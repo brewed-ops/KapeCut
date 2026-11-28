@@ -48,7 +48,7 @@ try {
   const first = (await app.evaluate(({ clipboard }) => clipboard.readText())).split('\n')[0]
   ok(first.includes(`\`${skill}\``) && existsSync(skill), `the Connect prompt points at the packaged SKILL.md (${first})`)
   mkdirSync('.scratch', { recursive: true })
-  for (const theme of ['dark', 'light', 'coffee']) {
+  for (const theme of ['dark', 'light', 'coffee', 'glass']) {
     // Through Settings, as a user picks it (the page's bridge is taken once, by the app)
     await page.locator('#settings').click()
     await page.locator('#settings-panel nav button[data-section="appearance"]').click()
