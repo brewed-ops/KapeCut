@@ -24,7 +24,8 @@
 // scene-delete-hover.png (a Scene row's trash on hover) and scene-delete-confirm.png (its confirm, then cancelled).
 // setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, an Agent and the skill missing, then all set),
 // setup-window-prompt.png and setup-window-prompt-copied.png (an Agent found, ffmpeg missing: Copy Prompt beside
-// Re-check, then clicked: its toast), setup-window-stale.png (all pass, the skill copy edited: the notice).
+// Re-check, then clicked: its toast), setup-window-stale.png (all pass, the skill copy edited: the notice),
+// setup-window-mac.png (a Mac with nothing installed: Homebrew first, Run on each row).
 // guide.png and guide-min.png (a first launch: the Guide opens by itself; again at the minimum window), empty-editor.png
 // (the Guide closed: the empty editor's model warning line), guide-{light,coffee,glass}.png (the Guide from its header button).
 import { _electron as electron } from '@playwright/test'
@@ -107,6 +108,23 @@ try {
 } finally {
   await agentOnly.close()
   rmSync(agentOnlyData, { recursive: true, force: true, maxRetries: 10 })
+}
+
+// The same empty PATH as a Mac sees it (navigator.platform faked, main finds no brew on Windows): Homebrew first, then
+// the brew rows, each with Run (setup-window-mac.png).
+const macData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
+const mac = await electron.launch({ args: ['.', `--user-data-dir=${macData}`], env: { ...process.env, KAPECUT_PROJECT: '', [pathKey]: '' } })
+try {
+  const page = await mac.firstWindow()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }))
+  await page.reload()
+  await page.locator('#setup li[data-check="brew"]').waitFor({ timeout: 30_000 })
+  await page.waitForTimeout(1000) // fonts settle
+  await shoot(page, 'setup-window-mac')
+} finally {
+  await mac.close()
+  rmSync(macData, { recursive: true, force: true, maxRetries: 10 })
 }
 
 // Every check passing but the skill copy edited: the once-a-launch notice over the editor (setup-window-stale.png).

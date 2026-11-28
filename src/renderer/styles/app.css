@@ -447,7 +447,7 @@ body:has(> #setup:not([hidden])) > main { visibility: hidden; }
 #setup-list p { grid-column: 2 / -1; margin: 0; color: var(--muted); font-size: 12px; line-height: var(--lead-dense); }
 #setup-list code { grid-column: 2; padding: 6px 10px; border-radius: 8px; background: var(--panel-2); color: var(--text); font: 500 12px/var(--lead-label) var(--mono); overflow-wrap: anywhere; user-select: text; }
 #setup-list button { grid-column: 3; height: var(--control-h-small); }
-#setup-list .skill { grid-row: 1; } /* beside the name: it has no command row */
+#setup-list :is(.skill, .run) { grid-row: 1; } /* beside the name: Run above Copy, the skill has no command row */
 #setup .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: var(--control-h); }
 #setup-prompt { margin-left: auto; height: var(--control-h); } /* beside Re-check, the status keeps the left */
 #setup-status { margin: 0; color: var(--muted); font-size: 13px; line-height: var(--lead-dense); }

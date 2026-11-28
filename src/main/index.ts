@@ -14,6 +14,7 @@ import { copyIn, deleteScene, listFiles, readDrop, writeAudio } from './project-
 import { writeSession } from './session-file'
 import { handleUpdates } from './updates'
 import { blurs, ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
+import { runInstall } from './terminal'
 import { allPass, installSkill, mediaChecks, refreshPath, runChecks, skillState, withInstallDirs, type Checks } from './setup-checks'
 
 if (process.platform !== 'win32') process.env.PATH = withInstallDirs(process.env.PATH ?? '', homedir())
@@ -172,6 +173,7 @@ app.whenReady().then(() => {
   handle('tools:passed', () => passed)
   handle('tools:media', mediaChecks)
   handle('tools:recheck', async () => (await refreshPath(), checks()))
+  handle('tools:run', (_e, id: unknown) => runInstall(id))
   handleExport(() => projectDir)
   let settings = readSettings(settingsFile())
   // e2e and shots set KAPECUT_GUIDE_SEEN=1 (scripts/ready-env.mjs): every launch has a fresh profile, so the Guide

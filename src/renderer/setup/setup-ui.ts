@@ -34,7 +34,8 @@ export function wireSetup(): Promise<void> {
       recheck.focus()
     }
     // Each step disables the buttons until main answers, so two copies or checks never race.
-    const busy = (on: boolean) => [...list.querySelectorAll('button'), copyPrompt].forEach((b) => (b.disabled = on))
+    // A button marked off (a Run that ran, a brew Run waiting on Homebrew) stays off when the step ends.
+    const busy = (on: boolean) => [...list.querySelectorAll('button'), copyPrompt].forEach((b) => (b.disabled = on || 'off' in b.dataset))
     const ask = (work: Promise<Checks>) => {
       recheck.disabled = true
       busy(true)
@@ -47,7 +48,8 @@ export function wireSetup(): Promise<void> {
       // An outdated skill never blocks, but Claude Code would load old instructions: said once per launch.
       const stale = rows.some((r) => r.skill === 'outdated') && !toldStale
       if (pass && box.hidden && !stale) return done()
-      list.replaceChildren(...rows.map(row))
+      const brewFirst = rows.some((r) => r.id === 'brew')
+      list.replaceChildren(...rows.map((r) => row(r, brewFirst && !!r.command?.startsWith('brew '))))
       prompt = setupPrompt(rows, os)
       copyPrompt.hidden = !prompt
       open()
@@ -58,7 +60,7 @@ export function wireSetup(): Promise<void> {
       done() // in at once (a drop now opens); the window stays a moment to show it
       setTimeout(() => (box.hidden = true), HOLD)
     }
-    const row = (r: Row) => {
+    const row = (r: Row, waitsOnBrew: boolean) => {
       const cls = r.ok ? 'ok' : r.optional ? 'opt' : 'no'
       const [mark, label] = STATES[cls]
       const li = el('li', { className: cls })
@@ -68,7 +70,19 @@ export function wireSetup(): Promise<void> {
         const copy = el('button', { innerHTML: icon('copy') + 'Copy', title: 'Copy the command, then run it in a terminal' })
         copy.setAttribute('aria-label', `Copy the ${r.name} command`)
         copy.addEventListener('click', () => kapecut.clipboard.write(r.command!).then(() => toast('Command copied'), (e) => say(errorText(e))))
-        li.append(el('code', { textContent: r.command }), copy)
+        // The terminal shows the command running, for the user to answer a password or licence prompt.
+        const run = el('button', { className: 'run', innerHTML: icon('play') + 'Run', title: 'Open a terminal running this command' })
+        run.setAttribute('aria-label', `Run the ${r.name} command`)
+        // One terminal per click: Run stays off once it opened one, until Re-check draws the rows again.
+        const off = (on: boolean) => ((run.disabled = on), on ? (run.dataset.off = '') : delete run.dataset.off)
+        if (waitsOnBrew) off(true), (run.title = 'Install Homebrew first, then Re-check')
+        run.addEventListener('click', () => {
+          off(true)
+          // A Re-check since may have drawn new rows: only this row's own list gets its answer.
+          const mine = (text: string) => run.isConnected && say(text)
+          kapecut.runInstall(r.id).then(() => mine('Running in a terminal. Re-check when it is done'), (e) => (off(false), mine(errorText(e))))
+        })
+        li.append(el('code', { textContent: r.command }), copy, run)
       }
       if (r.skill) {
         // Update asks before it replaces the user's copy; main does the asking.

@@ -45,6 +45,8 @@ export type Bridge = {
   recheckTools(): Promise<Checks>
   /** Copies the repo's skill over the installed one (main fixes both paths), then checks again. */
   installSkill(): Promise<Checks>
+  /** Opens a visible terminal running a Setup row's install command; main picks it by the row id, never page text. */
+  runInstall(id: string): Promise<void>
   /** settings.json in app data. Each setter resolves to the value saved; main refuses idle minutes but 1 to 120 and a
    *  theme not in Theme. setTheme also repaints the page (the preload keeps data-theme on <html>). */
   settings: {
