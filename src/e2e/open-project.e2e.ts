@@ -220,11 +220,14 @@ test('removing a recent Project takes it off the list for good, leaves its folde
   await warn.getByRole('button', { name: 'Remove', exact: true }).click()
   await expect(warn).toBeHidden()
   await expect(page.locator('#recent > div')).toHaveText(['Alpha'])
-  // The open Project too: it stays open.
-  await row('Alpha').hover()
+  await expect(row('Alpha').getByRole('button', { name: 'Alpha', exact: true })).toBeFocused() // not the gone X
+  // The open Project too, by keyboard: Space presses Remove (not Play behind it), and the Project stays open.
   await x('Alpha').click()
-  await warn.getByRole('button', { name: 'Remove', exact: true }).click()
+  await warn.getByRole('button', { name: 'Remove', exact: true }).focus()
+  await page.keyboard.press('Space')
   await expect(page.locator('#recent > div')).toHaveCount(0)
+  await expect(page.locator('#open-folder')).toBeFocused()
+  await expect(page.locator('#play')).toHaveAttribute('aria-label', 'Play')
   await page.locator('#settings').click()
   await expect(page.locator('#settings-recent')).toHaveText('None yet')
   await page.keyboard.press('Escape')
@@ -238,7 +241,10 @@ test('removing a recent Project takes it off the list for good, leaves its folde
   // Still gone after a relaunch, so nothing reopens.
   ;({ page, app } = await launch({ project: '', userData, waitForExport: false }))
   await expect(page.locator('.error')).toContainText('Open a Project folder')
-  await page.locator('#projects summary').click()
   await expect(page.locator('#recent > div')).toHaveCount(0)
+  // Opening a Project keeps the gone folder's entry too.
+  await openViaDialog(app, page, b)
+  await expect.poll(() => pixel(page)).toEqual([0, 0, 255])
+  expect(JSON.parse(readFileSync(join(userData, 'recent-projects.json'), 'utf8'))).toEqual([b, gone])
   await app.close()
 })

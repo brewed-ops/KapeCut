@@ -41,14 +41,15 @@ const isFolder = (dir: unknown) => {
 }
 
 // The list as saved, folders that are gone included: a drive plugged back in brings them back.
-const savedRecent = () => JSON.parse(readFileSync(recentFile(), 'utf8')) as string[]
-function readRecent(): string[] {
+function savedRecent(): string[] {
   try {
-    return savedRecent().filter(isFolder)
+    const list: unknown = JSON.parse(readFileSync(recentFile(), 'utf8'))
+    return Array.isArray(list) ? list.filter((d) => typeof d === 'string') : []
   } catch {
     return [] // first launch, or an unreadable list: start without recents
   }
 }
+const readRecent = () => savedRecent().filter(isFolder)
 
 // File-based hand-off: an agent saves a Scene, the viewer reloads it. The old Project's watch stops first.
 function useProject(win: BrowserWindow, dir: string) {
@@ -75,7 +76,7 @@ function openProject(win: BrowserWindow, dir: string) {
   if (!isFolder(dir)) return `${dir} is not a folder KapeCut can open`
   useProject(win, dir)
   try {
-    writeFileSync(recentFile(), JSON.stringify(addRecent(readRecent(), projectDir!)))
+    writeFileSync(recentFile(), JSON.stringify(addRecent(savedRecent(), projectDir!)))
   } catch (e) {
     console.error('[kapecut] could not save recent Projects:', e) // the Project still opens
   }

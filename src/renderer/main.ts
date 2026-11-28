@@ -362,7 +362,7 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
   let deleting: { index: number; file: string } | undefined
   // file: the row's own, so a list about to redraw after Claude's re-order never names another Scene.
   const askDelete = (index: number, file: string) => {
-    if (confirmDelete.open) return // a Delete key pressed while one is open (focus on body as main works) retargets nothing
+    if (document.querySelector('dialog[open]')) return // a Delete key pressed while a confirm is open (focus on body as main works) retargets nothing
     if (project.scenes[index] !== file) return // the list redraws in a moment
     const n = notes.onScene(index, project.scenes).length
     deleting = { index, file }
@@ -726,6 +726,7 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
   scrub.addEventListener('input', () => (tr.pause(), tr.seek(Number(scrub.value))))
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLTextAreaElement) return // typing a Note
+    if ((e.target as Element).closest?.('dialog[open]')) return // a confirm's own buttons take Space
     const action = { Space: toggle, ArrowLeft: () => tr.step(-1), ArrowRight: () => tr.step(1) }[e.code]
     if (!action) return
     e.preventDefault() // stops a focused button or slider from also acting on the key
@@ -1188,7 +1189,9 @@ const recentRows = (recent: string[]) =>
     row.append(item, x)
     return row
   })
+let recentNow: string[] | undefined // the list since a remove, so Settings, if it starts later, draws no stale one
 const showRecentLists = (recent: string[]) => {
+  recentNow = recent
   $('recent').replaceChildren(...recentRows(recent))
   showSettingsRecent(recentButtons(recent))
 }
@@ -1197,7 +1200,7 @@ const confirmRemove = $('remove-recent') as HTMLDialogElement
 const [okRemove, cancelRemove] = ['remove-recent-ok', 'remove-recent-cancel'].map($) as HTMLButtonElement[]
 let removing = ''
 function askRemove(dir: string) {
-  if (confirmRemove.open) return
+  if (document.querySelector('dialog[open]')) return
   removing = dir
   $('remove-recent-text').textContent = `Remove ${folderName(dir)} from the list?`
   $('remove-recent-status').textContent = ''
@@ -1209,6 +1212,7 @@ okRemove.addEventListener('click', async () => {
   try {
     showRecentLists(await kapecut.project.removeRecent(removing))
     confirmRemove.close()
+    ;($('recent').querySelector('button') ?? $('open-folder')).focus() // its X is gone with its row
   } catch (e) {
     $('remove-recent-status').textContent = errorText(e) // still open: Remove can be tried again
   } finally {
@@ -1224,7 +1228,7 @@ const ready = wireSetup().then(() => {
 const state = ready.then(() => kapecut.project.state())
 // Settings works even when the Project state cannot be read: the encoder status matters most then.
 void ready.then(() => Promise.all([state.catch(() => ({ recent: [] })), kapecut.settings.get()])).then(([{ recent }, settings]) =>
-  wireSettings(recentButtons(recent), settings),
+  wireSettings(recentButtons(recentNow ?? recent), settings),
 ).catch((e) => console.error('[kapecut] Settings could not start:', e)) // it stays disabled; the console says why
 state
   .then(async ({ current, recent, session, opened }) => {

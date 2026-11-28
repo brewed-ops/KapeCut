@@ -135,13 +135,13 @@ iframe.export { position: fixed; top: 0; left: 0; border: 0; visibility: hidden;
 #projects:not([open]) .menu { display: none; } /* a closed <details> does not hide an absolutely positioned child */
 #recent { display: grid; }
 #recent:not(:empty) { border-top: 1.5px solid var(--frame); margin-top: 4px; padding-top: 4px; }
-/* A row's X (#18): shown on the row's hover or focus, like a Scene's trash. visibility, so it takes no Tab or click
-   while hidden. */
+/* A row's X (#18): shown on the row's hover, like a Scene's trash, and on every row while focus is in the list, so
+   Shift+Tab reaches it too. visibility, so it takes no click while hidden. */
 #recent > div { display: flex; align-items: center; }
 #recent > div > button:first-child { flex: 1; }
 #recent .del { flex: none; justify-content: center; width: var(--control-h); padding: 0; color: var(--muted); visibility: hidden; }
 #recent .del .ico { width: var(--control-icon-small); height: var(--control-icon-small); }
-#recent > div:is(:hover, :focus-within) .del { visibility: visible; }
+#recent > div:hover .del, #recent:focus-within .del { visibility: visible; }
 #recent .del:hover { color: var(--text); }
 
 .error .primary { justify-self: center; margin-top: 8px; }
