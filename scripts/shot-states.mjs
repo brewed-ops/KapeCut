@@ -271,7 +271,7 @@ try {
   await page.locator('#note-list .jump').first().click()
   await page.waitForTimeout(300)
   await shot('notes-done')
-  // The same Notes in light, then back to dark with Settings on General, so the later shots stay as they were.
+  // The same Notes in Light and in Coffee, then back to Dark with Settings on General, so the later shots stay as they were.
   const nav = (section) => page.getByRole('dialog', { name: 'Settings' }).getByRole('navigation').getByRole('button', { name: section }).click()
   const pickTheme = async (name) => {
     await page.getByRole('button', { name: 'Settings' }).click()

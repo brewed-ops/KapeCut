@@ -385,6 +385,8 @@ test('a theme switch, from Settings or System following the OS, recolours the No
     await radio('Light').check()
     const light = await turnsTo('light')
     expect(light).not.toBe(dark)
+    await radio('Coffee').check()
+    expect(new Set([dark, light, await turnsTo('coffee')]).size).toBe(3)
 
     // System, both ways.
     await page.emulateMedia({ colorScheme: 'dark' })

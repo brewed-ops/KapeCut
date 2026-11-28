@@ -25,7 +25,7 @@ A working page in this exact look, with the tokens and the grain tile embedded:
 ## Themes
 
 Settings > Appearance > Theme picks Dark (the default), Light, Coffee or System (#114, #19). System is Dark or Light,
-whichever the OS uses, followed live. 0.0.1 saved Coffee as `light` and Light as `glass`: `readSettings` renames them
+whichever the OS uses, followed live (so on a light OS it moves from 0.0.1's warm paper to the cool Light). 0.0.1 saved Coffee as `light` and Light as `glass`: `readSettings` renames them
 in a version 1 settings file, and the next save writes version 2.
 
 The preload sets `data-theme` on `<html>` before the first paint, and main paints the window's ground the same `--bg`
