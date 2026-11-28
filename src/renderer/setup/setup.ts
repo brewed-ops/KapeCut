@@ -52,7 +52,7 @@ export function setupRows(c: Checks, os: Os): Row[] {
     },
     tool('browser', 'Chrome or Edge', c.browser, c.browser ? 'Installed' : 'Not found. The Agent checks each Scene with a still from it', BROWSER[os]),
   ]
-  // A Mac with a brew command to run but no brew: Homebrew first.
+  // A Mac with a brew command to run but no brew: Homebrew first. Every Mac brew row's command starts with `brew `.
   if (os === 'mac' && !c.brew && rows.some((r) => r.command?.startsWith('brew ')))
     rows.unshift(tool('brew', 'Homebrew', false, 'Not found. The brew commands below need it first', BREW))
   return rows

@@ -90,8 +90,8 @@ npm run dev
 
 KapeCut checks all of these on every launch. While one is missing, the Setup window stands in for the editor and
 nothing opens. It shows the install command for your OS with Copy and Run buttons (Run opens a visible terminal
-running that row's fixed command, never anything typed in the page) and an **Install skill** button. With an Agent found, **Copy Prompt** copies one prompt that has it run the other install
-commands. Install what is missing, then press **Re-check**. Settings lists the same checks.
+running that row's fixed command, never anything typed in the page) and an **Install skill** button. With an Agent
+found, **Copy Prompt** copies one prompt that has it run the other install commands. Install what is missing, then press **Re-check**. Settings lists the same checks.
 
 Open a Project folder with the "Open folder" button, or drop the folder on the window. `examples/` holds two. Drop any other file on the window to copy it into the open Project: it shows in the Files panel, and audio files drag from there onto the Timeline.
 

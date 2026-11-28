@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { findAgent, findOnPath, withInstallDirs } from '../main/setup-checks'
-import { terminalArgv } from '../main/terminal'
+import { HOST, terminalArgv } from '../main/terminal'
 import { launch } from './launch'
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -126,17 +126,18 @@ test("Run on a missing row opens a terminal running that row's command (spawn st
         process.getBuiltinModule('node:child_process').spawn = ((...args: unknown[]) => {
           g.runs!.push(args)
           const child = Object.assign(new EventEmitter(), { unref: () => {} })
-          setTimeout(() => child.emit('spawn'))
+          setTimeout(() => (child.emit('spawn'), child.emit('exit', 0))) // cmd and osascript exit once the window is open
           return child
         }) as never
       }, nowhere)
       const row = page.getByRole('dialog', { name: /KapeCut needs/ }).locator('li[data-check="agent"]')
       const command = await row.locator('code').textContent()
-      await row.getByRole('button', { name: 'Run the Claude Code command' }).click()
+      const run = row.getByRole('button', { name: 'Run the Claude Code command' })
+      await run.click()
       await expect(page.locator('#setup-status')).toHaveText('Running in a terminal. Re-check when it is done')
+      await expect(run).toBeDisabled() // one terminal per click, until Re-check draws the rows again
       const runs = await app.evaluate(() => (globalThis as { runs?: unknown[] }).runs)
-      const os = process.platform === 'win32' ? 'win' : process.platform === 'darwin' ? 'mac' : 'linux'
-      expect(runs).toEqual([[...terminalArgv(os, command!, { SystemRoot: nowhere }), { detached: true, stdio: 'ignore' }]])
+      expect(runs).toEqual([terminalArgv(HOST, command!, { SystemRoot: nowhere })])
     } finally {
       await app.close().catch(() => {})
     }

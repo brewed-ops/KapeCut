@@ -71,7 +71,11 @@ export function wireSetup(): Promise<void> {
         // The terminal shows the command running, for the user to answer a password or licence prompt.
         const run = el('button', { className: 'run', innerHTML: icon('play') + 'Run', title: 'Open a terminal running this command' })
         run.setAttribute('aria-label', `Run the ${r.name} command`)
-        run.addEventListener('click', () => kapecut.runInstall(r.id).then(() => say('Running in a terminal. Re-check when it is done'), (e) => say(errorText(e))))
+        // One terminal per click: Run stays off once it opened one, until Re-check draws the rows again.
+        run.addEventListener('click', () => {
+          run.disabled = true
+          kapecut.runInstall(r.id).then(() => say('Running in a terminal. Re-check when it is done'), (e) => ((run.disabled = false), say(errorText(e))))
+        })
         li.append(el('code', { textContent: r.command }), copy, run)
       }
       if (r.skill) {

@@ -62,7 +62,10 @@
     "mac": {
       "target": [{ "target": "dmg", "arch": ["universal"] }],
       "icon": "resources/logo/kapecut-512.png",
-      "identity": "-"
+      "identity": "-",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "KapeCut opens Terminal to run a Setup install command you chose."
+      }
     },
     "publish": {
       "provider": "github",
