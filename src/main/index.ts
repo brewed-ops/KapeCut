@@ -107,7 +107,7 @@ function serve(req: Request) {
 }
 
 // The Setup window's skill check (#89): the repo's copy against Claude Code's, both fixed here, never from the page.
-// The prompts point every Agent at the repo's copy (ADR 0008).
+// The prompts point every Agent at this copy: the repo's in dev, the install folder's when packaged (ADR 0008).
 // out/main/ -> repo root: the installer keeps that layout, unpacked (package-files.test.ts), like the icon.
 const SKILL_FROM = join(__dirname, '../../skills/kapecut')
 const skillTo = () => join(homedir(), '.claude', 'skills', 'kapecut') // per call: USERPROFILE / HOME decide it

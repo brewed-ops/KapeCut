@@ -112,8 +112,8 @@ function thumbOf(c: HTMLCanvasElement) {
 }
 const projectUrl = (file: string) => `/project/${file.split('/').map(encodeURIComponent).join('/')}`
 
-/** at: the Session file's path and the shipped SKILL.md's, which the fix prompt names. */
-async function openProject(dir: string, opened: Project & { name: string }, at: { session: string; skill: string }) {
+/** paths: the Session file's and the shipped SKILL.md's, which the fix prompt names. */
+async function openProject(dir: string, opened: Project & { name: string }, paths: { session: string; skill: string }) {
   let project = opened
   let projectError: string | undefined // project.json broke after opening; the last good Scene order keeps playing
   // shortcut: every Scene page stays loaded, so the next one is always preloaded; keep only current + next if long Projects use too much memory.
@@ -242,7 +242,7 @@ async function openProject(dir: string, opened: Project & { name: string }, at: 
     paused: () => viewerPaused,
     seek: (t) => (tr.pause(), tr.seek(t)),
     changed: tl.layoutNotes,
-    copyPrompt: (open) => copyPrompt(fixPrompt({ project: dir, ...at, open })),
+    copyPrompt: (open) => copyPrompt(fixPrompt({ project: dir, ...paths, open })),
   })
   tl.showNotes(notes)
   const mute = $('mute')

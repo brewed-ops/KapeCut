@@ -45,9 +45,9 @@ test('opening a Project writes the Session file; Connect your agent copies the C
     await expect(page.getByRole('status').filter({ has: page.locator('#toast') })).toContainText('Prompt copied') // announced
     const prompt = await clipboard()
     // The first line points at the SKILL.md this build ships, and that file is there (ADR 0008).
-    const skill = prompt.match(/^I'm using KapeCut\. Read the KapeCut instructions at (.+) first\.$/m)?.[1]
-    expect(skill).toBe(join(process.cwd(), 'skills', 'kapecut', 'SKILL.md'))
-    expect(existsSync(skill!)).toBe(true)
+    const skill = join(process.cwd(), 'skills', 'kapecut', 'SKILL.md')
+    expect(prompt.split('\n')[0]).toContain(` ${skill} `)
+    expect(existsSync(skill)).toBe(true)
     expect(prompt).toContain(`Project folder (open in KapeCut now): ${empty}\n`)
     expect(prompt).toContain(`read ${join(realpathSync(userData), 'session.json')} and confirm`)
     expect(prompt).toContain('30 or 60 fps')

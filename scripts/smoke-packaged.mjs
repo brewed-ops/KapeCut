@@ -1,5 +1,6 @@
 // Smoke test of the packaged app on Windows or macOS (npm run dist first): fresh home -> Setup shows the skill missing ->
-// Install skill copies it out of the package -> the editor opens examples/hello, shot in each theme. Usage: npm run smoke:packaged
+// Install skill copies it out of the package -> the editor opens examples/hello -> the Connect prompt points at the
+// packaged SKILL.md -> shot in each theme. Usage: npm run smoke:packaged
 // shortcut: Windows and macOS only; Linux CI would need a virtual display.
 import { _electron as electron } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
@@ -33,8 +34,9 @@ try {
   ok(true, 'editor opened examples/hello, Export enabled')
   await page.getByRole('button', { name: 'Connect your agent' }).click()
   await page.locator('#toast').waitFor({ timeout: 5_000 })
-  const skill = (await app.evaluate(({ clipboard }) => clipboard.readText())).match(/^I'm using KapeCut\. Read the KapeCut instructions at (.+) first\.$/m)?.[1]
-  ok(skill && skill.startsWith(resolve(exe, '..')) && existsSync(skill), `the Connect prompt points at the packaged SKILL.md (${skill})`)
+  const skill = join(await app.evaluate(({ app }) => app.getAppPath()), 'skills', 'kapecut', 'SKILL.md')
+  const first = (await app.evaluate(({ clipboard }) => clipboard.readText())).split('\n')[0]
+  ok(first.includes(` ${skill} `) && existsSync(skill), `the Connect prompt points at the packaged SKILL.md (${first})`)
   mkdirSync('.scratch', { recursive: true })
   for (const theme of ['dark', 'light', 'glass']) {
     // Through Settings, as a user picks it (the page's bridge is taken once, by the app)
