@@ -7,15 +7,15 @@ import { probeH264 } from '../viewer/probe'
 import { osOf, setupRows } from '../setup/setup'
 import { updateView, type Run } from './updates'
 
+/** Draws Settings' copy of the recent Projects (General), again whenever one leaves the list (#18). */
+export const showSettingsRecent = (recent: HTMLElement[]) =>
+  $('settings-recent').replaceChildren(...(recent.length ? recent : [Object.assign(document.createElement('span'), { textContent: 'None yet' })]))
+
 /**
  * The Settings row at the foot of the left column and its modal panel (#114): General (idle minutes, recent Projects,
  * buttons the caller built), Appearance (the theme), Setup (the encoder and tool checks) and Updates (the version, the
  * launch check's result and its one button). Values are saved in settings.json by main, which checks them.
  */
-/** The recent Projects in General, drawn again when one leaves the list (#18). */
-export const showRecent = (recent: HTMLElement[]) =>
-  $('settings-recent').replaceChildren(...(recent.length ? recent : [Object.assign(document.createElement('span'), { textContent: 'None yet' })]))
-
 export function wireSettings(recent: HTMLElement[], settings: Settings) {
   let { idleMinutes, theme } = settings
   const button = $('settings') as HTMLButtonElement
@@ -62,7 +62,7 @@ export function wireSettings(recent: HTMLElement[], settings: Settings) {
       $('settings-title').textContent = b.textContent
     })
 
-  showRecent(recent)
+  showSettingsRecent(recent)
   $('settings-recent').addEventListener('click', (e) => e.target instanceof HTMLButtonElement && panel.close()) // the opening says how it went
 
   input.value = String(idleMinutes)

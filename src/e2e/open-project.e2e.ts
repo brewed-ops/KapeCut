@@ -1,6 +1,6 @@
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { launch } from './launch'
-import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -196,7 +196,8 @@ test('removing a recent Project takes it off the list for good, leaves its folde
   const a = project(root, 'Alpha', 'a.html', '#ff0000')
   const b = project(root, 'Beta', 'b.html', '#0000ff')
   mkdirSync(userData)
-  writeFileSync(join(userData, 'recent-projects.json'), JSON.stringify([a, b]))
+  const gone = join(root, 'Unplugged') // on the list, its folder not on disk: not shown, never dropped by a remove
+  writeFileSync(join(userData, 'recent-projects.json'), JSON.stringify([a, b, gone]))
   let { page, app } = await launch({ userData }) // reopens Alpha, the first on the list
   await expect.poll(() => pixel(page)).toEqual([255, 0, 0])
   await page.locator('#projects summary').click()
@@ -231,6 +232,7 @@ test('removing a recent Project takes it off the list for good, leaves its folde
   await expect(page.locator('#project')).toContainText('Alpha')
   expect(readdirSync(a).sort()).toEqual(['a.html', 'project.json'])
   expect(readdirSync(b).sort()).toEqual(['b.html', 'project.json'])
+  expect(JSON.parse(readFileSync(join(userData, 'recent-projects.json'), 'utf8'))).toEqual([gone])
   await app.close()
 
   // Still gone after a relaunch, so nothing reopens.

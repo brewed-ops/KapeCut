@@ -315,18 +315,18 @@ main { min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr)
 
 /* The confirm before a Scene is deleted, and the warning before a Project leaves Recent Projects: a small modal over
    the windows, like Settings. */
-:is(#delete-scene, #remove-recent) { width: min(380px, calc(100vw - 96px)); padding: 20px; border: 1.5px solid var(--frame); border-radius: var(--radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
-:is(#delete-scene, #remove-recent)::backdrop { background: var(--scrim); }
-:is(#delete-scene, #remove-recent) h2 { margin: 0 0 10px; }
-:is(#delete-scene, #remove-recent) p { margin: 4px 0 0; overflow-wrap: anywhere; }
-:is(#delete-scene, #remove-recent) .detail { color: var(--muted); font-size: 13px; line-height: var(--lead-dense); }
-:is(#delete-scene, #remove-recent) [role='status'] { margin-top: 10px; color: var(--accent); font-size: 13px; line-height: var(--lead-dense); }
-:is(#delete-scene, #remove-recent) [role='status']:empty { display: none; }
-:is(#delete-scene, #remove-recent) .row { display: flex; justify-content: flex-end; gap: var(--control-gap); margin-top: 18px; }
-:is(#delete-scene, #remove-recent) .primary { display: flex; align-items: center; gap: var(--control-gap); align-self: auto; }
-:is(#delete-scene-cancel, #remove-recent-cancel) { height: var(--control-h); padding: 0 var(--control-pad-x); border: 1.5px solid var(--frame); border-radius: 999px; background: none; color: var(--muted); font: 600 var(--control-font)/var(--lead-label) var(--sans); cursor: pointer; }
-:is(#delete-scene-cancel, #remove-recent-cancel):hover { background: var(--panel-2); color: var(--text); }
-:is(#delete-scene-cancel, #remove-recent-cancel):focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+.confirm { width: min(380px, calc(100vw - 96px)); padding: 20px; border: 1.5px solid var(--frame); border-radius: var(--radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+.confirm::backdrop { background: var(--scrim); }
+.confirm h2 { margin: 0 0 10px; }
+.confirm p { margin: 4px 0 0; overflow-wrap: anywhere; }
+.confirm .detail { color: var(--muted); font-size: 13px; line-height: var(--lead-dense); }
+.confirm [role='status'] { margin-top: 10px; color: var(--accent); font-size: 13px; line-height: var(--lead-dense); }
+.confirm [role='status']:empty { display: none; }
+.confirm .row { display: flex; justify-content: flex-end; gap: var(--control-gap); margin-top: 18px; }
+.confirm .primary { display: flex; align-items: center; gap: var(--control-gap); align-self: auto; }
+.confirm .row button:not(.primary) { height: var(--control-h); padding: 0 var(--control-pad-x); border: 1.5px solid var(--frame); border-radius: 999px; background: none; color: var(--muted); font: 600 var(--control-font)/var(--lead-label) var(--sans); cursor: pointer; }
+.confirm .row button:not(.primary):hover { background: var(--panel-2); color: var(--text); }
+.confirm .row button:not(.primary):focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
 
 .window {
   display: flex;

@@ -40,9 +40,11 @@ const isFolder = (dir: unknown) => {
   }
 }
 
+// The list as saved, folders that are gone included: a drive plugged back in brings them back.
+const savedRecent = () => JSON.parse(readFileSync(recentFile(), 'utf8')) as string[]
 function readRecent(): string[] {
   try {
-    return (JSON.parse(readFileSync(recentFile(), 'utf8')) as string[]).filter(isFolder)
+    return savedRecent().filter(isFolder)
   } catch {
     return [] // first launch, or an unreadable list: start without recents
   }
@@ -271,9 +273,9 @@ app.whenReady().then(() => {
   )
   // Off the list only: the folder is never touched, and an open Project stays open (#18). Resolves to the new list.
   handle('project:remove-recent', (_e, dir: unknown) => {
-    const recent = removeRecent(readRecent(), dir)
+    const recent = removeRecent(savedRecent(), dir) // the saved list, so no other entry goes with it
     writeFileSync(recentFile(), JSON.stringify(recent))
-    return recent
+    return recent.filter(isFolder)
   })
   handle('project:choose', async () => {
     const pick = await dialog.showOpenDialog(win, { title: 'Open a Project folder', properties: ['openDirectory'] })

@@ -11,10 +11,10 @@ import { wireNotes } from './notes/notes-ui'
 import { AUDIO_FILE_TYPE, wireFiles } from './files/files-ui'
 import { fileKind } from './files/kind'
 import { kapecut } from './bridge'
-import { $, errorText, toast } from './dom'
+import { $, errorText, lockConfirm, toast } from './dom'
 import { connectPrompt, fixPrompt } from './agent/connect-prompt'
 import { wireAgentStatus } from './agent/status-ui'
-import { showRecent, wireSettings } from './settings/settings-ui'
+import { showSettingsRecent, wireSettings } from './settings/settings-ui'
 import { fillIcons, icon } from './icons'
 import { wireSetup } from './setup/setup-ui'
 import { ffmpegDetail } from './setup/setup'
@@ -359,11 +359,6 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
   const confirmDelete = $('delete-scene') as HTMLDialogElement
   const deleteStatus = $('delete-scene-status')
   const [okDelete, cancelDelete] = ['delete-scene-ok', 'delete-scene-cancel'].map($) as HTMLButtonElement[]
-  // While main works the confirm cannot close or be sent again, so its answer always lands in it, for the Scene it names.
-  const lockDelete = (on: boolean) => {
-    okDelete.disabled = cancelDelete.disabled = on
-    confirmDelete.setAttribute('closedby', on ? 'none' : 'any')
-  }
   let deleting: { index: number; file: string } | undefined
   // file: the row's own, so a list about to redraw after Claude's re-order never names another Scene.
   const askDelete = (index: number, file: string) => {
@@ -384,7 +379,7 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
     const d = deleting
     if (!d) return
     let order: string[]
-    lockDelete(true)
+    lockConfirm(confirmDelete, true) // so its answer lands in it, for the Scene it names
     try {
       order = await kapecut.project.deleteScene(d.index, d.file)
     } catch (e) {
@@ -392,7 +387,7 @@ async function openProject(dir: string, opened: Project & { name: string }, sess
       queueSave('project.json') // the list as main left it, whatever went wrong
       return
     } finally {
-      lockDelete(false)
+      lockConfirm(confirmDelete, false)
     }
     deleting = undefined
     confirmDelete.close()
@@ -1193,15 +1188,16 @@ const recentRows = (recent: string[]) =>
     row.append(item, x)
     return row
   })
-const showRecents = (recent: string[]) => {
+const showRecentLists = (recent: string[]) => {
   $('recent').replaceChildren(...recentRows(recent))
-  showRecent(recentButtons(recent))
+  showSettingsRecent(recentButtons(recent))
 }
 // The warning: the folder stays on disk, and an open Project stays open. Main checks dir is on the list.
 const confirmRemove = $('remove-recent') as HTMLDialogElement
 const [okRemove, cancelRemove] = ['remove-recent-ok', 'remove-recent-cancel'].map($) as HTMLButtonElement[]
 let removing = ''
 function askRemove(dir: string) {
+  if (confirmRemove.open) return
   removing = dir
   $('remove-recent-text').textContent = `Remove ${folderName(dir)} from the list?`
   $('remove-recent-status').textContent = ''
@@ -1209,19 +1205,14 @@ function askRemove(dir: string) {
 }
 cancelRemove.addEventListener('click', () => confirmRemove.close())
 okRemove.addEventListener('click', async () => {
-  // While main works the warning cannot close or be sent again, as with Delete Scene.
-  const lock = (on: boolean) => {
-    okRemove.disabled = cancelRemove.disabled = on
-    confirmRemove.setAttribute('closedby', on ? 'none' : 'any')
-  }
-  lock(true)
+  lockConfirm(confirmRemove, true)
   try {
-    showRecents(await kapecut.project.removeRecent(removing))
+    showRecentLists(await kapecut.project.removeRecent(removing))
     confirmRemove.close()
   } catch (e) {
     $('remove-recent-status').textContent = errorText(e) // still open: Remove can be tried again
   } finally {
-    lock(false)
+    lockConfirm(confirmRemove, false)
   }
 })
 // Nothing opens until the Setup window's checks pass (#89): Open folder, drops and recent Projects wait for it.
