@@ -419,6 +419,7 @@ main { min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr)
 }
 /* #123: an Export may draw the viewer's own Scene pages, so the stage covers their leftover picture and Note marks */
 .paused { z-index: 2; background: var(--panel-2); }
+.error { background: var(--panel-2); } /* a draw error keeps the last picture under it: the text must not sit on it (#15) */
 :is(.error, .paused) p { margin: 0; color: var(--muted); max-width: 32ch; }
 :is(.error, .paused) .eyebrow { color: var(--accent); }
 
