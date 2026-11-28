@@ -106,12 +106,13 @@ export function wireSettings(recent: HTMLElement[], settings: Settings) {
   const encoder = $('encoder')
   Promise.all([probeH264(), kapecut.tools()]).then(
     ([h264, tools]) => {
-      const item = (label: string, ok: boolean) =>
-        `<span>${label} <b class="${ok ? '' : 'no'}">${icon(ok ? 'checkmark-circle' : 'dismiss-circle')}${ok ? 'yes' : 'no'}</b></span>`
+      // An optional row (the skill) that fails is a plain no, never the accent of a missing requirement.
+      const item = (label: string, ok: boolean, optional = false) =>
+        `<span>${label} <b class="${ok || optional ? '' : 'no'}">${icon(ok ? 'checkmark-circle' : 'dismiss-circle')}${ok ? 'yes' : 'no'}</b></span>`
       encoder.innerHTML =
         item('H.264 hardware', h264.hardware) + item('H.264 software', h264.software) + item('ffmpeg 4.4+', tools.ffmpeg) + item('ffprobe', tools.ffprobe) +
         // the rest of the Setup window's rows (its ffmpeg row is the two above)
-        setupRows(tools, osOf(navigator.platform)).filter((r) => r.id !== 'ffmpeg').map((r) => item(r.name, r.ok)).join('')
+        setupRows(tools, osOf(navigator.platform)).filter((r) => r.id !== 'ffmpeg').map((r) => item(r.name, r.ok, r.optional)).join('')
       console.log('[kapecut] probe', JSON.stringify({ h264, tools }))
     },
     (e) => (encoder.textContent = `Startup check failed: ${e}`),

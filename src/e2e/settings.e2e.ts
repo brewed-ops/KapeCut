@@ -58,10 +58,10 @@ test('Settings opens as a modal panel: a section nav, a header naming the sectio
 
     // Setup: the tool checks.
     await section(page, 'Setup').click()
-    for (const label of ['H.264 hardware', 'H.264 software', 'ffmpeg 4.4+', 'ffprobe', 'Claude Code', 'KapeCut skill', 'Chrome or Edge'])
+    for (const label of ['H.264 hardware', 'H.264 software', 'ffmpeg 4.4+', 'ffprobe', 'Agent', 'KapeCut skill', 'Chrome or Edge'])
       await expect(panel(page).locator('#encoder > span', { hasText: label })).toHaveText(new RegExp(`^${label.replace(/[.+]/g, '\\$&')} (yes|no)$`))
     // The Setup window let the editor open, so its checks all passed (scripts/ready-env.mjs).
-    for (const label of ['Claude Code', 'KapeCut skill', 'Chrome or Edge'])
+    for (const label of ['Agent', 'KapeCut skill', 'Chrome or Edge'])
       await expect(panel(page).locator('#encoder > span', { hasText: label })).toHaveText(`${label} yes`)
     // The same fact the app finds: ffmpeg on the PATH it inherits from this process.
     const ffmpeg = (() => {

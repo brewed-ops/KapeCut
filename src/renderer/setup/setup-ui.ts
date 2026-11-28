@@ -20,6 +20,10 @@ export function wireSetup(): Promise<void> {
   const recheck = $('setup-recheck') as HTMLButtonElement
   const copyPrompt = $('setup-prompt') as HTMLButtonElement
   let prompt: string | null = null
+  // This window's first page has checked: a reload (Project switch) never checks again. Survives reloads, not restarts.
+  const seen = !!sessionStorage.getItem('kapecut-setup-seen')
+  sessionStorage.setItem('kapecut-setup-seen', '1')
+  let toldStale = seen
   const say = (text: string) => (status.textContent = text)
   const os = osOf(navigator.platform)
 
@@ -40,12 +44,15 @@ export function wireSetup(): Promise<void> {
     const show = (c: Checks) => {
       const rows = setupRows(c, os)
       const pass = passes(rows)
-      if (pass && box.hidden) return done()
+      // An outdated skill never blocks, but Claude Code would load old instructions: said once per launch.
+      const stale = rows.some((r) => r.skill === 'outdated') && !toldStale
+      if (pass && box.hidden && !stale) return done()
       list.replaceChildren(...rows.map(row))
       prompt = setupPrompt(rows, os)
       copyPrompt.hidden = !prompt
       open()
       if (!pass) return say('')
+      if (stale) return (toldStale = true), done(), say('Your KapeCut skill differs from this KapeCut. Update it, or Re-check to go on')
       say('All set')
       recheck.hidden = true
       done() // in at once (a drop now opens); the window stays a moment to show it
@@ -76,7 +83,7 @@ export function wireSetup(): Promise<void> {
     // Once in, in for this run: a reload (Project switch, project.json saved) never shuts the open Project again.
     kapecut
       .setupPassed()
-      .then((passed) => (passed ? done() : kapecut.tools().then(show)))
+      .then((passed) => (passed && seen ? done() : kapecut.tools().then(show)))
       .catch((e) => (say(`Could not check: ${errorText(e)}`), open()))
   })
 }

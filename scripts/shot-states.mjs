@@ -23,7 +23,7 @@
 // scene-delete-hover.png (a Scene row's trash on hover) and scene-delete-confirm.png (its confirm, then cancelled).
 // setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, an Agent and the skill missing, then all set),
 // setup-window-prompt.png and setup-window-prompt-copied.png (an Agent found, ffmpeg missing: Copy Prompt beside
-// Re-check, then clicked: its toast).
+// Re-check, then clicked: its toast), setup-window-stale.png (all pass, the skill copy edited: the notice).
 import { _electron as electron } from '@playwright/test'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -104,6 +104,27 @@ try {
 } finally {
   await agentOnly.close()
   rmSync(agentOnlyData, { recursive: true, force: true, maxRetries: 10 })
+}
+
+// Every check passing but the skill copy edited: the once-a-launch notice over the editor (setup-window-stale.png).
+const staleHome = mkdtempSync(join(tmpdir(), 'kapecut-home-stale-'))
+cpSync(resolve('skills/kapecut'), join(staleHome, '.claude', 'skills', 'kapecut'), { recursive: true })
+writeFileSync(join(staleHome, '.claude', 'skills', 'kapecut', 'SKILL.md'), 'my own edit')
+const staleData = mkdtempSync(join(tmpdir(), 'kapecut-shot-'))
+const stale = await electron.launch({
+  args: ['.', `--user-data-dir=${staleData}`],
+  env: { ...process.env, KAPECUT_PROJECT: '', USERPROFILE: staleHome, HOME: staleHome },
+})
+try {
+  const page = await stale.firstWindow()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.locator('#setup li[data-check="skill"].opt').waitFor({ timeout: 30_000 })
+  await page.waitForTimeout(1000) // fonts settle
+  await shoot(page, 'setup-window-stale')
+} finally {
+  await stale.close()
+  rmSync(staleData, { recursive: true, force: true, maxRetries: 10 })
+  rmSync(staleHome, { recursive: true, force: true })
 }
 
 // Set-up state: an empty folder (setup.png), then files copied in from outside (setup-files.png).

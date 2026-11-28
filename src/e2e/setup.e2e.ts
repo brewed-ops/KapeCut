@@ -170,6 +170,7 @@ test('the optional skill: Install skill copies it while another check fails; a c
 })
 
 test('only a non-Claude Agent on PATH and no skill: Setup passes', async () => {
+  test.skip(process.platform === 'linux', 'Linux finds Chrome or Edge on PATH, which this test cuts down')
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
     // PATH: a fake codex and the machine's ffmpeg and ffprobe, so no Claude Code this machine has is found. A tool beside
@@ -191,6 +192,33 @@ test('only a non-Claude Agent on PATH and no skill: Setup passes', async () => {
     try {
       await expect(page.locator('.error')).toBeVisible() // the No Project state: past the gate
       await expect(page.locator('#setup')).toBeHidden()
+    } finally {
+      await app.close().catch(() => {})
+    }
+  } finally {
+    cleanUp(root)
+  }
+})
+
+test('an outdated skill never blocks: Setup says so once, with Update skill, and Re-check goes on', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  try {
+    const home = join(root, 'home')
+    cpSync(SKILL, join(home, '.claude', 'skills', 'kapecut'), { recursive: true })
+    writeFileSync(join(home, '.claude', 'skills', 'kapecut', 'SKILL.md'), 'my own edit')
+    const { app, page } = await launch({ userData: join(root, 'user'), env: { USERPROFILE: home, HOME: home }, waitForExport: false })
+    try {
+      const setup = page.getByRole('dialog', { name: /KapeCut needs/ })
+      await expect(setup.locator('li[data-check="skill"]')).toHaveClass(/\bopt\b/)
+      await expect(setup.locator('li[data-check="skill"]').getByRole('button', { name: 'Update skill' })).toBeVisible()
+      await expect(setup.locator('#setup-status')).toHaveText('Your KapeCut skill differs from this KapeCut. Update it, or Re-check to go on')
+      await page.locator('#projects summary').click() // in, not blocked: a Project may open
+
+      await expect(page.locator('#open-folder')).toBeEnabled()
+      await page.keyboard.press('Escape')
+      await setup.getByRole('button', { name: 'Re-check' }).click()
+      await expect(setup).toBeHidden()
+      expect(readFileSync(join(home, '.claude', 'skills', 'kapecut', 'SKILL.md'), 'utf8')).toBe('my own edit')
     } finally {
       await app.close().catch(() => {})
     }

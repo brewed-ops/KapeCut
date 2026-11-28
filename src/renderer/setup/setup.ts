@@ -23,9 +23,8 @@ export function ffmpegDetail(c: Media) {
 }
 
 /** How the Setup window names each of main's AGENTS (setup.test.ts holds the two lists equal). */
-const AGENTS_BUT_CLAUDE = ['codex', 'opencode', 'gemini', 'grok', 'cursor-agent'] as const
 export const AGENT_NAMES: Record<Agent, string> = { claude: 'Claude Code', codex: 'Codex', opencode: 'OpenCode', gemini: 'Gemini CLI', grok: 'Grok CLI', 'cursor-agent': 'Cursor Agent' }
-const OTHERS = AGENTS_BUT_CLAUDE.map((a) => AGENT_NAMES[a]).join(', ')
+const OTHERS = (Object.keys(AGENT_NAMES) as Agent[]).filter((a) => a !== 'claude').map((a) => AGENT_NAMES[a]).join(', ')
 
 /** Every row ok or optional: the Setup window lets the user in (main's allPass, held equal in setup.test.ts). */
 export const passes = (rows: Row[]) => rows.every((r) => r.ok || r.optional)

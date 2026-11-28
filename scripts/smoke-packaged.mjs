@@ -1,4 +1,4 @@
-// Smoke test of the packaged app on Windows or macOS (npm run dist first): fresh home, ffmpeg off PATH -> Setup shows the
+// Smoke test of the packaged app on Windows or macOS (npm run dist first): fresh home, empty PATH -> Setup shows the
 // optional skill -> Install skill copies it out of the package -> PATH back, Re-check -> the editor opens examples/hello,
 // shot in each theme. Usage: npm run smoke:packaged
 // shortcut: Windows and macOS only; Linux CI would need a virtual display.
@@ -19,11 +19,12 @@ const userData = mkdtempSync(join(tmpdir(), 'kapecut-pkg-'))
 const ok = (cond, what) => console.log(cond ? 'PASS' : 'FAIL', what) || cond || (process.exitCode = 1)
 
 const pathKey = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH' // Windows spells it Path
-// Only the dummy Agent on PATH: ffmpeg missing keeps the Setup window up (the skill alone no longer does, ADR 0008).
+// An empty PATH: no Agent keeps the Setup window up (the skill alone no longer does, ADR 0008). Not ffmpeg: off Windows
+// main appends Homebrew's dir, where release.yml installs it.
 const app = await electron.launch({
   executablePath: exe,
   args: [`--user-data-dir=${userData}`],
-  env: { ...process.env, KAPECUT_PROJECT: resolve('examples/hello'), [pathKey]: process.env.KAPECUT_DUMMY_BIN },
+  env: { ...process.env, KAPECUT_PROJECT: resolve('examples/hello'), [pathKey]: '' },
 })
 try {
   // The runner is Apple silicon, so only the binary itself shows the Intel half is there (#16)

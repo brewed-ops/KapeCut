@@ -66,10 +66,10 @@ To update, open **Settings > Updates** in KapeCut and click **Check for updates*
 
 ### First launch (both)
 
-The **Setup** window checks for the tools KapeCut works with: ffmpeg, Claude Code, the KapeCut skill and Chrome or
-Edge. For anything missing it shows the install command with a **Copy** button. Install it, then click **Re-check**.
-The skill installs with the **Install skill** button. With Claude Code already installed, **Copy Prompt** copies one
-prompt that has Claude install the rest for you.
+The **Setup** window checks for the tools KapeCut works with: ffmpeg, an Agent (Claude Code, Codex, OpenCode, Gemini
+CLI, Grok CLI or Cursor Agent) and Chrome or Edge. For anything missing it shows the install command with a **Copy**
+button. Install it, then click **Re-check**. The optional KapeCut skill for Claude Code installs with the **Install
+skill** button. With an Agent already installed, **Copy Prompt** copies one prompt that has it install the rest for you.
 
 ## Run from source
 
@@ -77,9 +77,10 @@ Needs:
 
 - Node 24, or 26 and newer (`npm ci` stops on any other: vitest skips Node 25)
 - ffmpeg 4.4 or newer on your PATH, with ffprobe (Export encodes with them)
-- [Claude Code](https://claude.com/claude-code) on your PATH (Claude writes the Scenes)
-- the KapeCut skill in `~/.claude/skills/kapecut` (KapeCut installs it for you, see below)
-- Chrome or Edge (Claude checks each Scene with a still from it; Windows ships with Edge)
+- an Agent on your PATH that writes the Scenes: [Claude Code](https://claude.com/claude-code) (suggested), Codex,
+  OpenCode, Gemini CLI, Grok CLI or Cursor Agent
+- optional, for Claude Code: the KapeCut skill in `~/.claude/skills/kapecut` (KapeCut installs it for you, see below)
+- Chrome or Edge (the Agent checks each Scene with a still from it; Windows ships with Edge)
 
 ```sh
 npm ci
@@ -88,8 +89,8 @@ npm run dev
 
 KapeCut checks all of these on every launch. While one is missing, the Setup window stands in for the editor and
 nothing opens. It shows the install command for your OS with a Copy button (KapeCut never runs an installer) and an
-**Install skill** button. With Claude Code found, **Copy Prompt** copies one prompt that has Claude run the other
-install commands. Install what is missing, then press **Re-check**. Settings lists the same checks.
+**Install skill** button. With an Agent found, **Copy Prompt** copies one prompt that has it run the other install
+commands. Install what is missing, then press **Re-check**. Settings lists the same checks.
 
 Open a Project folder with the "Open folder" button, or drop the folder on the window. `examples/` holds two. Drop any other file on the window to copy it into the open Project: it shows in the Files panel, and audio files drag from there onto the Timeline.
 
