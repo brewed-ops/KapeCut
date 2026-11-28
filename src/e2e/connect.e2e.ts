@@ -143,6 +143,8 @@ test('a throwing Scene shows Copy fix prompt on its SCENE ERROR, and the prompt 
     await renderAt(true)
     await seek(1.8)
     await expect(page.locator('.error')).toContainText('a.html: renderAt(0.80) failed: late boom')
+    // Its text never sits on the Scene's last picture: the overlay has Dark's --panel-2 under it (macOS check, #15).
+    expect(await page.locator('.error').evaluate((e) => getComputedStyle(e).backgroundColor)).toBe('rgb(34, 30, 25)')
     await app.evaluate(({ clipboard }) => clipboard.writeText(''))
     await page.locator('.error').getByRole('button', { name: 'Copy fix prompt' }).click()
     await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toContain(
