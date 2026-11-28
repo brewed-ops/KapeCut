@@ -7,7 +7,8 @@
 // notes-done-{light,coffee,glass}.png (the same in Light, Coffee and Glass: its marks on that theme's accent, #125),
 // notes-copied.png (Copy Prompt clicked: the toast, the button reads Copied with a check), notes-hidden.png
 // (Hide done on), notes-flagged.png (a Note past its shortened Scene), zoomed.png (Timeline zoomed in, mid Scene 2),
-// playing.png (Pause showing), muted.png (mute on), broken.png (Scene 2 fails to open, largest usable resolution picked, Export refused),
+// playing.png (Pause showing), muted.png (mute on), broken.png (Scene 2 fails to open, largest usable resolution picked, Export refused,
+// with SCENE ERROR and its Copy fix prompt on the stage), scene-error-copied.png (Copy fix prompt clicked: the toast),
 // audio-broken.png (a missing Audio file errors on its own lane),
 // narrow.png (15 Scenes: narrow strips, a Scene list that scrolls), notes-long.png (15 Notes: the list scrolls, Copy
 // Prompt stays at the foot), note-pop.png (a point Note's popover open at its Mark), stroke-draft.png (a pencil stroke
@@ -433,6 +434,13 @@ try {
   await page.locator('#export').click() // refused before any save dialog: a long status beside the picker
   await page.waitForTimeout(300)
   await shot('broken')
+  // broken.png has that Scene on the stage: its SCENE ERROR's Copy fix prompt (#26) clicked.
+  await keepClipboard(app, async () => {
+    await page.getByRole('button', { name: 'Copy fix prompt' }).click()
+    await page.locator('#toast').waitFor()
+    await shot('scene-error-copied')
+  })
+  await page.locator('#toast').waitFor({ state: 'hidden' })
 
   const audio = [{ file: 'click.wav', start: 0, volume: 0.6 }, { file: 'gone.wav', start: 2 }]
   writeFileSync(join(dir, 'project.json'), JSON.stringify({ name: 'Three Scenes', size: { w: 1080, h: 1920 }, fps: 30, scenes: ['a.html', 'b.html', 'c.html'], audio }))

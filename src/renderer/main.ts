@@ -12,7 +12,7 @@ import { AUDIO_FILE_TYPE, wireFiles } from './files/files-ui'
 import { fileKind } from './files/kind'
 import { kapecut } from './bridge'
 import { $, errorText, lockConfirm, toast } from './dom'
-import { connectPrompt, fixPrompt } from './agent/connect-prompt'
+import { connectPrompt, fixPrompt, sceneFixPrompt } from './agent/connect-prompt'
 import { wireAgentStatus } from './agent/status-ui'
 import { showSettingsRecent, wireSettings } from './settings/settings-ui'
 import { fillIcons, icon } from './icons'
@@ -35,12 +35,24 @@ const placeHighlight = () => {
 // A row that changes size after (a thumbnail landing, fonts, zoom) moves the rows under it: renderSceneList observes each.
 const rowSizes = new ResizeObserver(placeHighlight)
 
-// An overlay, so the Scene frame survives and a later save can still reload it.
-function showError(message: string, label = 'Scene error') {
-  stage.querySelector('.error')?.remove()
-  stage.insertAdjacentHTML('beforeend', '<div class="error"><span class="eyebrow"></span><p></p></div>')
-  stage.querySelector('.error .eyebrow')!.textContent = label
-  stage.querySelector('.error p')!.textContent = message
+// An overlay, so the Scene frame survives and a later save can still reload it. fix: what its Copy fix prompt copies.
+// Same label: updated in place, since the viewer redraws it on every Frame and a new button would drop a click or focus.
+function showError(message: string, label: string, fix?: string) {
+  let error = stage.querySelector<HTMLElement>('.error')
+  if (error?.dataset.label !== label) {
+    error?.remove()
+    stage.insertAdjacentHTML('beforeend', '<div class="error"><span class="eyebrow"></span><p></p></div>')
+    error = stage.querySelector<HTMLElement>('.error')!
+    error.dataset.label = error.querySelector('.eyebrow')!.textContent = label
+  }
+  error.querySelector('p')!.textContent = message
+  let copy = error.querySelector<HTMLButtonElement>('.fix')
+  if (!fix) return copy?.remove()
+  if (!copy) {
+    copy = Object.assign(document.createElement('button'), { className: 'primary fix', innerHTML: icon('copy') + 'Copy fix prompt' })
+    error.append(copy)
+  }
+  copy.onclick = () => copyPrompt(fix)
 }
 
 // Fit the Scene's Design size into the viewer without changing its aspect ratio.
@@ -101,7 +113,8 @@ function showName(name: string, detail = '') {
   $('project').replaceChildren(name, Object.assign(document.createElement('span'), { textContent: detail })) // the detail dimmed
 }
 
-type Slot = { file: string; frame: HTMLIFrameElement; total?: number; error?: string; thumb?: string } // total: unknown until it first opens
+// total: unknown until it first opens. drawError: its renderAt threw, kept until a draw passes (error: it failed to open).
+type Slot = { file: string; frame: HTMLIFrameElement; total?: number; error?: string; drawError?: string; thumb?: string }
 
 // A small copy of the Scene canvas as it is now, longest side 192 px (sharp at 2x in the 96 px list slot).
 function thumbOf(c: HTMLCanvasElement) {
@@ -171,7 +184,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
       )
       const w = win(slot)
       const total = (slot.total = (await openScene(w, project.size, t)).total)
-      slot.error = undefined
+      slot.error = slot.drawError = undefined
     } catch (e) {
       slot.error = `${slot.file}: ${errorText(e)}`
       slot.thumb = undefined // the Scene list never shows a picture the Scene no longer draws
@@ -192,6 +205,8 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     }
   }
 
+  const showSceneError = (scene: string, error: string) =>
+    showError(error, 'Scene error', sceneFixPrompt({ project: dir, ...paths, scene, error }))
   // Draws Project time t. At a cut the next Scene page shows only once it has drawn, so no blank Frame shows.
   const render = (t: number) => {
     const { slot, sceneTime, scene } = slotAt(t)
@@ -205,14 +220,36 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     }
     $('scene-name').textContent = slot.file
     notes.draw()
-    const problem = projectError ?? slot.error
-    if (problem) showError(problem, projectError ? 'Project error' : 'Scene error')
+    const problem = slot.error ?? slot.drawError
+    if (projectError) showError(projectError, 'Project error')
+    else if (problem) showSceneError(slot.file, problem)
     else stage.querySelector('.error')?.remove()
     if (slot.error) return show(slot)
     if (exporting) return // an Export may be drawing the viewer's own pages, so only the labels move
-    const drawn = win(slot).renderAt?.(sceneTime)
-    if (slot === shown) return drawn
-    return Promise.resolve(drawn).then(() => me === draws && slot.frame.isConnected && show(slot))
+    // Only a throw from the Scene's own renderAt is a Scene error, at the Scene time it was given. Only the newest draw
+    // decides it: an older one landing late says nothing about the Frame on screen.
+    const failed = (e: unknown) => {
+      if (me === draws) {
+        slot.drawError = `${slot.file}: renderAt(${sceneTime.toFixed(2)}) failed: ${errorText(e)}`
+        if (!projectError) showSceneError(slot.file, slot.drawError)
+        if (slot.frame.isConnected) show(slot) // the error over its own Scene, not the one before
+      }
+      throw new SceneThrew()
+    }
+    const passed = () => {
+      if (me !== draws || !slot.drawError) return
+      slot.drawError = undefined
+      if (!projectError) stage.querySelector('.error')?.remove()
+    }
+    let drawn: unknown
+    try {
+      drawn = win(slot).renderAt?.(sceneTime)
+    } catch (e) {
+      failed(e)
+    }
+    const done = Promise.resolve(drawn).then(passed, failed)
+    if (slot === shown) return done
+    return done.then(() => me === draws && slot.frame.isConnected && show(slot))
   }
 
   showName(project.name, ` · ${project.fps} fps`)
@@ -437,7 +474,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
   }
   const queueSave = (file: string) => {
     if (encoding && !encoding.savesWaiting) showProgress(Object.assign(encoding, { savesWaiting: true }))
-    if (!saved.size) queue = queue.catch(() => {}).then(applySaves).catch((e) => showError(errorText(e)))
+    if (!saved.size) queue = queue.catch(() => {}).then(applySaves).catch((e) => showError(errorText(e), 'Project error'))
     saved.add(file)
   }
   kapecut.onFileSaved((file, own) => {
@@ -687,6 +724,9 @@ async function openForExport(size: Size, files: string[], resolution: ExportReso
 }
 
 
+/** A Scene's renderAt threw: render has shown its Scene error already. */
+class SceneThrew extends Error {}
+
 function wireTransport(fps: number, render: (t: number) => unknown, audio: ReturnType<typeof createAudio>) {
   const scrub = $('scrub') as HTMLInputElement
   const play = $('play')
@@ -696,7 +736,7 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
     tr.pause()
     play.classList.remove('playing') // an async failure lands after draw already set the icon
     play.setAttribute('aria-label', 'Play')
-    showError(`renderAt(${t.toFixed(2)}) failed: ${errorText(e)}`)
+    if (!(e instanceof SceneThrew)) showError(`Drawing ${t.toFixed(2)}s failed: ${errorText(e)}`, 'Error')
   }
   const tr = createTransport({
     fps,
@@ -727,6 +767,7 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLTextAreaElement) return // typing a Note
     if ((e.target as Element).closest?.('dialog[open]')) return // a confirm's own buttons take Space
+    if (e.code === 'Space' && (e.target as Element).closest?.('.error')) return // so do an error's
     const action = { Space: toggle, ArrowLeft: () => tr.step(-1), ArrowRight: () => tr.step(1) }[e.code]
     if (!action) return
     e.preventDefault() // stops a focused button or slider from also acting on the key
@@ -1247,7 +1288,7 @@ state
       )
     }
     if (project === SET_UP) return showSetUp(current!)
-    if (project) return openProject(current!, project, { session, skill }).catch((e) => showError(errorText(e)))
+    if (project) return openProject(current!, project, { session, skill }).catch((e) => showError(errorText(e), 'Project error'))
     if (project === null) {
       showError('Open a Project folder, or drop one on the window.', 'No Project')
       const open = Object.assign(document.createElement('button'), { className: 'primary', innerHTML: icon('folder-open') + 'Open folder' })
