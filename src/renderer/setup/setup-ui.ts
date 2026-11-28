@@ -2,7 +2,10 @@ import type { Checks } from '../../main/setup-checks'
 import { kapecut } from '../bridge'
 import { $, errorText, HOLD, toast } from '../dom'
 import { icon } from '../icons'
-import { osOf, setupPrompt, setupRows, type Row } from './setup'
+import { osOf, passes, setupPrompt, setupRows, type Row } from './setup'
+
+// A row's icon and label by its class: passing, failing but optional (never blocks), or failing.
+const STATES = { ok: ['checkmark-circle', 'OK'], opt: ['add', 'Optional'], no: ['dismiss-circle', 'Missing'] } as const
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}) => Object.assign(document.createElement(tag), props)
 
@@ -36,7 +39,7 @@ export function wireSetup(): Promise<void> {
     }
     const show = (c: Checks) => {
       const rows = setupRows(c, os)
-      const pass = rows.every((r) => r.ok || r.optional)
+      const pass = passes(rows)
       if (pass && box.hidden) return done()
       list.replaceChildren(...rows.map(row))
       prompt = setupPrompt(rows, os)
@@ -49,7 +52,8 @@ export function wireSetup(): Promise<void> {
       setTimeout(() => (box.hidden = true), HOLD)
     }
     const row = (r: Row) => {
-      const [cls, mark, label] = r.ok ? ['ok', 'checkmark-circle', 'OK'] as const : r.optional ? ['opt', 'add', 'Optional'] as const : ['no', 'dismiss-circle', 'Missing'] as const
+      const cls = r.ok ? 'ok' : r.optional ? 'opt' : 'no'
+      const [mark, label] = STATES[cls]
       const li = el('li', { className: cls })
       li.dataset.check = r.id
       li.append(el('span', { className: 'eyebrow state', innerHTML: icon(mark) + label }), el('b', { textContent: r.name }), el('p', { textContent: r.detail }))

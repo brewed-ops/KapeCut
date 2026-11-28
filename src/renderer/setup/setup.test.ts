@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { AGENTS, allPass, type Checks } from '../../main/setup-checks'
-import { AGENT_NAMES, osOf, setupPrompt, setupRows } from './setup'
+import { AGENT_NAMES, osOf, passes, setupPrompt, setupRows } from './setup'
 
 const ALL: Checks = { ffmpeg: true, ffmpegVersion: '7.1', ffprobe: true, agent: 'claude', skill: 'current', browser: true }
 const row = (c: Partial<Checks>, id: string, os = osOf('Win32')) => setupRows({ ...ALL, ...c }, os).find((r) => r.id === id)!
@@ -47,7 +47,7 @@ test('the skill row is optional: Install when missing, Update when the copy diff
 })
 
 test("main's gate and the rows agree on every single failure", () => {
-  const pass = (c: Checks) => setupRows(c, 'win').every((r) => r.ok || r.optional)
+  const pass = (c: Checks) => passes(setupRows(c, 'win'))
   const fails: Partial<Checks>[] = [{ ffmpeg: false }, { ffprobe: false }, { agent: null }, { browser: false }]
   expect([allPass(ALL), pass(ALL)]).toEqual([true, true])
   for (const f of fails) expect([allPass({ ...ALL, ...f }), pass({ ...ALL, ...f })], JSON.stringify(f)).toEqual([false, false])

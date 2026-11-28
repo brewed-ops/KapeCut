@@ -1,7 +1,8 @@
 // Every e2e and shot launch gets past the Setup window (#89) without touching the real home: this points USERPROFILE /
-// HOME at a temp home holding a copy of skills/kapecut, and puts a dummy codex on PATH (CI has no Agent; the
-// app only looks for one, and any Agent passes, ADR 0008). ffmpeg and Chrome or Edge come from the machine. Launches spread process.env, so they all
-// inherit it. Playwright runs it as globalSetup (its return is the teardown); the shot scripts call it themselves.
+// HOME at a temp home holding a copy of skills/kapecut, and puts a dummy codex on PATH (CI has no Agent; the app only
+// looks for one, and any Agent passes, ADR 0008). ffmpeg and Chrome or Edge come from the machine. Launches spread
+// process.env, so they all inherit it. Playwright runs it as globalSetup (its return is the teardown); the shot
+// scripts call it themselves.
 // It also holds one lock per repo (in the git dir every worktree shares), so parallel agents' Electron runs queue
 // instead of starving the machine into false timeouts.
 import { execFileSync } from 'node:child_process'

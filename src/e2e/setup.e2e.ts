@@ -174,6 +174,8 @@ test('only a non-Claude Agent on PATH and no skill: Setup passes', async () => {
   try {
     // PATH: a fake codex and the machine's ffmpeg and ffprobe, so no Claude Code this machine has is found. A tool beside
     // a real Agent (Claude Code shares ~/.local/bin with ffmpeg on a dev machine) is copied in instead of its folder.
+    // shortcut: off Windows main also appends the Homebrew and ~/.local/bin dirs, so a Mac with a real claude there
+    // passes on it, not codex; CI Macs have none.
     const bin = join(root, 'bin')
     mkdirSync(bin)
     writeFileSync(join(bin, process.platform === 'win32' ? 'codex.cmd' : 'codex'), '', { mode: 0o755 })

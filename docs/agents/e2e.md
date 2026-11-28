@@ -19,7 +19,8 @@ Every spec launches through `launch(opts)` in `src/e2e/launch.ts`, which returns
 - The fresh `--user-data-dir`: the app reopens the last Project from `<userData>/recent-projects.json`, and a temp
   folder keeps the real list untouched. `KAPECUT_PROJECT` wins over that list; `''` with a fresh folder opens none.
 - `scripts/ready-env.mjs` gets every launch past the Setup window: a temp `USERPROFILE` / `HOME` holding
-  `skills/kapecut`, a dummy `codex` on `PATH` (any Agent passes, ADR 0008), and `KAPECUT_HIDDEN=1` unless set. Playwright runs it as
+  `skills/kapecut`, a dummy `codex` on `PATH` (any Agent passes, ADR 0008), and `KAPECUT_HIDDEN=1` unless set.
+  Playwright runs it as
   globalSetup; the shot scripts call it. ffmpeg 4.4+ and Chrome or Edge come from the machine.
 - `readyEnv()` also holds `kapecut-e2e.lock` in the git dir every worktree shares, so runs from parallel agents
   queue ("Waiting for another KapeCut e2e or shot run") instead of starving each other into timeouts. A crashed run's
