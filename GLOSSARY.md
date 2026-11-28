@@ -11,7 +11,7 @@ One self-contained page that can draw any moment of itself on request, given a t
 _Avoid_: clip, slide, composition
 
 **Scene error**:
-Why a Scene cannot draw: it failed to open (no `renderAt`, wrong canvas size) or threw while drawing. The viewer shows it on a SCENE ERROR overlay, the Scene list and Timeline badge the Scene, and Export refuses until it is fixed.
+Why a Scene cannot draw: it failed to open (no `renderAt`, wrong canvas size) or threw while drawing. The viewer shows either on a SCENE ERROR overlay. One that failed to open is also badged in the Scene list and on the Timeline, and Export refuses until it is fixed.
 _Avoid_: crash, broken Scene
 
 **Scene time**:

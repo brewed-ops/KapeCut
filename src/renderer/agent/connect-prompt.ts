@@ -11,12 +11,12 @@ const NEXT = {
 const oneLine = (path: string) => path.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, '?')
 
 /**
- * A Scene error is the Scene's own text: on one line, its bidi controls out so it cannot hide words, and cut short (by
- * character, saying so) so a page cannot fill the prompt with its own.
+ * A Scene error is the Scene's own text: on one line, its invisible format characters out (bidi, zero width, tags) so it
+ * cannot hide words, and cut short (by character, saying so) so a page cannot fill the prompt with its own.
  */
 const MAX_ERROR = 500
 const sceneText = (error: string) => {
-  const chars = [...oneLine(error).replace(/[\u202a-\u202e\u2066-\u2069]/g, '?')]
+  const chars = [...oneLine(error).replace(/\p{Cf}/gu, '?')]
   return chars.length > MAX_ERROR ? chars.slice(0, MAX_ERROR).join('') + ' (cut short)' : chars.join('')
 }
 

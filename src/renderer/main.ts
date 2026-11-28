@@ -36,21 +36,23 @@ const placeHighlight = () => {
 const rowSizes = new ResizeObserver(placeHighlight)
 
 // An overlay, so the Scene frame survives and a later save can still reload it. fix: what its Copy fix prompt copies.
-// Rebuilt only when it changes: the viewer redraws it on every Frame it plays, and a new button would drop a click.
+// Same label: updated in place, since the viewer redraws it on every Frame and a new button would drop a click or focus.
 function showError(message: string, label: string, fix?: string) {
-  const key = `${label}\n${message}\n${fix}`
-  const shown = stage.querySelector<HTMLElement>('.error')
-  if (shown?.dataset.key === key) return
-  shown?.remove()
-  stage.insertAdjacentHTML('beforeend', '<div class="error"><span class="eyebrow"></span><p></p></div>')
-  const error = stage.querySelector<HTMLElement>('.error')!
-  error.dataset.key = key
-  error.querySelector('.eyebrow')!.textContent = label
+  let error = stage.querySelector<HTMLElement>('.error')
+  if (error?.dataset.label !== label) {
+    error?.remove()
+    stage.insertAdjacentHTML('beforeend', '<div class="error"><span class="eyebrow"></span><p></p></div>')
+    error = stage.querySelector<HTMLElement>('.error')!
+    error.dataset.label = error.querySelector('.eyebrow')!.textContent = label
+  }
   error.querySelector('p')!.textContent = message
-  if (!fix) return
-  const copy = Object.assign(document.createElement('button'), { className: 'primary', innerHTML: icon('copy') + 'Copy fix prompt' })
-  copy.addEventListener('click', () => copyPrompt(fix))
-  error.append(copy)
+  let copy = error.querySelector<HTMLButtonElement>('.fix')
+  if (!fix) return copy?.remove()
+  if (!copy) {
+    copy = Object.assign(document.createElement('button'), { className: 'primary fix', innerHTML: icon('copy') + 'Copy fix prompt' })
+    error.append(copy)
+  }
+  copy.onclick = () => copyPrompt(fix)
 }
 
 // Fit the Scene's Design size into the viewer without changing its aspect ratio.
@@ -182,7 +184,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
       )
       const w = win(slot)
       const total = (slot.total = (await openScene(w, project.size, t)).total)
-      slot.error = undefined
+      slot.error = slot.drawError = undefined
     } catch (e) {
       slot.error = `${slot.file}: ${errorText(e)}`
       slot.thumb = undefined // the Scene list never shows a picture the Scene no longer draws
@@ -224,16 +226,20 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     else stage.querySelector('.error')?.remove()
     if (slot.error) return show(slot)
     if (exporting) return // an Export may be drawing the viewer's own pages, so only the labels move
-    // Only a throw from the Scene's own renderAt is a Scene error, at the Scene time it was given.
+    // Only a throw from the Scene's own renderAt is a Scene error, at the Scene time it was given. Only the newest draw
+    // decides it: an older one landing late says nothing about the Frame on screen.
     const failed = (e: unknown) => {
-      slot.drawError = `${slot.file}: renderAt(${sceneTime.toFixed(2)}) failed: ${errorText(e)}`
-      if (me === draws && !projectError) showSceneError(slot.file, slot.drawError)
+      if (me === draws) {
+        slot.drawError = `${slot.file}: renderAt(${sceneTime.toFixed(2)}) failed: ${errorText(e)}`
+        if (!projectError) showSceneError(slot.file, slot.drawError)
+        if (slot.frame.isConnected) show(slot) // the error over its own Scene, not the one before
+      }
       throw new SceneThrew()
     }
     const passed = () => {
-      if (!slot.drawError) return
+      if (me !== draws || !slot.drawError) return
       slot.drawError = undefined
-      if (me === draws && !projectError) stage.querySelector('.error')?.remove()
+      if (!projectError) stage.querySelector('.error')?.remove()
     }
     let drawn: unknown
     try {
@@ -760,7 +766,8 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
   scrub.addEventListener('input', () => (tr.pause(), tr.seek(Number(scrub.value))))
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLTextAreaElement) return // typing a Note
-    if ((e.target as Element).closest?.('dialog[open], .error')) return // a confirm's or an error's own buttons take Space
+    if ((e.target as Element).closest?.('dialog[open]')) return // a confirm's own buttons take Space
+    if (e.code === 'Space' && (e.target as Element).closest?.('.error')) return // so do an error's
     const action = { Space: toggle, ArrowLeft: () => tr.step(-1), ArrowRight: () => tr.step(1) }[e.code]
     if (!action) return
     e.preventDefault() // stops a focused button or slider from also acting on the key

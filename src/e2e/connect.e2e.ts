@@ -151,6 +151,12 @@ test('a throwing Scene shows Copy fix prompt on its SCENE ERROR, and the prompt 
     // It stays through other draws of that Scene until one passes.
     await seek(1.6)
     await expect(page.locator('.error')).toContainText('renderAt(0.60) failed')
+    // With the button focused the arrows still step Frames, and the button stays the one focused.
+    const copy = page.locator('.error').getByRole('button', { name: 'Copy fix prompt' })
+    await copy.focus()
+    await page.keyboard.press('ArrowLeft')
+    await expect(page.locator('.error')).toContainText('renderAt(0.57) failed')
+    await expect(copy).toBeFocused()
     await renderAt(false)
     await seek(1.7)
     await expect(page.locator('.error')).toHaveCount(0)
