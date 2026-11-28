@@ -1,6 +1,6 @@
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test'
 import { launch } from './launch'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -90,8 +90,8 @@ test('empty state, clear project.json errors, recent Projects, last Project reop
   ;({ app, page } = await launch({ userData })) // reopens Alpha
   await expect.poll(() => pixel(page)).toEqual([255, 0, 0])
   await page.locator('#projects summary').click()
-  await expect(page.locator('#recent button')).toHaveText(['Alpha', 'Broken', 'Empty'])
-  await page.locator('#recent button', { hasText: 'Empty' }).click()
+  await expect(page.locator('#recent > div')).toHaveText(['Alpha', 'Broken', 'Empty'])
+  await page.locator('#recent').getByRole('button', { name: 'Empty', exact: true }).click()
   await expect(page.locator('.set-up')).toBeVisible()
 
   // Writing the missing files opens the Project without the user reopening it.
@@ -187,5 +187,64 @@ test('a project.json that is there but cannot be read shows an error, not Set-up
   const { app, page } = await launch({ project: dir, userData: join(root, 'user'), waitForExport: false })
   await expect(page.locator('.error')).toContainText('project.json could not be read (500)')
   await expect(page.locator('.set-up')).toBeHidden()
+  await app.close()
+})
+
+test('removing a recent Project takes it off the list for good, leaves its folder, keeps it open', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  const userData = join(root, 'user')
+  const a = project(root, 'Alpha', 'a.html', '#ff0000')
+  const b = project(root, 'Beta', 'b.html', '#0000ff')
+  mkdirSync(userData)
+  const gone = join(root, 'Unplugged') // on the list, its folder not on disk: not shown, never dropped by a remove
+  writeFileSync(join(userData, 'recent-projects.json'), JSON.stringify([a, b, gone]))
+  let { page, app } = await launch({ userData }) // reopens Alpha, the first on the list
+  await expect.poll(() => pixel(page)).toEqual([255, 0, 0])
+  await page.locator('#projects summary').click()
+  const row = (name: string) => page.locator('#recent > div', { hasText: name })
+  const x = (name: string) => row(name).getByRole('button', { name: `Remove ${name} from Recent Projects` })
+  await expect(x('Beta')).toBeHidden() // until its row is hovered
+  await row('Beta').hover()
+  await expect(x('Beta')).toBeVisible()
+
+  // Cancel keeps it.
+  await x('Beta').click()
+  const warn = page.getByRole('dialog', { name: 'Remove from Recent Projects' })
+  await expect(warn).toContainText('The folder and its files stay on disk.')
+  await warn.getByRole('button', { name: 'Cancel' }).click()
+  await expect(warn).toBeHidden()
+  await expect(page.locator('#recent > div')).toHaveText(['Alpha', 'Beta'])
+
+  await row('Beta').hover()
+  await x('Beta').click()
+  await warn.getByRole('button', { name: 'Remove', exact: true }).click()
+  await expect(warn).toBeHidden()
+  await expect(page.locator('#recent > div')).toHaveText(['Alpha'])
+  await expect(row('Alpha').getByRole('button', { name: 'Alpha', exact: true })).toBeFocused() // not the gone X
+  // The open Project too, by keyboard: Space presses Remove (not Play behind it), and the Project stays open.
+  await x('Alpha').click()
+  await warn.getByRole('button', { name: 'Remove', exact: true }).focus()
+  await page.keyboard.press('Space')
+  await expect(page.locator('#recent > div')).toHaveCount(0)
+  await expect(page.locator('#open-folder')).toBeFocused()
+  await expect(page.locator('#play')).toHaveAttribute('aria-label', 'Play')
+  await page.locator('#settings').click()
+  await expect(page.locator('#settings-recent')).toHaveText('None yet')
+  await page.keyboard.press('Escape')
+  await expect.poll(() => pixel(page)).toEqual([255, 0, 0])
+  await expect(page.locator('#project')).toContainText('Alpha')
+  expect(readdirSync(a).sort()).toEqual(['a.html', 'project.json'])
+  expect(readdirSync(b).sort()).toEqual(['b.html', 'project.json'])
+  expect(JSON.parse(readFileSync(join(userData, 'recent-projects.json'), 'utf8'))).toEqual([gone])
+  await app.close()
+
+  // Still gone after a relaunch, so nothing reopens.
+  ;({ page, app } = await launch({ project: '', userData, waitForExport: false }))
+  await expect(page.locator('.error')).toContainText('Open a Project folder')
+  await expect(page.locator('#recent > div')).toHaveCount(0)
+  // Opening a Project keeps the gone folder's entry too.
+  await openViaDialog(app, page, b)
+  await expect.poll(() => pixel(page)).toEqual([0, 0, 255])
+  expect(JSON.parse(readFileSync(join(userData, 'recent-projects.json'), 'utf8'))).toEqual([b, gone])
   await app.close()
 })
