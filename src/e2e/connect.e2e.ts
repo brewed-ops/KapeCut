@@ -46,7 +46,7 @@ test('opening a Project writes the Session file; Connect your agent copies the C
     const prompt = await clipboard()
     // The first line points at the SKILL.md this build ships, and that file is there (ADR 0008).
     const skill = join(process.cwd(), 'skills', 'kapecut', 'SKILL.md')
-    expect(prompt.split('\n')[0]).toContain(` ${skill} `)
+    expect(prompt.split('\n')[0]).toContain(`\`${skill}\``)
     expect(existsSync(skill)).toBe(true)
     expect(prompt).toContain(`Project folder (open in KapeCut now): ${empty}\n`)
     expect(prompt).toContain(`read ${join(realpathSync(userData), 'session.json')} and confirm`)

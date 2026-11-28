@@ -545,7 +545,7 @@ test('Copy Prompt copies the fix prompt for the open Notes only, counts them liv
   await expect(status).toHaveText('')
   const prompt = await clipboard()
   const skill = join(process.cwd(), 'skills', 'kapecut', 'SKILL.md')
-  expect(prompt.split('\n')[0]).toContain(` ${skill} `) // the shipped instructions first, real in this build (ADR 0008)
+  expect(prompt.split('\n')[0]).toContain(`\`${skill}\``) // the shipped instructions first, real in this build (ADR 0008)
   expect(existsSync(skill)).toBe(true)
   expect(prompt).toContain('follow fix-notes.md')
   expect(prompt).toContain(`Project folder (open in KapeCut now): ${dir}\n`)

@@ -36,7 +36,7 @@ try {
   await page.locator('#toast').waitFor({ timeout: 5_000 })
   const skill = join(await app.evaluate(({ app }) => app.getAppPath()), 'skills', 'kapecut', 'SKILL.md')
   const first = (await app.evaluate(({ clipboard }) => clipboard.readText())).split('\n')[0]
-  ok(first.includes(` ${skill} `) && existsSync(skill), `the Connect prompt points at the packaged SKILL.md (${first})`)
+  ok(first.includes(`\`${skill}\``) && existsSync(skill), `the Connect prompt points at the packaged SKILL.md (${first})`)
   mkdirSync('.scratch', { recursive: true })
   for (const theme of ['dark', 'light', 'glass']) {
     // Through Settings, as a user picks it (the page's bridge is taken once, by the app)

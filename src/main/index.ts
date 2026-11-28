@@ -108,6 +108,8 @@ function serve(req: Request) {
 
 // The Setup window's skill check (#89): the repo's copy against Claude Code's, both fixed here, never from the page.
 // The prompts point every Agent at this copy: the repo's in dev, the install folder's when packaged (ADR 0008).
+// shortcut: a quarantined Mac app run outside Applications is translocated to a temp path that goes when it quits;
+// install-mac.sh puts it in /Applications unquarantined. Warn in Setup if users hit it.
 // out/main/ -> repo root: the installer keeps that layout, unpacked (package-files.test.ts), like the icon.
 const SKILL_FROM = join(__dirname, '../../skills/kapecut')
 const skillTo = () => join(homedir(), '.claude', 'skills', 'kapecut') // per call: USERPROFILE / HOME decide it

@@ -10,8 +10,12 @@ const NEXT = {
 // A folder name may hold a line break (macOS, Linux): it must not add a line of its own to what the user pastes.
 const oneLine = (path: string) => path.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, '?')
 
-/** Where both prompts start: the SKILL.md KapeCut ships, by the absolute path main resolves, so any Agent reads it (ADR 0008). */
-const readFirst = (skill: string) => `I'm using KapeCut. Read the KapeCut instructions at ${oneLine(skill)} first`
+/**
+ * Where both prompts start: the SKILL.md KapeCut ships, by the absolute path main resolves, so any Agent reads it (ADR
+ * 0008). In backticks, as the path may hold spaces; it wins over a copy the Agent installed, which may be older.
+ */
+const readFirst = (skill: string) =>
+  `I'm using KapeCut. Read the KapeCut instructions at \`${oneLine(skill)}\` first, over any older copy you have installed`
 
 /**
  * The Connect prompt (GLOSSARY): what "Connect your agent" copies. It points at the shipped instructions, names the
