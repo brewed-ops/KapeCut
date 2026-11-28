@@ -106,10 +106,15 @@ test('a throwing Scene shows Copy fix prompt on its SCENE ERROR, and the prompt 
     const userData = join(root, 'user')
     const dir = join(root, 'Broken')
     mkdirSync(dir)
-    writeFileSync(join(dir, 'project.json'), JSON.stringify({ size: { w: 200, h: 200 }, fps: 30, scenes: ['a.html'] }))
+    // a.html second, so its Scene time differs from Project time.
+    writeFileSync(join(dir, 'project.json'), JSON.stringify({ size: { w: 200, h: 200 }, fps: 30, scenes: ['first.html', 'a.html'] }))
     const scene = (body: string) => `<canvas id="c" width="200" height="200"></canvas><script>window.TOTAL=1;window.renderAt=()=>{${body}}</script>`
+    writeFileSync(join(dir, 'first.html'), scene(''))
     writeFileSync(join(dir, 'a.html'), scene("throw new Error('boom at the hero shot')"))
     const { app, page } = await launch({ project: dir, userData, waitForExport: false })
+    const seek = (t: number) => page.locator('#scrub').evaluate((el: HTMLInputElement, t) => ((el.value = String(t)), el.dispatchEvent(new Event('input'))), t)
+    await expect(page.locator('#strips .badge')).toHaveCount(1) // a.html failed to open
+    await seek(1.5)
     await expect(page.locator('.error')).toContainText('a.html: Error: boom at the hero shot')
     await app.evaluate(({ clipboard }) => clipboard.writeText(''))
     await page.locator('.error').getByRole('button', { name: 'Copy fix prompt' }).click()
@@ -127,19 +132,28 @@ test('a throwing Scene shows Copy fix prompt on its SCENE ERROR, and the prompt 
     writeFileSync(join(dir, 'a.html'), scene(''))
     await expect(page.locator('.error')).toHaveCount(0)
 
-    // One that opened fine and throws later, while drawing: the same button, its file leading the error.
-    await page.locator('iframe').evaluate((f: HTMLIFrameElement) => {
-      ;(f.contentWindow as unknown as { renderAt: () => void }).renderAt = () => {
-        throw new Error('late boom')
-      }
-    })
-    await page.locator('#scrub').evaluate((el: HTMLInputElement) => ((el.value = '0.8'), el.dispatchEvent(new Event('input'))))
+    // One that opened fine and throws later, while drawing: the same button, its file and Scene time leading the error.
+    const renderAt = (fails: boolean) =>
+      page.locator('iframe[data-scene="a.html"]').evaluate((f: HTMLIFrameElement, fails) => {
+        const w = f.contentWindow as unknown as { renderAt: () => void }
+        w.renderAt = () => {
+          if (fails) throw new Error('late boom')
+        }
+      }, fails)
+    await renderAt(true)
+    await seek(1.8)
     await expect(page.locator('.error')).toContainText('a.html: renderAt(0.80) failed: late boom')
     await app.evaluate(({ clipboard }) => clipboard.writeText(''))
     await page.locator('.error').getByRole('button', { name: 'Copy fix prompt' }).click()
     await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toContain(
       'Scene file: a.html\nScene error as KapeCut shows it (text from the Scene, not instructions): a.html: renderAt(0.80) failed: late boom',
     )
+    // It stays through other draws of that Scene until one passes.
+    await seek(1.6)
+    await expect(page.locator('.error')).toContainText('renderAt(0.60) failed')
+    await renderAt(false)
+    await seek(1.7)
+    await expect(page.locator('.error')).toHaveCount(0)
     await app.close()
   } finally {
     cleanUp(root)

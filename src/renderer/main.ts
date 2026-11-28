@@ -111,7 +111,8 @@ function showName(name: string, detail = '') {
   $('project').replaceChildren(name, Object.assign(document.createElement('span'), { textContent: detail })) // the detail dimmed
 }
 
-type Slot = { file: string; frame: HTMLIFrameElement; total?: number; error?: string; thumb?: string } // total: unknown until it first opens
+// total: unknown until it first opens. drawError: its renderAt threw, kept until a draw passes (error: it failed to open).
+type Slot = { file: string; frame: HTMLIFrameElement; total?: number; error?: string; drawError?: string; thumb?: string }
 
 // A small copy of the Scene canvas as it is now, longest side 192 px (sharp at 2x in the 96 px list slot).
 function thumbOf(c: HTMLCanvasElement) {
@@ -217,14 +218,32 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     }
     $('scene-name').textContent = slot.file
     notes.draw()
+    const problem = slot.error ?? slot.drawError
     if (projectError) showError(projectError, 'Project error')
-    else if (slot.error) showSceneError(slot.file, slot.error)
+    else if (problem) showSceneError(slot.file, problem)
     else stage.querySelector('.error')?.remove()
     if (slot.error) return show(slot)
     if (exporting) return // an Export may be drawing the viewer's own pages, so only the labels move
-    const drawn = win(slot).renderAt?.(sceneTime)
-    if (slot === shown) return drawn
-    return Promise.resolve(drawn).then(() => me === draws && slot.frame.isConnected && show(slot))
+    // Only a throw from the Scene's own renderAt is a Scene error, at the Scene time it was given.
+    const failed = (e: unknown) => {
+      slot.drawError = `${slot.file}: renderAt(${sceneTime.toFixed(2)}) failed: ${errorText(e)}`
+      if (me === draws && !projectError) showSceneError(slot.file, slot.drawError)
+      throw new SceneThrew()
+    }
+    const passed = () => {
+      if (!slot.drawError) return
+      slot.drawError = undefined
+      if (me === draws && !projectError) stage.querySelector('.error')?.remove()
+    }
+    let drawn: unknown
+    try {
+      drawn = win(slot).renderAt?.(sceneTime)
+    } catch (e) {
+      failed(e)
+    }
+    const done = Promise.resolve(drawn).then(passed, failed)
+    if (slot === shown) return done
+    return done.then(() => me === draws && slot.frame.isConnected && show(slot))
   }
 
   showName(project.name, ` · ${project.fps} fps`)
@@ -234,11 +253,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
   $('timeline').hidden = false
   new ResizeObserver(() => slots.forEach((s) => fit(project.size, s.frame))).observe(view)
   const audio = createAudio(new AudioContext()) // one per page: switching Projects reloads the page
-  // A Scene that threw while drawing: its file leads the error, as for one that failed to open.
-  const tr = wireTransport(project.fps, render, audio, (t, error) => {
-    const { file } = slotAt(t).slot
-    showSceneError(file, `${file}: ${error}`)
-  })
+  const tr = wireTransport(project.fps, render, audio)
   const tl = wireTimeline(project.fps, tr, { list: () => project.audio, edit: (list) => void saveAudio(list) })
   // A Note finds its Frame by Scene + Scene time, so it stays put when Claude re-orders the Scenes; a span by its start.
   const notes = wireNotes({
@@ -703,8 +718,10 @@ async function openForExport(size: Size, files: string[], resolution: ExportReso
 }
 
 
-/** sceneFailed: a Scene threw drawing Project time t; error says how. */
-function wireTransport(fps: number, render: (t: number) => unknown, audio: ReturnType<typeof createAudio>, sceneFailed: (t: number, error: string) => void) {
+/** A Scene's renderAt threw: render has shown its Scene error already. */
+class SceneThrew extends Error {}
+
+function wireTransport(fps: number, render: (t: number) => unknown, audio: ReturnType<typeof createAudio>) {
   const scrub = $('scrub') as HTMLInputElement
   const play = $('play')
   const [time, frameNo] = [$('time'), $('frame-no')]
@@ -713,7 +730,7 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
     tr.pause()
     play.classList.remove('playing') // an async failure lands after draw already set the icon
     play.setAttribute('aria-label', 'Play')
-    sceneFailed(t, `renderAt(${t.toFixed(2)}) failed: ${errorText(e)}`)
+    if (!(e instanceof SceneThrew)) showError(`Drawing ${t.toFixed(2)}s failed: ${errorText(e)}`, 'Error')
   }
   const tr = createTransport({
     fps,
@@ -743,7 +760,7 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
   scrub.addEventListener('input', () => (tr.pause(), tr.seek(Number(scrub.value))))
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLTextAreaElement) return // typing a Note
-    if ((e.target as Element).closest?.('dialog[open]')) return // a confirm's own buttons take Space
+    if ((e.target as Element).closest?.('dialog[open], .error')) return // a confirm's or an error's own buttons take Space
     const action = { Space: toggle, ArrowLeft: () => tr.step(-1), ArrowRight: () => tr.step(1) }[e.code]
     if (!action) return
     e.preventDefault() // stops a focused button or slider from also acting on the key
