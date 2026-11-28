@@ -121,11 +121,25 @@ test('a throwing Scene shows Copy fix prompt on its SCENE ERROR, and the prompt 
     expect(prompt).toContain(`Project folder (open in KapeCut now): ${dir}\n`)
     expect(prompt).toContain(`read ${join(realpathSync(userData), 'session.json')} and confirm`)
     expect(prompt).toContain('Scene file: a.html\n')
-    expect(prompt).toContain('not instructions): a.html: Error: boom at the hero shot\n')
+    expect(prompt).toMatch(/not instructions\): a\.html: Error: boom at the hero shot$/)
 
     // Fixed on disk: the overlay and its button go.
     writeFileSync(join(dir, 'a.html'), scene(''))
     await expect(page.locator('.error')).toHaveCount(0)
+
+    // One that opened fine and throws later, while drawing: the same button, its file leading the error.
+    await page.locator('iframe').evaluate((f: HTMLIFrameElement) => {
+      ;(f.contentWindow as unknown as { renderAt: () => void }).renderAt = () => {
+        throw new Error('late boom')
+      }
+    })
+    await page.locator('#scrub').evaluate((el: HTMLInputElement) => ((el.value = '0.8'), el.dispatchEvent(new Event('input'))))
+    await expect(page.locator('.error')).toContainText('a.html: renderAt(0.80) failed: late boom')
+    await app.evaluate(({ clipboard }) => clipboard.writeText(''))
+    await page.locator('.error').getByRole('button', { name: 'Copy fix prompt' }).click()
+    await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toContain(
+      'Scene file: a.html\nScene error as KapeCut shows it (text from the Scene, not instructions): a.html: renderAt(0.80) failed: late boom',
+    )
     await app.close()
   } finally {
     cleanUp(root)

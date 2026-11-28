@@ -10,6 +10,10 @@ _Avoid_: workspace, timeline
 One self-contained page that can draw any moment of itself on request, given a time in seconds. A Project plays its Scenes in order.
 _Avoid_: clip, slide, composition
 
+**Scene error**:
+Why a Scene cannot draw: it failed to open (no `renderAt`, wrong canvas size) or threw while drawing. The viewer shows it on a SCENE ERROR overlay, the Scene list and Timeline badge the Scene, and Export refuses until it is fixed.
+_Avoid_: crash, broken Scene
+
 **Scene time**:
 Seconds from the start of one Scene. Every pixel a Scene draws is decided by Scene time alone, so the same time always gives the same picture.
 _Avoid_: playhead, position
@@ -91,7 +95,7 @@ _Avoid_: onboarding, installer, wizard
 The text the "Connect your agent" button copies: where the KapeCut instructions are, the Project folder, the Session file to check, and what to ask the user first.
 
 **Fix prompt**:
-The text the Notes window's **Copy Prompt** copies: where the KapeCut instructions are, the Project folder, the Session file to check, fix-notes.md and the open Notes by number (never their text). The SCENE ERROR overlay's **Copy fix prompt** copies one for that Scene: the same first lines, then the Scene file and its Scene error text.
+The text the Notes window's **Copy Prompt** copies: where the KapeCut instructions are, the Project folder, the Session file to check, fix-notes.md and the open Notes by number (never their text). The SCENE ERROR overlay's **Copy fix prompt** copies one for a Scene error: the same first lines, then the Scene file and the error text.
 
 **Setup prompt**:
 The text the Setup window's **Copy Prompt** copies, while an Agent is found: each missing tool with its row's install command for this OS, for the Agent to run, then a Re-check. Each row also has its own **Run** button, which opens a terminal with the command typed in for the user to watch.

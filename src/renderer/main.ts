@@ -36,9 +36,9 @@ const placeHighlight = () => {
 const rowSizes = new ResizeObserver(placeHighlight)
 
 // An overlay, so the Scene frame survives and a later save can still reload it. fix: what its Copy fix prompt copies.
-// Rebuilt only when its text changes: the viewer redraws it on every Frame it plays, and a new button would drop a click.
-function showError(message: string, label = 'Scene error', fix?: string) {
-  const key = `${label}\n${message}`
+// Rebuilt only when it changes: the viewer redraws it on every Frame it plays, and a new button would drop a click.
+function showError(message: string, label: string, fix?: string) {
+  const key = `${label}\n${message}\n${fix}`
   const shown = stage.querySelector<HTMLElement>('.error')
   if (shown?.dataset.key === key) return
   shown?.remove()
@@ -202,6 +202,8 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     }
   }
 
+  const showSceneError = (scene: string, error: string) =>
+    showError(error, 'Scene error', sceneFixPrompt({ project: dir, ...paths, scene, error }))
   // Draws Project time t. At a cut the next Scene page shows only once it has drawn, so no blank Frame shows.
   const render = (t: number) => {
     const { slot, sceneTime, scene } = slotAt(t)
@@ -216,7 +218,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     $('scene-name').textContent = slot.file
     notes.draw()
     if (projectError) showError(projectError, 'Project error')
-    else if (slot.error) showError(slot.error, 'Scene error', sceneFixPrompt({ project: dir, ...paths, scene: slot.file, error: slot.error }))
+    else if (slot.error) showSceneError(slot.file, slot.error)
     else stage.querySelector('.error')?.remove()
     if (slot.error) return show(slot)
     if (exporting) return // an Export may be drawing the viewer's own pages, so only the labels move
@@ -232,7 +234,11 @@ async function openProject(dir: string, opened: Project & { name: string }, path
   $('timeline').hidden = false
   new ResizeObserver(() => slots.forEach((s) => fit(project.size, s.frame))).observe(view)
   const audio = createAudio(new AudioContext()) // one per page: switching Projects reloads the page
-  const tr = wireTransport(project.fps, render, audio)
+  // A Scene that threw while drawing: its file leads the error, as for one that failed to open.
+  const tr = wireTransport(project.fps, render, audio, (t, error) => {
+    const { file } = slotAt(t).slot
+    showSceneError(file, `${file}: ${error}`)
+  })
   const tl = wireTimeline(project.fps, tr, { list: () => project.audio, edit: (list) => void saveAudio(list) })
   // A Note finds its Frame by Scene + Scene time, so it stays put when Claude re-orders the Scenes; a span by its start.
   const notes = wireNotes({
@@ -452,7 +458,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
   }
   const queueSave = (file: string) => {
     if (encoding && !encoding.savesWaiting) showProgress(Object.assign(encoding, { savesWaiting: true }))
-    if (!saved.size) queue = queue.catch(() => {}).then(applySaves).catch((e) => showError(errorText(e)))
+    if (!saved.size) queue = queue.catch(() => {}).then(applySaves).catch((e) => showError(errorText(e), 'Project error'))
     saved.add(file)
   }
   kapecut.onFileSaved((file, own) => {
@@ -702,7 +708,8 @@ async function openForExport(size: Size, files: string[], resolution: ExportReso
 }
 
 
-function wireTransport(fps: number, render: (t: number) => unknown, audio: ReturnType<typeof createAudio>) {
+/** sceneFailed: a Scene threw drawing Project time t; error says how. */
+function wireTransport(fps: number, render: (t: number) => unknown, audio: ReturnType<typeof createAudio>, sceneFailed: (t: number, error: string) => void) {
   const scrub = $('scrub') as HTMLInputElement
   const play = $('play')
   const [time, frameNo] = [$('time'), $('frame-no')]
@@ -711,7 +718,7 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
     tr.pause()
     play.classList.remove('playing') // an async failure lands after draw already set the icon
     play.setAttribute('aria-label', 'Play')
-    showError(`renderAt(${t.toFixed(2)}) failed: ${errorText(e)}`)
+    sceneFailed(t, `renderAt(${t.toFixed(2)}) failed: ${errorText(e)}`)
   }
   const tr = createTransport({
     fps,
@@ -1220,7 +1227,7 @@ state
       )
     }
     if (project === SET_UP) return showSetUp(current!)
-    if (project) return openProject(current!, project, { session, skill }).catch((e) => showError(errorText(e)))
+    if (project) return openProject(current!, project, { session, skill }).catch((e) => showError(errorText(e), 'Project error'))
     if (project === null) {
       showError('Open a Project folder, or drop one on the window.', 'No Project')
       const open = Object.assign(document.createElement('button'), { className: 'primary', innerHTML: icon('folder-open') + 'Open folder' })
