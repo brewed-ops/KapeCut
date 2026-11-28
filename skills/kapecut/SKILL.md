@@ -116,10 +116,10 @@ chrome --headless --disable-gpu --hide-scrollbars --allow-file-access-from-files
 A still hides JavaScript errors: a Scene that throws draws a blank canvas, and a headless `--screenshot` prints no message. KapeCut shows the same Scene as SCENE ERROR. So run the checker in this skill's folder, which loads each Scene of `project.json` by itself, as KapeCut does:
 
 ```sh
-node <this skill folder>/check-scenes.mjs <project folder> <stills folder>
+node <this skill folder>/check-scenes.mjs <project folder> [<stills folder>]
 ```
 
 - It prints `PASS` or `FAIL` per Scene, with each error under a failing one: a page error, a console error, a `window.ready` that rejects or hangs past 15 s, a broken Scene contract, a `renderAt` that throws or never returns. It exits 1 when any Scene fails. Done when every Scene passes and it exits 0.
-- It needs Playwright (`npm install playwright` in the Project folder, or `npm install -g playwright`) and drives your Chrome or Edge, so no browser download. It writes a start, middle and end still of each Scene (`scene-1-start.png`, ...) to the stills folder, a folder outside the Project, or a new temp folder when you leave it out; look at them as in the still check.
-- Without Playwright it says how to install it and runs the still check with logging instead: it fails a Scene on an `Uncaught` error at `t=0` or a "window.ready failed", and catches less. Install Playwright and run it again when you can.
-- A Scene that draws a video (`kcVideo`) passes in the checker: it loads `kc-video-stand-in.js` from this skill's folder in place of KapeCut's helper.
+- It needs Playwright (`npm install playwright` in the Project folder, or `npm install -g playwright`) and drives your Chrome or Edge, so no browser download. It writes a start, middle and end still of each Scene (`scene-1-start.png`, ...) to the stills folder, a folder outside the Project, or a new temp folder when you leave it out (the checker prints which); look at them as in the still check.
+- Without Playwright it says how to install it and runs the still check with logging instead: it fails a Scene on an `Uncaught` error at `t=0` or a "window.ready failed", and catches less: a `window.ready` that hangs still passes, and a Scene that draws a video fails until Playwright is installed. Install Playwright and run it again when you can.
+- With Playwright, a Scene that draws a video (`kcVideo`) passes: the checker loads `kc-video-stand-in.js` from this skill's folder in place of KapeCut's helper.

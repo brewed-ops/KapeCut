@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir, userInfo } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -32,7 +32,7 @@ test('SKILL.md makes the checker the Final check', () => {
   expect(skill).toMatch(/Done when every Scene passes/)
 })
 
-test('the checker passes good Scenes and fails broken ones, with the error and exit 1', async () => {
+test('the checker passes good Scenes and fails broken ones, with the error and exit 1', () => {
   const script = resolve('skills/kapecut/check-scenes.mjs')
   const good = project({})
   const stills = mkdtempSync(join(tmpdir(), 'kapecut-stills-'))
@@ -58,10 +58,9 @@ test('the checker passes good Scenes and fails broken ones, with the error and e
   expect(code).toBe(1)
 })
 
-test('without Playwright the checker says how to install it and runs the still check', async () => {
+test('without Playwright the checker says how to install it and runs the still check', () => {
   // A copy of the skill outside the repo, run from outside it: no node_modules resolves Playwright.
   const root = mkdtempSync(join(tmpdir(), 'kapecut-skill-'))
-  mkdirSync(join(root, 'kapecut'))
   cpSync('skills/kapecut', join(root, 'kapecut'), { recursive: true })
   const script = join(root, 'kapecut', 'check-scenes.mjs')
 
@@ -70,7 +69,13 @@ test('without Playwright the checker says how to install it and runs the still c
   expect(pass.out).toContain('PASS hello.html')
   expect(pass.code).toBe(0)
 
-  const fail = run(script, project({ 'throws.html': scene('window.TOTAL = 3; window.renderAt = () => {}; kc.missing()') }), root)
-  expect(fail.out).toMatch(/FAIL throws\.html\r?\n {2}.*kc is not defined/)
-  expect(fail.code).toBe(1)
+  const broken = project({
+    'throws.html': scene('window.TOTAL = 3; window.renderAt = () => {}; kc.missing()'),
+    // The stand-in needs Playwright: a video Scene is never a pass here.
+    'video.html': scene("kcVideo('speaker.mp4'); window.TOTAL = 1; window.renderAt = () => {}", '<script src="/kc-video.js"></script>'),
+  })
+  const { code, out } = run(script, broken, root)
+  expect(out).toMatch(/FAIL throws\.html\r?\n {2}.*kc is not defined/)
+  expect(out).toMatch(/FAIL video\.html\r?\n {2}.*install Playwright/)
+  expect(code).toBe(1)
 })
