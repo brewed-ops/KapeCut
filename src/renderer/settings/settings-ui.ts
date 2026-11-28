@@ -7,6 +7,10 @@ import { probeH264 } from '../viewer/probe'
 import { osOf, setupRows } from '../setup/setup'
 import { updateView, type Run } from './updates'
 
+/** Draws Settings' copy of the recent Projects (General), again whenever one leaves the list (#18). */
+export const showSettingsRecent = (recent: HTMLElement[]) =>
+  $('settings-recent').replaceChildren(...(recent.length ? recent : [Object.assign(document.createElement('span'), { textContent: 'None yet' })]))
+
 /**
  * The Settings row at the foot of the left column and its modal panel (#114): General (idle minutes, recent Projects,
  * buttons the caller built), Appearance (the theme), Setup (the encoder and tool checks) and Updates (the version, the
@@ -58,9 +62,8 @@ export function wireSettings(recent: HTMLElement[], settings: Settings) {
       $('settings-title').textContent = b.textContent
     })
 
-  const list = $('settings-recent')
-  list.replaceChildren(...(recent.length ? recent : [Object.assign(document.createElement('span'), { textContent: 'None yet' })]))
-  list.addEventListener('click', (e) => e.target instanceof HTMLButtonElement && panel.close()) // the opening says how it went
+  showSettingsRecent(recent)
+  $('settings-recent').addEventListener('click', (e) => e.target instanceof HTMLButtonElement && panel.close()) // the opening says how it went
 
   input.value = String(idleMinutes)
   setIdleMinutes(idleMinutes)

@@ -7,7 +7,7 @@ import { APP_URL, handle, isAppPage, on } from './app-sender'
 import { fileUnder } from './file-under'
 import { watchProject } from './watch-project'
 import { exporting, handleExport } from './export'
-import { addRecent } from './recent-projects'
+import { addRecent, removeRecent } from './recent-projects'
 import { ownNotesWrite, writeNoteImage, writeNotes } from './notes-files'
 import { ownLanded, ownTemp, ownWrite } from './owned-writes'
 import { copyIn, deleteScene, listFiles, readDrop, writeAudio } from './project-files'
@@ -40,13 +40,16 @@ const isFolder = (dir: unknown) => {
   }
 }
 
-function readRecent(): string[] {
+// The list as saved, folders that are gone included: a drive plugged back in brings them back.
+function savedRecent(): string[] {
   try {
-    return (JSON.parse(readFileSync(recentFile(), 'utf8')) as string[]).filter(isFolder)
+    const list: unknown = JSON.parse(readFileSync(recentFile(), 'utf8'))
+    return Array.isArray(list) ? list.filter((d) => typeof d === 'string') : []
   } catch {
     return [] // first launch, or an unreadable list: start without recents
   }
 }
+const readRecent = () => savedRecent().filter(isFolder)
 
 // File-based hand-off: an agent saves a Scene, the viewer reloads it. The old Project's watch stops first.
 function useProject(win: BrowserWindow, dir: string) {
@@ -73,7 +76,7 @@ function openProject(win: BrowserWindow, dir: string) {
   if (!isFolder(dir)) return `${dir} is not a folder KapeCut can open`
   useProject(win, dir)
   try {
-    writeFileSync(recentFile(), JSON.stringify(addRecent(readRecent(), projectDir!)))
+    writeFileSync(recentFile(), JSON.stringify(addRecent(savedRecent(), projectDir!)))
   } catch (e) {
     console.error('[kapecut] could not save recent Projects:', e) // the Project still opens
   }
@@ -272,6 +275,12 @@ app.whenReady().then(() => {
   handle('project:open-recent', (_e, dir: string) =>
     readRecent().includes(dir) ? openProject(win, dir) : `${dir} is not a recent Project`,
   )
+  // Off the list only: the folder is never touched, and an open Project stays open (#18). Resolves to the new list.
+  handle('project:remove-recent', (_e, dir: unknown) => {
+    const recent = removeRecent(savedRecent(), dir) // the saved list, so no other entry goes with it
+    writeFileSync(recentFile(), JSON.stringify(recent))
+    return recent.filter(isFolder)
+  })
   handle('project:choose', async () => {
     const pick = await dialog.showOpenDialog(win, { title: 'Open a Project folder', properties: ['openDirectory'] })
     if (!pick.canceled && pick.filePaths[0]) return openProject(win, pick.filePaths[0])

@@ -236,6 +236,18 @@ try {
   await page.getByRole('button', { name: 'Cancel' }).click()
   await page.mouse.move(0, 0)
 
+  // Removing a recent Project (#18): the row's X on hover, then the warning; cancelled, so the list stays.
+  await page.locator('#projects summary').click()
+  await page.locator('#recent > div').first().hover()
+  await page.waitForTimeout(200)
+  await shot('recent-remove-hover')
+  await page.locator('#recent .del').first().click()
+  await settled(page, '#remove-recent')
+  await shot('recent-remove-warn')
+  await page.locator('#remove-recent-cancel').click()
+  await page.locator('#projects summary').click()
+  await page.mouse.move(0, 0)
+
   // Files: one of each kind beside click.wav, then an audio file dragged over the Timeline (the drop line at 3 s).
   mkdirSync(join(dir, 'img'))
   for (const [f, body] of [['img/logo.png', 'png'], ['Geist-Black.woff2', 'font'], ['intro.mp4', 'mp4'], ['lines.json', '{}']]) writeFileSync(join(dir, f), body)

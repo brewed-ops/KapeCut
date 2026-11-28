@@ -11,10 +11,10 @@ import { wireNotes } from './notes/notes-ui'
 import { AUDIO_FILE_TYPE, wireFiles } from './files/files-ui'
 import { fileKind } from './files/kind'
 import { kapecut } from './bridge'
-import { $, errorText, toast } from './dom'
+import { $, errorText, lockConfirm, toast } from './dom'
 import { connectPrompt, fixPrompt } from './agent/connect-prompt'
 import { wireAgentStatus } from './agent/status-ui'
-import { wireSettings } from './settings/settings-ui'
+import { showSettingsRecent, wireSettings } from './settings/settings-ui'
 import { fillIcons, icon } from './icons'
 import { wireSetup } from './setup/setup-ui'
 import { ffmpegDetail } from './setup/setup'
@@ -359,15 +359,10 @@ async function openProject(dir: string, opened: Project & { name: string }, path
   const confirmDelete = $('delete-scene') as HTMLDialogElement
   const deleteStatus = $('delete-scene-status')
   const [okDelete, cancelDelete] = ['delete-scene-ok', 'delete-scene-cancel'].map($) as HTMLButtonElement[]
-  // While main works the confirm cannot close or be sent again, so its answer always lands in it, for the Scene it names.
-  const lockDelete = (on: boolean) => {
-    okDelete.disabled = cancelDelete.disabled = on
-    confirmDelete.setAttribute('closedby', on ? 'none' : 'any')
-  }
   let deleting: { index: number; file: string } | undefined
   // file: the row's own, so a list about to redraw after Claude's re-order never names another Scene.
   const askDelete = (index: number, file: string) => {
-    if (confirmDelete.open) return // a Delete key pressed while one is open (focus on body as main works) retargets nothing
+    if (document.querySelector('dialog[open]')) return // a Delete key pressed while a confirm is open (focus on body as main works) retargets nothing
     if (project.scenes[index] !== file) return // the list redraws in a moment
     const n = notes.onScene(index, project.scenes).length
     deleting = { index, file }
@@ -384,7 +379,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
     const d = deleting
     if (!d) return
     let order: string[]
-    lockDelete(true)
+    lockConfirm(confirmDelete, true) // so its answer lands in it, for the Scene it names
     try {
       order = await kapecut.project.deleteScene(d.index, d.file)
     } catch (e) {
@@ -392,7 +387,7 @@ async function openProject(dir: string, opened: Project & { name: string }, path
       queueSave('project.json') // the list as main left it, whatever went wrong
       return
     } finally {
-      lockDelete(false)
+      lockConfirm(confirmDelete, false)
     }
     deleting = undefined
     confirmDelete.close()
@@ -731,6 +726,7 @@ function wireTransport(fps: number, render: (t: number) => unknown, audio: Retur
   scrub.addEventListener('input', () => (tr.pause(), tr.seek(Number(scrub.value))))
   window.addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLTextAreaElement) return // typing a Note
+    if ((e.target as Element).closest?.('dialog[open]')) return // a confirm's own buttons take Space
     const action = { Space: toggle, ArrowLeft: () => tr.step(-1), ArrowRight: () => tr.step(1) }[e.code]
     if (!action) return
     e.preventDefault() // stops a focused button or slider from also acting on the key
@@ -1182,6 +1178,47 @@ const recentButtons = (recent: string[]) =>
     item.addEventListener('click', () => switchProject(() => kapecut.project.openRecent(dir)))
     return item
   })
+// The Projects menu's rows: each with an X (#18) that asks before taking the Project off the list.
+const recentRows = (recent: string[]) =>
+  recentButtons(recent).map((item, i) => {
+    const name = folderName(recent[i])
+    const x = Object.assign(document.createElement('button'), { className: 'del', innerHTML: icon('dismiss'), title: 'Remove from Recent Projects' })
+    x.setAttribute('aria-label', `Remove ${name} from Recent Projects`)
+    x.addEventListener('click', () => askRemove(recent[i]))
+    const row = document.createElement('div')
+    row.append(item, x)
+    return row
+  })
+let recentNow: string[] | undefined // the list since a remove, so Settings, if it starts later, draws no stale one
+const showRecentLists = (recent: string[]) => {
+  recentNow = recent
+  $('recent').replaceChildren(...recentRows(recent))
+  showSettingsRecent(recentButtons(recent))
+}
+// The warning: the folder stays on disk, and an open Project stays open. Main checks dir is on the list.
+const confirmRemove = $('remove-recent') as HTMLDialogElement
+const [okRemove, cancelRemove] = ['remove-recent-ok', 'remove-recent-cancel'].map($) as HTMLButtonElement[]
+let removing = ''
+function askRemove(dir: string) {
+  if (document.querySelector('dialog[open]')) return
+  removing = dir
+  $('remove-recent-text').textContent = `Remove ${folderName(dir)} from the list?`
+  $('remove-recent-status').textContent = ''
+  confirmRemove.showModal()
+}
+cancelRemove.addEventListener('click', () => confirmRemove.close())
+okRemove.addEventListener('click', async () => {
+  lockConfirm(confirmRemove, true)
+  try {
+    showRecentLists(await kapecut.project.removeRecent(removing))
+    confirmRemove.close()
+    ;($('recent').querySelector('button') ?? $('open-folder')).focus() // its X is gone with its row
+  } catch (e) {
+    $('remove-recent-status').textContent = errorText(e) // still open: Remove can be tried again
+  } finally {
+    lockConfirm(confirmRemove, false)
+  }
+})
 // Nothing opens until the Setup window's checks pass (#89): Open folder, drops and recent Projects wait for it.
 let checked = false
 const ready = wireSetup().then(() => {
@@ -1191,11 +1228,11 @@ const ready = wireSetup().then(() => {
 const state = ready.then(() => kapecut.project.state())
 // Settings works even when the Project state cannot be read: the encoder status matters most then.
 void ready.then(() => Promise.all([state.catch(() => ({ recent: [] })), kapecut.settings.get()])).then(([{ recent }, settings]) =>
-  wireSettings(recentButtons(recent), settings),
+  wireSettings(recentButtons(recentNow ?? recent), settings),
 ).catch((e) => console.error('[kapecut] Settings could not start:', e)) // it stays disabled; the console says why
 state
   .then(async ({ current, recent, session, skill, opened }) => {
-    $('recent').replaceChildren(...recentButtons(recent))
+    $('recent').replaceChildren(...recentRows(recent))
     const project = await readProject(current).catch((e) => {
       showError(errorText(e), 'Project error')
       kapecut.onFileSaved(reopenOn)
