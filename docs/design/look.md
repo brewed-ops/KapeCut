@@ -22,18 +22,25 @@ there as a variable before any UI uses it.
 A working page in this exact look, with the tokens and the grain tile embedded:
 `C:\Users\kvill\Downloads\matt-pocock-skills-map.html` (Kenneth's machine).
 
-## Light
+## Coffee and Light
 
-Settings > Appearance > Theme picks Dark (the default), Light or System (#114). Light is the same tokens again under
-`:root[data-theme='light']` in `tokens.css`: warm paper `--bg`, panels a step lighter (`--panel`) and darker
-(`--panel-2`), ink `--text`. The grain stays, lighter (`--grain-blend`: soft-light instead of overlay). Nothing else
-changes: same type, same single amber.
+Settings > Appearance > Theme picks Dark (the default), Light, Coffee or System (#114, #19). System is Dark or Light,
+whichever the OS uses. 0.0.1 called Coffee "light" and Light "glass": `readSettings` renames them in a version 1
+settings file, and the next save writes version 2.
+
+Coffee is the same tokens again under `:root[data-theme='coffee']` in `tokens.css`: warm paper `--bg`, panels a step
+lighter (`--panel`) and darker (`--panel-2`), ink `--text`. The grain stays, lighter (`--grain-blend`: soft-light
+instead of overlay). Nothing else changes: same type, same single amber.
 
 - The amber darkens (`#965400`) so it reads as text at 5:1 on the paper and still carries `--bg` text on the main
   button.
-- `--scrim` (behind the Settings panel) and `--shadow` (under floating panels) are tokens too, lighter in Light.
+- `--scrim` (behind the Settings panel) and `--shadow` (under floating panels) are tokens too, lighter in Coffee.
+
+Light (`:root[data-theme='light']`) is cool grey-white: frosted panels over a white wash, no grain, kept as 0.0.1
+shipped it as "Glass".
+
 - The preload sets `data-theme` on `<html>` before the first paint, and main paints the window's ground the same `--bg`
-  (`BACKGROUND` in `src/main/settings.ts`, held equal by its test), so neither theme flashes the other. System follows
+  (`BACKGROUND` in `src/main/settings.ts`, held equal by its test), so no theme flashes another. System follows
   the OS live.
 
 Settings itself: `docs/design/settings-reference.png` is the structure it follows (left nav, `Settings / <section>`

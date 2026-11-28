@@ -154,7 +154,7 @@ test('idle minutes change the pill live and survive a restart', async () => {
     await input.press('Enter') // a key in the app is activity: the pill turns active
     const saved = join(userData, 'settings.json')
     const file = () => existsSync(saved) && JSON.parse(readFileSync(saved, 'utf8'))
-    await expect.poll(file).toEqual({ version: 1, idleMinutes: 2, theme: 'dark' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 2, theme: 'dark' })
     await expect(pill).toHaveAttribute('data-s', 'active')
     await page.clock.fastForward(60_000)
     await expect(pill).toHaveAttribute('data-s', 'active') // not yet: 2 minutes, not 1
@@ -171,19 +171,19 @@ test('idle minutes change the pill live and survive a restart', async () => {
     await settingsButton(page).click()
     await expect(input).toHaveValue('2')
     await expect(page.locator('#settings-status')).toBeHidden()
-    expect(file()).toEqual({ version: 1, idleMinutes: 2, theme: 'dark' })
+    expect(file()).toEqual({ version: 2, idleMinutes: 2, theme: 'dark' })
     // A click outside keeps what was typed, like any field losing focus; a theme picked straight after keeps it too.
     await input.fill('3')
     await panel(page).getByRole('navigation').getByRole('button', { name: 'Appearance' }).click()
     await panel(page).getByRole('radio', { name: 'Light' }).check()
-    await expect.poll(file).toEqual({ version: 1, idleMinutes: 3, theme: 'light' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 3, theme: 'light' })
     await panel(page).getByRole('radio', { name: 'Dark' }).check()
-    await expect.poll(file).toEqual({ version: 1, idleMinutes: 3, theme: 'dark' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 3, theme: 'dark' })
     await section(page, 'General').click()
     await input.fill('2')
     await page.mouse.click(5, 5)
     await expect(panel(page)).toBeHidden()
-    await expect.poll(file).toEqual({ version: 1, idleMinutes: 2, theme: 'dark' })
+    await expect.poll(file).toEqual({ version: 2, idleMinutes: 2, theme: 'dark' })
     await app.close()
 
     ;({ app, page } = await launch({ project: dir, userData }))
@@ -207,34 +207,59 @@ test('the theme repaints the app at once, survives a restart, and System follows
     const userData = join(root, 'user')
     let { app, page } = await launch({ project: dir, userData })
     const look = () => page.evaluate(() => ({ theme: document.documentElement.dataset.theme, bg: getComputedStyle(document.body).backgroundColor }))
+    const saved = () => JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).theme
+    const ground = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBackgroundColor().toLowerCase())
     const dark = await look()
     expect(dark.theme).toBe('dark')
     await settingsButton(page).click()
     await section(page, 'Appearance').click()
     const radio = (name: string) => panel(page).getByRole('radio', { name })
     await expect(radio('Dark')).toBeChecked()
-    await radio('Light').check()
-    await expect.poll(look).toEqual({ theme: 'light', bg: 'rgb(244, 239, 230)' })
-    expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).theme).toBe('light')
-    // The window's own ground follows, so a reload never flashes the other one.
-    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBackgroundColor().toLowerCase())).toBe('#f4efe6')
+    // Each option repaints the page and the window's own ground, so a reload never flashes the other one.
+    for (const [name, bg, hex] of [['Light', 'rgb(238, 241, 246)', '#eef1f6'], ['Coffee', 'rgb(244, 239, 230)', '#f4efe6']]) {
+      await radio(name).check()
+      await expect.poll(look).toEqual({ theme: name.toLowerCase(), bg })
+      await expect.poll(saved).toBe(name.toLowerCase())
+      expect(await ground()).toBe(hex)
+    }
     await app.close()
 
     ;({ app, page } = await launch({ project: dir, userData }))
-    expect((await look()).theme).toBe('light')
+    expect((await look()).theme).toBe('coffee')
     await settingsButton(page).click()
     await section(page, 'Appearance').click()
-    await expect(radio('Light')).toBeChecked()
+    await expect(radio('Coffee')).toBeChecked()
+    // System is Dark or Light, never Coffee.
     await page.emulateMedia({ colorScheme: 'dark' })
     await radio('System').check()
     await expect.poll(async () => (await look()).theme).toBe('dark')
     expect((await look()).bg).toBe(dark.bg)
     await page.emulateMedia({ colorScheme: 'light' })
-    await expect.poll(async () => (await look()).theme).toBe('light')
+    await expect.poll(look).toEqual({ theme: 'light', bg: 'rgb(238, 241, 246)' })
     await page.emulateMedia({ colorScheme: 'dark' })
     await expect.poll(async () => (await look()).theme).toBe('dark')
-    expect(JSON.parse(readFileSync(join(userData, 'settings.json'), 'utf8')).theme).toBe('system')
+    expect(saved()).toBe('system')
     await app.close()
+  } finally {
+    cleanUp(root)
+  }
+})
+
+test('a 0.0.1 settings file keeps its look: its light opens as Coffee, its glass as Light', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
+  try {
+    const dir = project(root, 'Alpha')
+    const userData = join(root, 'user')
+    mkdirSync(userData)
+    for (const [old, now] of [['light', 'Coffee'], ['glass', 'Light']]) {
+      writeFileSync(join(userData, 'settings.json'), JSON.stringify({ version: 1, idleMinutes: 15, theme: old }))
+      const { app, page } = await launch({ project: dir, userData })
+      expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(now.toLowerCase())
+      await settingsButton(page).click()
+      await section(page, 'Appearance').click()
+      await expect(panel(page).getByRole('radio', { name: now })).toBeChecked()
+      await app.close()
+    }
   } finally {
     cleanUp(root)
   }
