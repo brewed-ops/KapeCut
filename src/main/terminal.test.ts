@@ -13,15 +13,15 @@ it('Windows: start opens a PowerShell window that shows the command, runs it and
 })
 
 it("macOS: Terminal types the command in, with Homebrew's dirs on PATH, quotes and backslashes kept", () => {
-  const [file, args] = terminalArgv('mac', BREW)
+  const [file, args, options] = terminalArgv('mac', BREW)
   expect(file).toBe('/usr/bin/osascript')
-  expect(args).toEqual([
-    '-e',
-    'tell application "Terminal" to do script "export PATH=\\"/opt/homebrew/bin:/usr/local/bin:$PATH\\"; /bin/bash -c \\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\""',
-    '-e',
-    'tell application "Terminal" to activate',
-  ])
-  expect(terminalArgv('mac', 'a\\b')[1][1]).toMatch(/; a\\\\b"$/)
+  const typed = '"export PATH=\\"/opt/homebrew/bin:/usr/local/bin:$PATH\\"; /bin/bash -c \\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\""'
+  // A Terminal started now opens a window: the script goes in it, so no blank one sits beside the install.
+  expect(args).toEqual(
+    ['if application "Terminal" is running then', `tell application "Terminal" to do script ${typed}`, 'else', `tell application "Terminal" to do script ${typed} in window 1`, 'end if', 'tell application "Terminal" to activate'].flatMap((l) => ['-e', l]),
+  )
+  expect(terminalArgv('mac', 'a\\b')[1][3]).toMatch(/; a\\\\b"$/)
+  expect(options).toEqual({ stdio: ['ignore', 'ignore', 'pipe'] }) // its refusal is read
 })
 
 it('Linux: the default terminal runs bash, which shows the command, runs it and stays open', () => {
@@ -31,16 +31,18 @@ it('Linux: the default terminal runs bash, which shows the command, runs it and 
   expect(options).toEqual({ detached: true, stdio: 'ignore' })
 })
 
-// A spawn that answers like Node's: 'spawn' once started, then 'exit' with a code; or 'error' when the program is missing.
-const fakeSpawn = (outcome: { exit: number } | 'error') => {
+// A spawn that answers like Node's: 'spawn' once started, stderr, then 'close' with a code; or 'error' when the program
+// is missing.
+const fakeSpawn = (outcome: { exit: number; stderr?: string } | 'error') => {
   const calls: unknown[][] = []
   const spawn = (...args: unknown[]) => {
     calls.push(args)
-    const child = Object.assign(new EventEmitter(), { unref: () => {} })
+    const child = Object.assign(new EventEmitter(), { unref: () => {}, stderr: new EventEmitter() })
     setTimeout(() => {
       if (outcome === 'error') return child.emit('error', new Error('spawn x-terminal-emulator ENOENT'))
       child.emit('spawn')
-      child.emit('exit', outcome.exit)
+      if (outcome.stderr) child.stderr.emit('data', Buffer.from(outcome.stderr))
+      child.emit('close', outcome.exit)
     })
     return child
   }
@@ -63,7 +65,10 @@ it('Run refuses anything but a known row id for this OS, before any spawn', asyn
 
 it('Run says so when no terminal opens: a missing program, or cmd or osascript refused', async () => {
   await expect(runInstall('ffmpeg', 'linux', fakeSpawn('error').spawn)).rejects.toThrow('Could not open a terminal: spawn x-terminal-emulator ENOENT')
-  await expect(runInstall('ffmpeg', 'mac', fakeSpawn({ exit: 1 }).spawn)).rejects.toThrow('Could not open a terminal (exit code 1)')
+  const refused = '30:45: execution error: Not authorized to send Apple events to Terminal. (-1743)\n'
+  await expect(runInstall('ffmpeg', 'mac', fakeSpawn({ exit: 1, stderr: refused }).spawn)).rejects.toThrow(
+    'Could not open a terminal (exit code 1): 30:45: execution error: Not authorized to send Apple events to Terminal. (-1743). Allow KapeCut to control Terminal in System Settings > Privacy & Security > Automation',
+  )
   await expect(runInstall('ffmpeg', 'win', fakeSpawn({ exit: 9009 }).spawn)).rejects.toThrow('Could not open a terminal (exit code 9009)')
   await expect(runInstall('ffmpeg', 'linux', fakeSpawn({ exit: 1 }).spawn)).resolves.toBeUndefined() // its terminal started: the window is the user's
 })

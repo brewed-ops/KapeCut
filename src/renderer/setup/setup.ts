@@ -65,11 +65,12 @@ const OS_NAME = { win: 'Windows', mac: 'macOS', linux: 'Linux' }
  * no Agent is found (nothing to run it) or no failing row has a command (the skill keeps its own button).
  */
 export function setupPrompt(rows: Row[], os: Os): string | null {
-  const fix = rows.filter((r) => r.command)
+  const fix = rows.filter((r) => r.command && r.id !== 'brew')
   if (!fix.length || fix.some((r) => r.id === 'agent')) return null
+  const brew = rows.some((r) => r.id === 'brew') ? "Homebrew is not installed: I install it myself first (Run on its row in KapeCut's Setup window), then you run the brew commands.\n" : ''
   return `KapeCut needs these tools on this ${OS_NAME[os]} computer. Run each install command in a terminal and check it worked:
 ${fix.map((r) => `- ${r.name} (${r.detail}): ${r.command}`).join('\n')}
-A tool that is there but too old: upgrade it and make sure the new one comes first on PATH.
+${brew}A tool that is there but too old: upgrade it and make sure the new one comes first on PATH.
 A command that stops for my password (sudo) or an agreement (winget): give it to me to run in my own terminal.
 When they are all installed, tell me to press Re-check in KapeCut's Setup window.`
 }

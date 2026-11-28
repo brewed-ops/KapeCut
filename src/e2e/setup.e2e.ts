@@ -112,6 +112,8 @@ test('with an Agent found and ffmpeg missing, Copy Prompt copies the ffmpeg comm
 })
 
 test("Run on a missing row opens a terminal running that row's command (spawn stubbed: nothing installs)", async () => {
+  // Off Windows main appends the install dirs to PATH: an Agent there leaves no missing Agent row to Run.
+  test.skip(process.platform !== 'win32' && !!findAgent({ PATH: withInstallDirs('', homedir()) }), 'main finds an Agent in an install dir it appends to PATH')
   const root = mkdtempSync(join(tmpdir(), 'kapecut-e2e-'))
   try {
     const { app, page } = await launch({ userData: join(root, 'user'), env: { [PATH_KEY]: '' }, waitForExport: false })
@@ -126,7 +128,7 @@ test("Run on a missing row opens a terminal running that row's command (spawn st
         process.getBuiltinModule('node:child_process').spawn = ((...args: unknown[]) => {
           g.runs!.push(args)
           const child = Object.assign(new EventEmitter(), { unref: () => {} })
-          setTimeout(() => (child.emit('spawn'), child.emit('exit', 0))) // cmd and osascript exit once the window is open
+          setTimeout(() => (child.emit('spawn'), child.emit('close', 0))) // cmd and osascript exit once the window is open
           return child
         }) as never
       }, nowhere)

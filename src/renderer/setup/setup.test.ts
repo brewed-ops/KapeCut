@@ -99,5 +99,8 @@ test('a Mac without brew: the Homebrew row comes first, only while a brew row fa
   expect(setupRows({ ...ALL, brew: false }, 'mac').map((r) => r.id)).not.toContain('brew') // nothing to install
   expect(setupRows({ ...ALL, ...noFfmpeg, brew: true }, 'mac').map((r) => r.id)).not.toContain('brew')
   for (const os of ['win', 'linux'] as const) expect(setupRows({ ...ALL, ...noFfmpeg }, os).map((r) => r.id), os).not.toContain('brew')
-  expect(setupPrompt(mac, 'mac')).toContain(`- Homebrew (Not found. The brew commands below need it first): ${BREW}\n- ffmpeg 4.4+`)
+  const prompt = setupPrompt(mac, 'mac')!
+  expect(prompt).not.toContain(BREW) // its installer waits on RETURN and a password: the user's own terminal
+  expect(prompt).toContain("- ffmpeg 4.4+ (ffmpeg is not on PATH. Export encodes the MP4 with it): brew install ffmpeg\nHomebrew is not installed: I install it myself first (Run on its row in KapeCut's Setup window), then you run the brew commands.\n")
+  expect(setupPrompt(setupRows({ ...ALL, ffmpeg: false, ffmpegVersion: null }, 'mac'), 'mac')).not.toContain('Homebrew')
 })

@@ -27,7 +27,9 @@ export function terminalArgv(os: Os, command: string, env: Record<string, string
   if (os === 'mac') {
     // Terminal's shell lacks Homebrew's dir until its "Next steps" are done, so a brew row right after Homebrew would fail.
     const typed = `export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"; ${command}`.replaceAll('\\', '\\\\').replaceAll('"', '\\"') // an AppleScript string
-    return ['/usr/bin/osascript', ['-e', `tell application "Terminal" to do script "${typed}"`, '-e', 'tell application "Terminal" to activate'], { stdio: 'ignore' }]
+    // Terminal started now opens its own window first: the script goes in that one, so no blank window sits beside it.
+    const script = ['if application "Terminal" is running then', `tell application "Terminal" to do script "${typed}"`, 'else', `tell application "Terminal" to do script "${typed}" in window 1`, 'end if', 'tell application "Terminal" to activate']
+    return ['/usr/bin/osascript', script.flatMap((line) => ['-e', line]), { stdio: ['ignore', 'ignore', 'pipe'] }]
   }
   // shortcut: x-terminal-emulator is Debian and Ubuntu's (where the apt and snap rows run); other distros Copy instead.
   // Detached: the terminal outlives KapeCut.
@@ -45,8 +47,12 @@ export function runInstall(id: unknown, os: Os = HOST, spawn = nodeSpawn) {
   const [file, args, options] = terminalArgv(os, command)
   return new Promise<void>((done, fail) => {
     const child = spawn(file, args, options)
+    let said = ''
+    child.stderr?.on('data', (d) => (said += d))
     child.on('error', (e) => fail(new Error(`Could not open a terminal: ${e.message}`)))
+    // macOS asks once whether KapeCut may control Terminal; after a Don't Allow it never asks again.
+    const hint = os === 'mac' ? '. Allow KapeCut to control Terminal in System Settings > Privacy & Security > Automation' : ''
     if (os === 'linux') child.on('spawn', () => (child.unref(), done()))
-    else child.on('exit', (code) => (code === 0 ? done() : fail(new Error(`Could not open a terminal (exit code ${code})`))))
+    else child.on('close', (code) => (code === 0 ? done() : fail(new Error(`Could not open a terminal (exit code ${code})${said.trim() ? `: ${said.trim()}` : ''}${hint}`))))
   })
 }
