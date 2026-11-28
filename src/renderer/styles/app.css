@@ -145,9 +145,9 @@ iframe.export { position: fixed; top: 0; left: 0; border: 0; visibility: hidden;
    Shift+Tab reaches it too. visibility, so it takes no click while hidden. */
 #recent > div { display: flex; align-items: center; }
 #recent > div > button:first-child { flex: 1; }
-#recent .del { flex: none; justify-content: center; width: var(--control-h); padding: 0; color: var(--muted); visibility: hidden; }
+#recent .del { flex: none; justify-content: center; width: var(--control-h); padding: 0; color: var(--muted); opacity: 0; } /* not visibility: a hidden X drops out of the Tab order (#18) */
 #recent .del .ico { width: var(--control-icon-small); height: var(--control-icon-small); }
-#recent > div:hover .del, #recent:focus-within .del { visibility: visible; }
+#recent > div:hover .del, #recent:focus-within .del { opacity: 1; }
 #recent .del:hover { color: var(--text); }
 
 .error .primary { justify-self: center; margin-top: 8px; }
