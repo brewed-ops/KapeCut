@@ -4,7 +4,7 @@
 // files.png (the Files panel, one file of each kind), files-copied.png (a row's path copied: its check), drop-overlay.png (files from disk over the window), export-progress.png
 // (the stage paused: "Exporting", play and step off)
 // and exported.png (Export filling its button, then done: the amber status), timeline-drop.png (an audio file dragged over the Timeline), notes-done.png (a done Note: check, dimmed; Copy Prompt amber, 2 open),
-// notes-done-{light,coffee}.png (the same in each light theme: its marks on its accent, #125),
+// notes-done-{light,coffee}.png (the same in Light and in Coffee: its marks on that theme's accent, #125),
 // notes-copied.png (Copy Prompt clicked: the toast, the button reads Copied with a check), notes-hidden.png
 // (Hide done on), notes-flagged.png (a Note past its shortened Scene), zoomed.png (Timeline zoomed in, mid Scene 2),
 // playing.png (Pause showing), muted.png (mute on), broken.png (Scene 2 fails to open, largest usable resolution picked, Export refused),
@@ -19,7 +19,7 @@
 // one recent Project), settings-{general,appearance,setup,updates}-{dark,light,coffee}.png (each Settings section in each theme),
 // settings-update-{off,idle,checking,latest,available,downloading,ready,out,error}.png (each Update status, as main sends it;
 // out is the Mac's),
-// default-{light,coffee}.png (the editor in each light theme). default.png opens with a handshake: idle pill.
+// default-{light,coffee}.png (the editor in Light and in Coffee). default.png opens with a handshake: idle pill.
 // scene-delete-hover.png (a Scene row's trash on hover) and scene-delete-confirm.png (its confirm, then cancelled).
 // setup-window.png and setup-window-pass.png (the Setup window: ffmpeg, Claude Code and the skill missing, then all set),
 // setup-window-prompt.png and setup-window-prompt-copied.png (Claude Code found, ffmpeg missing: Copy Prompt beside

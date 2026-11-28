@@ -43,7 +43,7 @@ export type Bridge = {
   /** Copies the repo's skill over the installed one (main fixes both paths), then checks again. */
   installSkill(): Promise<Checks>
   /** settings.json in app data. Each setter resolves to the value saved; main refuses idle minutes but 1 to 120 and a
-   *  theme but dark, light, coffee or system. setTheme also repaints the page (the preload keeps data-theme on <html>). */
+   *  theme not in Theme. setTheme also repaints the page (the preload keeps data-theme on <html>). */
   settings: {
     get(): Promise<Settings>
     setIdleMinutes(n: number): Promise<number>

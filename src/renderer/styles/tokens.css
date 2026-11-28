@@ -85,7 +85,7 @@
   --grain-blend: soft-light; /* the grain, lighter on paper */
 }
 
-/* Light (apple-design section 12, named Glass in 0.0.1): frosted white panels over a cool white wash, Apple blue as the one accent. No grain:
+/* Light (apple-design section 12; 0.0.1 saved it as theme "glass", #19): frosted white panels over a cool white wash, Apple blue as the one accent. No grain:
    app.css lays --wash on body and blurs what sits under each panel (--glass). The blue is 5:1 on --bg. */
 :root[data-theme='light'] {
   --bg: #eef1f6;

@@ -50,9 +50,9 @@ it('reads the theme, dark by default; a bad theme does not lose the idle minutes
 
 it('a 0.0.1 file (version 1) keeps its look: light becomes coffee, glass becomes light, once', async () => {
   const file = join(folder(), 'settings.json')
-  for (const [old, now] of [['dark', 'dark'], ['light', 'coffee'], ['glass', 'light'], ['system', 'system'], ['coffee', 'dark'], ['bad', 'dark']]) {
+  for (const [old, now] of [['dark', 'dark'], ['light', 'coffee'], ['glass', 'light'], ['system', 'system'], ['coffee', 'dark'], ['bad', 'dark'], [['light'], 'dark'], ['toString', 'dark']]) {
     writeFileSync(file, JSON.stringify({ version: 1, idleMinutes: 9, theme: old }))
-    expect(readSettings(file), old).toEqual({ idleMinutes: 9, theme: now })
+    expect(readSettings(file), String(old)).toEqual({ idleMinutes: 9, theme: now })
   }
   // Once: the next write is version 2, so its light is read as light from then on.
   writeFileSync(file, JSON.stringify({ version: 1, idleMinutes: 9, theme: 'glass' }))

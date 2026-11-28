@@ -13,7 +13,8 @@ export const ground = (theme: Theme, osDark: boolean) => BACKGROUND[theme === 's
 
 const THEMES: unknown[] = ['dark', 'light', 'coffee', 'system'] satisfies Theme[]
 // 0.0.1 (version 1) called Coffee light and Light glass: renamed on read, and the next write is version 2.
-const RENAMED: Record<string, Theme> = { light: 'coffee', glass: 'light', dark: 'dark', system: 'system' }
+// Its four names only: the identity entries are what let dark and system through, anything else falls to the default.
+const RENAMED = new Map<unknown, Theme>([['light', 'coffee'], ['glass', 'light'], ['dark', 'dark'], ['system', 'system']])
 const validIdle = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 120
 const validTheme = (t: unknown): t is Theme => THEMES.includes(t)
 
@@ -23,7 +24,7 @@ export function readSettings(file: string): Settings {
   try {
     const s = JSON.parse(readFileSync(file, 'utf8'))
     if (s?.version !== 1 && s?.version !== 2) return defaults
-    const theme = s.version === 1 ? RENAMED[s.theme] : s.theme
+    const theme = s.version === 1 ? RENAMED.get(s.theme) : s.theme
     return { idleMinutes: validIdle(s.idleMinutes) ? s.idleMinutes : defaults.idleMinutes, theme: validTheme(theme) ? theme : defaults.theme }
   } catch {
     return defaults // first launch, or an unreadable file
