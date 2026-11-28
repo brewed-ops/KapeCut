@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { HANDSHAKE } from '../renderer/agent/status'
+import { BACKGROUND, blurs } from '../main/settings'
 
 // Best effort: Electron's helper processes can hold the profile a moment past close on Windows.
 const cleanUp = (root: string) => {
@@ -218,7 +219,7 @@ test('the theme repaints the app at once, survives a restart, and System follows
     // Each option repaints the page and the window's own ground, so a reload never flashes the other one. Glass clears the
     // ground where the OS blurs the desktop behind it (Windows, Mac), and Coffee after it makes it solid again.
     // getBackgroundColor drops the alpha: a clear ground reads #000000. The blur itself is read off main's calls.
-    const glassGround = process.platform === 'linux' ? '#0d0b0a' : '#000000'
+    const glassGround = blurs() ? '#000000' : BACKGROUND.glass
     await app.evaluate(({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows()[0]
       const calls: unknown[] = ((globalThis as { blurCalls?: unknown[] }).blurCalls = [])
@@ -227,14 +228,14 @@ test('the theme repaints the app at once, survives a restart, and System follows
         ;(win as unknown as Record<string, unknown>)[k] = (v: unknown) => (calls.push(v), real(v))
       }
     })
-    for (const [name, bg, hex] of [['Light', 'rgb(238, 241, 246)', '#eef1f6'], ['Glass', 'rgba(13, 11, 10, 0.72)', glassGround], ['Coffee', 'rgb(244, 239, 230)', '#f4efe6']]) {
+    for (const [name, bg, hex] of [['Light', 'rgb(238, 241, 246)', '#eef1f6'], ['Glass', 'rgba(13, 11, 10, 0.8)', glassGround], ['Coffee', 'rgb(244, 239, 230)', '#f4efe6']]) {
       await radio(name).check()
       await expect.poll(look).toEqual({ theme: name.toLowerCase(), bg })
       await expect.poll(saved).toBe(name.toLowerCase())
       expect(await ground()).toBe(hex)
     }
-    // Windows acrylic, Mac vibrancy, nothing to blur with on Linux; off again for every other theme.
-    const blur = { win32: ['auto', 'acrylic', 'auto'], darwin: [null, 'under-window', null] }[process.platform as string] ?? []
+    // Windows acrylic, Mac vibrancy, on for Glass and off after it; nothing where the OS cannot blur (Linux, Windows before 11 22H2).
+    const blur = blurs() ? { win32: ['acrylic', 'auto'], darwin: ['under-window', null] }[process.platform as string] : []
     expect(await app.evaluate(() => (globalThis as { blurCalls?: unknown[] }).blurCalls)).toEqual(blur)
     await app.close()
 
@@ -270,7 +271,7 @@ test('a 0.0.1 settings file keeps its look (its light opens as Coffee, its glass
       const { app, page } = await launch({ project: dir, userData })
       expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(now.toLowerCase())
       // Glass blurs from the first frame: a clear ground (getBackgroundColor drops the alpha) where the OS blurs.
-      const clear = now === 'Glass' && process.platform !== 'linux'
+      const clear = now === 'Glass' && blurs()
       expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBackgroundColor()) === '#000000').toBe(clear)
       await settingsButton(page).click()
       await section(page, 'Appearance').click()

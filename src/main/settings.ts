@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { release } from 'node:os'
 import { IDLE_MS } from '../renderer/agent/status'
 import { writeAtomic } from './owned-writes'
 
@@ -8,11 +9,14 @@ export type Settings = { idleMinutes: number; theme: Theme }
 
 /** --bg of each palette in tokens.css (settings.test.ts holds them equal): the window paints it before CSS loads. */
 export const BACKGROUND = { dark: '#12100e', light: '#eef1f6', coffee: '#f4efe6', glass: '#0d0b0a' }
-/** The OSes that blur the desktop behind a window: Windows acrylic, Mac vibrancy (#20). */
-export const blurs = (platform: NodeJS.Platform) => platform === 'win32' || platform === 'darwin'
-/** The window's ground for a theme; System takes the OS's. Glass is see-through where the OS blurs, solid ink elsewhere. */
-export const ground = (theme: Theme, osDark: boolean, platform = process.platform) =>
-  theme === 'glass' && blurs(platform) ? '#00000000' : BACKGROUND[theme === 'system' ? (osDark ? 'dark' : 'light') : theme]
+/** A clear window ground: the desktop shows through it, blurred by the OS (#20). */
+export const CLEAR = '#00000000'
+/** Whether the OS can blur the desktop behind a window: Mac vibrancy, Windows 11 22H2 (build 22621) and later acrylic. */
+export const blurs = (platform = process.platform, osRelease = release()) =>
+  platform === 'darwin' || (platform === 'win32' && Number(osRelease.split('.')[2]) >= 22621)
+/** The window's ground for a theme; System takes the OS's. Glass is clear while main blurs, solid ink otherwise. */
+export const ground = (theme: Theme, osDark: boolean, blur = false) =>
+  theme === 'glass' && blur ? CLEAR : BACKGROUND[theme === 'system' ? (osDark ? 'dark' : 'light') : theme]
 
 const THEMES: unknown[] = ['dark', 'light', 'coffee', 'glass', 'system'] satisfies Theme[]
 // 0.0.1 (version 1) called Coffee light and Light glass: renamed on read, and the next write is version 2.

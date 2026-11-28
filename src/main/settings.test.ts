@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
-import { BACKGROUND, ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
+import { BACKGROUND, blurs, CLEAR, ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
 
 it("the window's ground is --bg of each palette in tokens.css", () => {
   const tokens = readFileSync(new URL('../renderer/styles/tokens.css', import.meta.url), 'utf8')
@@ -14,7 +14,9 @@ it("the window's ground is --bg of each palette in tokens.css", () => {
   // System is Dark or Light (the cool grey one), never Coffee.
   expect([ground('coffee', true), ground('dark', false), ground('light', true), ground('system', true), ground('system', false)]).toEqual(['#f4efe6', '#12100e', '#eef1f6', '#12100e', '#eef1f6'])
   // Glass: see-through where the OS blurs the desktop behind the window (Windows acrylic, Mac vibrancy), solid ink elsewhere.
-  expect([ground('glass', true, 'win32'), ground('glass', false, 'darwin'), ground('glass', true, 'linux'), ground('dark', true, 'win32')]).toEqual(['#00000000', '#00000000', BACKGROUND.glass, '#12100e'])
+  expect([ground('glass', true, true), ground('glass', false, false), ground('dark', true, true)]).toEqual([CLEAR, BACKGROUND.glass, '#12100e'])
+  // Acrylic needs Windows 11 22H2 (build 22621); Linux has no window blur.
+  expect([blurs('darwin', '23.0.0'), blurs('win32', '10.0.22621'), blurs('win32', '10.0.26200'), blurs('win32', '10.0.22000'), blurs('win32', '10.0.19045'), blurs('linux', '6.8.0')]).toEqual([true, true, true, false, false, false])
 })
 
 const made: string[] = []

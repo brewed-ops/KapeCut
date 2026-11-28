@@ -86,7 +86,7 @@
 }
 
 /* Light (apple-design section 12; 0.0.1 saved it as theme "glass", #19): frosted white panels over a cool white wash, Apple blue as the one accent. No grain:
-   app.css lays --wash on body and blurs what sits under each panel (--glass). The blue is 5:1 on --bg. */
+   app.css lays --wash on body and blurs what sits under each panel (--frost). The blue is 5:1 on --bg. */
 :root[data-theme='light'] {
   --bg: #eef1f6;
   --wash: radial-gradient(120% 80% at 0% 0%, #ffffff 0%, transparent 60%), radial-gradient(90% 70% at 100% 100%, #dfe6f2 0%, transparent 70%),
@@ -95,7 +95,7 @@
   --panel-2: rgb(246 248 252 / 0.86);
   --frame: rgb(40 52 76 / 0.12);
   --edge: rgb(255 255 255 / 0.85); /* the bright top edge: light catching the material */
-  --glass: blur(28px) saturate(180%);
+  --frost: blur(28px) saturate(180%);
   --accent: #0066cc;
   --ok: #248a3d;
   --warn: #c27400;
@@ -108,18 +108,19 @@
 }
 /* Glass (#20): Dark's ink and amber, see-through to the desktop. Main gives the window Windows acrylic or Mac vibrancy
    and a clear ground; --tint over it keeps text readable on any wallpaper. Where the OS has no blur (Linux) the window
-   paints --bg under the same tint: solid ink, the panels slightly see-through on it. No grain: app.css lays --tint. */
+   paints --bg under the same tint: solid ink, panels slightly see-through on it. Reduced transparency turns the blur off. */
 :root[data-theme='glass'] {
   --bg: #0d0b0a;
-  --tint: rgb(13 11 10 / 0.72);
-  --panel: rgb(27 24 21 / 0.62);
-  --panel-2: rgb(34 30 25 / 0.78);
+  --tint: rgb(13 11 10 / 0.8);
+  --panel: rgb(27 24 21 / 0.72);
+  --panel-2: rgb(34 30 25 / 0.82);
+  --dim: #a89a86; /* lighter than Dark's: 4.5:1 on a panel over a white wallpaper's blur */
   --frame: rgb(246 242 234 / 0.14);
   --edge: rgb(246 242 234 / 0.08); /* the faint top edge of a frosted panel */
-  --glass: blur(28px) saturate(140%);
+  --frost: blur(28px) saturate(140%);
 }
 /* Reduced transparency: the same glass, solid. */
 @media (prefers-reduced-transparency: reduce) {
-  :root[data-theme='light'] { --panel: #fbfcfe; --panel-2: #f1f4f9; --glass: none; }
-  :root[data-theme='glass'] { --tint: #0d0b0a; --panel: #1b1815; --panel-2: #221e19; --glass: none; }
+  :root[data-theme='light'] { --panel: #fbfcfe; --panel-2: #f1f4f9; --frost: none; }
+  :root[data-theme='glass'] { --tint: #0d0b0a; --panel: #1b1815; --panel-2: #221e19; --frost: none; }
 }

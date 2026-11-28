@@ -13,7 +13,7 @@ import { ownLanded, ownTemp, ownWrite } from './owned-writes'
 import { copyIn, deleteScene, listFiles, readDrop, writeAudio } from './project-files'
 import { writeSession } from './session-file'
 import { handleUpdates } from './updates'
-import { ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
+import { blurs, ground, readSettings, withIdleMinutes, withTheme, writeSettings, type Settings } from './settings'
 import { allPass, installSkill, mediaChecks, refreshPath, runChecks, skillState, withInstallDirs, type Checks } from './setup-checks'
 
 if (process.platform !== 'win32') process.env.PATH = withInstallDirs(process.env.PATH ?? '', homedir())
@@ -171,12 +171,17 @@ app.whenReady().then(() => {
   handle('settings:get', () => settings)
   // The window's ground before CSS paints: kept on the theme's --bg, also when System follows an OS change. Glass (#20)
   // blurs the desktop behind a clear ground, switched live: Windows acrylic, Mac vibrancy, none on Linux.
+  // Off where the OS cannot blur or the user asked for less transparency: there Glass is solid ink. Set on a change only.
+  let blurring = false
   const paintGround = () => {
     if (win.isDestroyed()) return
-    const glass = settings.theme === 'glass'
-    if (process.platform === 'win32') win.setBackgroundMaterial(glass ? 'acrylic' : 'auto')
-    if (process.platform === 'darwin') win.setVibrancy(glass ? 'under-window' : null)
-    win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors)) // after the material, which sets its own
+    const blur = settings.theme === 'glass' && blurs() && !nativeTheme.prefersReducedTransparency
+    if (blur !== blurring) {
+      blurring = blur
+      if (process.platform === 'win32') win.setBackgroundMaterial(blur ? 'acrylic' : 'auto')
+      if (process.platform === 'darwin') win.setVibrancy(blur ? 'under-window' : null)
+    }
+    win.setBackgroundColor(ground(settings.theme, nativeTheme.shouldUseDarkColors, blur)) // after the material, which sets its own
   }
   nativeTheme.on('updated', paintGround)
   // In memory first, so a second change made while the first is still writing builds on it (idle minutes then theme).
